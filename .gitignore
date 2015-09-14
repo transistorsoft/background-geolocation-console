@@ -1,5 +1,3 @@
-/js/bundle.js
-/js/bundle.min.js
 node_modules
 db
 .DS_Store
