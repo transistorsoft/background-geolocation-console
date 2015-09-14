@@ -33,6 +33,8 @@ The Background Geolocation [Sample App](https://github.com/transistorsoft/cordov
 
 ![](https://dl.dropboxusercontent.com/u/2319755/cordova-background-geolocaiton/settings-url.png)
 
+You should also configure `Settings->autoSync` to `false` while out field-testing as well, so that the app doesn't try syncing each recorded location to the server running on your `localhost`.  Once you return after a test and you're back on your office Wifi, click the **[Sync]** button on the `Settings` screen to upload the cached locations to the **Background Geolocation Console** server.
+
 ## Credit
 
 Chris Scott of [Transistor Software](http://transistorsoft.com)
