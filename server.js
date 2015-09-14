@@ -91,7 +91,14 @@ function initDB(filename) {
     return new sqlite3.Database(filename);
   } else {
     console.log("Creating DB file.");
-    fs.openSync(filename, "w");
+    fs.mkdir("db", function(e) {
+      if (!e) {
+        fs.openSync(filename, "w");
+      } else {
+        console.log(e);
+      }
+    });
+    
     
     var dbh = new sqlite3.Database(filename);  
 
