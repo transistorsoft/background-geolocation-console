@@ -12,6 +12,16 @@ app.use(express.static('.'));
 app.use(bodyParser.json());
 
 /**
+* GET /devices
+*/
+app.get('/devices', function(req, res) {
+  console.log('GET /devices', "\n");
+  Device.all({}, function(rs) {
+    res.send(rs);
+  })
+});
+
+/**
 * GET /locations
 */
 app.get('/locations', function(req, res) {
@@ -40,17 +50,43 @@ var server = app.listen(8080, function () {
 });
 
 /**
+* Device model
+*/
+var Device = (function() {
+  return {
+    all: function(conditions, callback) {
+      var query = "SELECT device_id, device_model FROM locations GROUP BY device_id, device_model";
+      var onQuery = function(err, rows) {
+        var rs = [];
+        rows.forEach(function (row) {
+          rs.push(row);
+        });
+        callback(rs);
+      }      
+      dbh.all(query, onQuery);
+    }
+  }
+})();
+/**
 * Location model
 */
 var Location = (function() {
   return {
-    all: function(conditions, callback) {
+    all: function(params, callback) {
       var query = ["SELECT * FROM locations"];
-      if (conditions.start_date && conditions.end_date) {
-        query.push("WHERE recorded_at BETWEEN ? AND ?")
+      var conditions = [];
+      if (params.start_date && params.end_date) {
+        conditions.push("recorded_at BETWEEN ? AND ?")
+      }
+      if (params.device_id) {
+        conditions.push("device_id = ?")
+      }
+      if (conditions.length) {
+        query.push("WHERE " + conditions.join(' AND '));
       }
       query.push("ORDER BY recorded_at DESC");
 
+      console.log(query.join(' '));
       var onQuery = function(err, rows) {
         var rs = [];
         rows.forEach(function (row) {
@@ -60,8 +96,8 @@ var Location = (function() {
       }
 
       query = query.join(' ');
-      if (conditions.start_date && conditions.end_date) {
-        dbh.all(query, conditions.start_date, conditions.end_date, onQuery)
+      if (params.start_date && params.end_date) {
+        dbh.all(query, params.start_date, params.end_date, params.device_id, onQuery)
       } else {
         dbh.all(query, onQuery);
       }
@@ -73,11 +109,11 @@ var Location = (function() {
           activity  = location.activity || {type: null, confidence: null},
           device    = params.device,
           now       = new Date(),
-          query     = "INSERT INTO locations (uuid, device_id, latitude, longitude, accuracy, altitude, speed, heading, activity_type, activity_confidence, battery_level, battery_is_charging, is_moving, recorded_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+          query     = "INSERT INTO locations (uuid, device_id, device_model, latitude, longitude, accuracy, altitude, speed, heading, activity_type, activity_confidence, battery_level, battery_is_charging, is_moving, recorded_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
           
       var sth       = dbh.prepare(query);
       
-      sth.run(location.uuid, device.uuid, coords.latitude, coords.longitude, coords.accuracy, coords.altitude, coords.speed, coords.heading, activity.type, activity.confidence, battery.level, battery.is_charging, location.is_moving, location.timestamp, now);
+      sth.run(location.uuid, device.uuid, device.model, coords.latitude, coords.longitude, coords.accuracy, coords.altitude, coords.speed, coords.heading, activity.type, activity.confidence, battery.level, battery.is_charging, location.is_moving, location.timestamp, now);
       sth.finalize();
     }
   }
@@ -92,11 +128,7 @@ function initDB(filename) {
   } else {
     console.log("Creating DB file.");
     fs.mkdir("db", function(e) {
-      if (!e) {
-        fs.openSync(filename, "w");
-      } else {
-        console.log(e);
-      }
+      fs.openSync(filename, "w");
     });
     
     
@@ -106,6 +138,7 @@ function initDB(filename) {
       "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL", 
       "uuid TEXT",
       "device_id TEXT",
+      "device_model TEXT",
       "latitude REAL", 
       "longitude REAL",
       "accuracy INTEGER", 

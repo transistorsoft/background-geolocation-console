@@ -8,9 +8,22 @@ var LocationsProxy = {
     console.info('LocationsProxy#load');
 
     $.ajax({
-      url: 'http://localhost:8080/locations',
+      url: '/locations',
       method: 'GET',
-      crossDomain: true,
+      data: params,
+      success: success
+    });
+  }
+};
+
+/**
+* Devices Proxy
+*/
+var DevicesProxy = {
+  load: function(params, success, failure) {
+    $.ajax({
+      url: '/devices',
+      method: 'GET',
       data: params,
       success: success
     });
@@ -25,6 +38,14 @@ var actions = {
     this.dispatch(constants.LOAD_LOCATIONS);
     LocationsProxy.load(params, function(rs) {
       this.dispatch(constants.LOAD_LOCATIONS_SUCCESS, {data: rs});
+    }.bind(this), function(error) {
+      alert('error');
+    }.bind(this));
+  },
+  loadDevices: function(params) {
+    this.dispatch(constants.LOAD_DEVICES);
+    DevicesProxy.load(params, function(rs) {
+      this.dispatch(constants.LOAD_DEVICES_SUCCESS, {data: rs});
     }.bind(this), function(error) {
       alert('error');
     }.bind(this));

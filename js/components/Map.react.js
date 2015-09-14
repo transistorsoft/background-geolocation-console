@@ -5,27 +5,36 @@ import {default as InfoWindow} from "react-google-maps/lib/InfoWindow";
 import {default as Polyline} from "react-google-maps/lib/Polyline";
 import View from "react-flexbox";
 
-var Fluxxor = require('fluxxor');
-var moment = require('moment');
-var mui = require('material-ui'),
-  ThemeManager = new mui.Styles.ThemeManager(),
-  FlatButton = mui.FlatButton,
-  RaisedButton = mui.RaisedButton,
-  FontIcon = mui.FontIcon,
-  Tabs = mui.Tabs,
-  Tab = mui.Tab,
-  Toolbar = mui.Toolbar,
-  DatePicker = mui.DatePicker,
-  TextField = mui.TextField,
-  ToolbarSeparator = mui.ToolbarSeparator,
-  ToolbarGroup = mui.ToolbarGroup,
-  ToolbarTitle = mui.ToolbarTitle;
-
-var DataGrid = require('react-datagrid')
-var FluxMixin = Fluxxor.FluxMixin(React),
+// Fluxor
+var Fluxxor         = require('fluxxor');
+var FluxMixin       = Fluxxor.FluxMixin(React),
     StoreWatchMixin = Fluxxor.StoreWatchMixin;
 
+// Stores
+var DevicesStore = require('../stores/DevicesStore');
 var Constants = require('../constants/Constants');
+
+// For date-formatting
+var moment = require('moment');
+
+// Material deps
+var mui = require('material-ui'),
+  ThemeManager  = new mui.Styles.ThemeManager(),
+  Colors        = mui.Styles.Colors,
+  FlatButton    = mui.FlatButton,
+  SelectField   = mui.SelectField,
+  RaisedButton  = mui.RaisedButton,
+  FontIcon      = mui.FontIcon,
+  Tabs          = mui.Tabs,
+  Tab           = mui.Tab,
+  Toolbar       = mui.Toolbar,
+  DatePicker    = mui.DatePicker,
+  TextField     = mui.TextField,
+  ToolbarSeparator = mui.ToolbarSeparator,
+  ToolbarGroup  = mui.ToolbarGroup,
+  ToolbarTitle  = mui.ToolbarTitle;
+
+var DataGrid = require('react-datagrid')
 
 /**
 * Grid-column booleanRenderer
@@ -49,7 +58,7 @@ function dateRenderer(v) {
 
 // DataGrid columns
 var gridColumns = [
-  { name: 'device_id', title: 'Device ID'},
+  { name: 'device_id', title: 'Device ID', render: function(v) { return (v) ? v.split('-').pop() : '-'; }},
   { name: 'uuid', title: 'UUID', render: function(v) { return (v) ? v.split('-').pop() : '-'; }},
   { name: 'recorded_at', title: "Timestamp", render: dateRenderer, width: 150},
   { name: 'created_at', title: 'Created at', render: dateRenderer, width: 150},
@@ -73,7 +82,7 @@ var gridColumns = [
  * Add <script src="https://maps.googleapis.com/maps/api/js"></script> to your HTML to provide google.maps reference
  */
 var Map = React.createClass({
-  mixins: [FluxMixin, StoreWatchMixin("LocationsStore")],
+  mixins: [FluxMixin, StoreWatchMixin("LocationsStore", "DevicesStore")],
   /*
    * 1. Create a component that wraps all your map sub-components.
    */
@@ -87,10 +96,18 @@ var Map = React.createClass({
   },
 
   getInitialState: function() {
+    var filter = window.localStorage.getItem('filter');
+    if (filter) {
+      filter = JSON.parse(filter);
+    } else {
+      filter = {};
+    }
     return {      
+      device: filter.device_id,
       currentPosition: null,
       currentPositionMarker: null,
-      path: [],      
+      path: [],
+      devices: [],      
       markers: [{
         position: {
           lat: 25.0112183,
@@ -140,13 +157,23 @@ var Map = React.createClass({
       }
     };
   },
+  componentWillMount: function() {
+    /*
+    ThemeManager.setPalette({
+      accent1Color: Colors.deepOrange500,
+    });
+    */
+    ThemeManager.setTheme(ThemeManager.types.LIGHT);
+  },
   componentDidMount: function() {
     var me = this;
     var flux = this.getFlux();
 
-    var filter = window.localStorage.getItem("filter");
-    if (filter) {
-      filter = JSON.parse(filter);
+    flux.actions.loadDevices();
+
+    // Init filter form
+    var filter = this.getFilter();
+    if (filter.start_date && filter.end_date) {
       var startDate = new Date(filter.start_date),
           endDate = new Date(filter.end_date);
 
@@ -187,6 +214,23 @@ var Map = React.createClass({
           markers: markers,
           path: path
         })
+      } else if (type === Constants.LOAD_DEVICES_SUCCESS) {
+        var filter = me.getFilter(), 
+            deviceIndex = 0;
+        if (!filter.device_id && payload.data.length) {
+          filter.device_id = payload.data[0].device_id;
+          me.setFilter(filter);
+        }
+        for (var n=0,len=payload.data.length;n<len;n++) {
+          if (payload.data[n].device_id === filter.device_id) {
+            deviceIndex = n;
+          }
+        }
+        me.setState({
+          devices: payload.data,
+          deviceIndex: deviceIndex
+        });
+        me.onFilter();
       }
     });
 
@@ -224,11 +268,18 @@ var Map = React.createClass({
     resize();
 
     setTimeout(function() {
-      me.onFilter();
+      
     }, 500);
   },
+  getFilter: function() {
+    return JSON.parse(window.localStorage.getItem('filter')) || {};
+  },
+  setFilter: function(filter) {
+    window.localStorage.setItem('filter', JSON.stringify(filter));
+  },
   onFilter: function() {
-    var startDate = new Date(this.refs.startDate.getDate()),
+    var device    = this.refs.device,
+        startDate = new Date(this.refs.startDate.getDate()),
         startTime = this.refs.startTime.getValue().split(':'),
         endDate = new Date(this.refs.endDate.getDate()),
         endTime = this.refs.endTime.getValue().split(':');
@@ -239,16 +290,24 @@ var Map = React.createClass({
     endDate.setHours(parseInt(endTime[0], 10));
     endDate.setMinutes(parseInt(endTime[1], 10));
 
-    var filter = {
-      start_date: startDate.toISOString(),
-      end_date: endDate.toISOString()
-    };
+    var filter = this.getFilter();
+    filter.start_date = startDate.toISOString();
+    filter.end_date   = endDate.toISOString();
 
-    window.localStorage.setItem("filter", JSON.stringify(filter));
+    this.setFilter(filter);
 
     this.getFlux().actions.loadLocations(filter);
   },
 
+  onSelectDevice: function(events, index, record) {
+    var filter = this.getFilter();
+    filter.device_id = record.device_id;
+    this.setFilter(filter);
+
+    this.setState({
+      deviceIndex: index
+    });
+  },
   showInfoWindow: function(marker) {
     var location = marker.location,
         isChargingCls = '';
@@ -302,21 +361,24 @@ var Map = React.createClass({
 
       <View column auto width="100%">
         <View column auto>
-          <Toolbar>
-            <ToolbarGroup key={0} float="left">
-              <ToolbarTitle text="Start date" style={{float:"left"}} />
-              <DatePicker ref="startDate" autoOk={true} formatDate={this.formatDate} defaultDate={today} style={{marginTop:"5px", float: "left", width: "100px"}}/>
-              <TextField ref="startTime" defaultValue="00:00" style={{marginTop: "5px", float: "left", width: "50px"}} />
-              <ToolbarSeparator />
+          <Toolbar style={{backgroundColor:"#fff"}}>
+            <ToolbarGroup key={0}>
+              <ToolbarTitle text="Device:" style={{float:"left"}} />
+              <SelectField ref="device" selectedIndex={this.state.deviceIndex} displayMember="device_model" valueMember="device_id" menuItems={this.state.devices} onChange={this.onSelectDevice} style={{float:"left", marginTop:"5px", width:"150px"}} />
             </ToolbarGroup>
 
-            <ToolbarGroup key={1} float="left" style={{marginLeft:"20px"}}>
+            <ToolbarGroup key={1} float="left">
+              <ToolbarTitle text="Start date" style={{float:"left", marginLeft:"20px"}} />
+              <DatePicker ref="startDate" autoOk={true} width="100px" formatDate={this.formatDate} defaultDate={today} style={{marginTop:"5px", float: "left", width: "100px"}} textFieldStyle={{width:"100px"}}/>
+              <TextField ref="startTime" defaultValue="00:00" width="100" style={{marginLeft: "10px", marginTop: "5px", float: "left", width: "50px"}} />
+            </ToolbarGroup>
+
+            <ToolbarGroup key={2} float="left" style={{marginLeft:"20px"}}>
               <ToolbarTitle text="End date" style={{float:"left"}} />
-              <DatePicker ref="endDate" autoOk={true} formatDate={this.formatDate} defaultDate={today} style={{marginTop:"5px", float: "left", width: "100px"}} />
-              <TextField ref="endTime" defaultValue="23:59" style={{marginTop:"5px", float: "left", width: "50px"}} />
+              <DatePicker ref="endDate" autoOk={true} formatDate={this.formatDate} defaultDate={today} style={{marginTop:"5px", float: "left"}} textFieldStyle={{width:"100px"}} />
+              <TextField ref="endTime" defaultValue="23:59" style={{marginLeft: "10px", marginTop:"5px", float: "left", width: "50px"}} />
               <RaisedButton label="Filter" primary={true} onClick={this.onFilter}  />
             </ToolbarGroup>
-            <ToolbarSeparator/>
           </Toolbar>
 
         </View>

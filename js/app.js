@@ -19,10 +19,14 @@ var RouteHandler = Router.RouteHandler;
 var Viewport = require('./components/Viewport.react');
 
 var actions = require('./actions/Actions');
-var LocationsStore = require('./stores/LocationsStore');
+
+// Stores
+var LocationsStore = require('./stores/LocationsStore'),
+    DevicesStore   = require('./stores/DevicesStore');
 
 var stores = {
-  LocationsStore: new LocationsStore()
+  LocationsStore: new LocationsStore(),
+  DevicesStore: new DevicesStore()
 };
 
 var flux = new Fluxxor.Flux(stores, actions);
