@@ -27,6 +27,12 @@ To run the app in your browser, boot the web server
 
 Now visit [http://localhost:8080](http://localhost:8080)
 
+## Configure The Sample App
+
+The Background Geolocation SampleApp is perfect for use with this web-application.  To configure the app, simply edit `Settings->url` and set it to `http://<your.ip.ad.dress>:8080/locations`.
+
+![](https://dl.dropboxusercontent.com/u/2319755/cordova-background-geolocaiton/settings-url.png)
+
 ## Credit
 
 Chris Scott of [Transistor Software](http://transistorsoft.com)
