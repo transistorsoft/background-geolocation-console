@@ -27,8 +27,6 @@ var stores = {
 
 var flux = new Fluxxor.Flux(stores, actions);
 
-console.log('flux: ', flux);
-
 flux.on("dispatch", function(type, payload) {
   if (console && console.log) {
     console.log("[Dispatch]", type, payload);
@@ -44,12 +42,3 @@ var routes = (
 Router.run(routes, function (Handler) {
   React.render(<Handler flux={flux}/>, document.body);
 });
-
-
-/*
-React.render(
-  <Viewport />,
-  document.getElementById('app')
-);
-*/
-

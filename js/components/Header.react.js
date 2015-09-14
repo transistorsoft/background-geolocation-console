@@ -28,7 +28,7 @@ var Header = React.createClass({
     return (
       <View row className="header">
         <AppBar
-          title="Background Geolocation Analyzer"
+          title="Background Geolocation Console"
           iconElementRight={<FlatButton label="Transistor Software" />}
         />
       </View>

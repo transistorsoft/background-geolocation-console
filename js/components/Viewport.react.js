@@ -14,20 +14,10 @@ var Viewport = React.createClass({
     return (
       <View column height="100vh">
         <View column auto>
-          <View className="green" height="70px"><Header height="70px" /></View>
+          <View height="70px"><Header height="70px" /></View>
         </View>
-        <View className="red"><Map flux={this.props.flux} /></View>
+        <View><Map flux={this.props.flux} /></View>
       </View>
-
-      /*
-      <View column className={this.className} height="800px">
-        <Header height="70px" />
-        <View row>
-          <Map flux={this.props.flux} />
-
-        </View>
-      </View>
-      */
     );
   }
 });
