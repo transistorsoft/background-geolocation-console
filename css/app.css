@@ -1,0 +1,80 @@
+html, body { height: 100%; }
+
+body {
+	padding: 0;
+	margin: 0;
+	font-family: 'Roboto', sans-serif;
+}
+#app {
+}
+
+.viewport {
+	background-color: #eee;
+	border: 5px solid red;
+}
+
+.header {
+	background-color: blue;
+	position: relative;
+}
+.header h1 {
+	color: #fff;
+}
+.header .menu {
+	
+}
+
+.west {
+	background-color: yellow;
+}
+
+/**
+* Fix for datagrid wrapper interfering with Material DatePicker popup z-index.  Bump it down by 1
+*/
+.z-scroller .z-content-wrapper {
+	z-index: 9; !important;
+}
+
+.cell-green {
+	background-color: #0e0;
+	color: #000;
+	opacity: 0.4;
+}
+.cell-red {
+	background-color: #e00;
+	color: #fff;
+	opacity: 0.4;
+}
+
+.location-info-window {
+	width: 300px;
+}
+.location-info-window table.properties {
+	width: 100%;
+}
+.location-info-window table.properties th, .location-info-window table.properties td {
+	padding: 5px;
+}
+.location-info-window table.properties th {
+	font-weight: bold;
+	width: 50%;
+	color: #000;
+	text-align: right;
+}
+.location-info-window table.properties tr.is-charging-true td {
+	color: #0c0;
+}
+.location-info-window table.properties tr.is-charging-false td {
+	color: #c00;
+}
+.location-info-window table.properties td {
+	width: 50%;
+	text-align: left;
+}
+.location-info-window pre {
+	margin-top: 0;
+}
+.location-info-window .timestamp {
+	color: #acacac;
+	font-family: monospace;
+}
