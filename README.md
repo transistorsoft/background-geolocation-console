@@ -2,6 +2,10 @@
 
 > A simple server & web app for field-testing & analysis of the Background Geolocation plugin
 
+![](https://dl.dropboxusercontent.com/u/2319755/cordova-background-geolocaiton/background-geolocation-console-map.png)
+
+![](https://dl.dropboxusercontent.com/u/2319755/cordova-background-geolocaiton/background-geolocation-console-grid.png)
+
 ## Running
 
 You must have [npm](https://www.npmjs.org/) installed on your computer.
