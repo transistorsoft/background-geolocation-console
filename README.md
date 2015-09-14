@@ -1,6 +1,6 @@
 # Background Geolocation Console
 
-> A simple server & web app for field-testing & analysis of the Background Geolocation plugin
+> A simple server & web app for field-testing & analysis of the [Background Geolocation plugin](https://github.com/transistorsoft/cordova-background-geolocation-lt)
 
 ![](https://dl.dropboxusercontent.com/u/2319755/cordova-background-geolocaiton/background-geolocation-console-map.png)
 
