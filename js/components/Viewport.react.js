@@ -1,10 +1,9 @@
 var React = require('react');
+import View from "react-flexbox";
 
 var Header = require('./Header.react');
-var Workspace = require('./Workspace.react');
 var Map = require('./Map.react');
-var Navbar = require('./Navbar.react');
-import View from "react-flexbox";
+
 
 var Viewport = React.createClass({
   className: "viewport",

@@ -1,22 +1,17 @@
 import {default as React, Component} from "react";
-
-var Fluxxor = require('fluxxor');
-
 import {default as GoogleMap} from "react-google-maps/lib/GoogleMap";
 import {default as Marker} from "react-google-maps/lib/Marker";
 import {default as InfoWindow} from "react-google-maps/lib/InfoWindow";
 import {default as Polyline} from "react-google-maps/lib/Polyline";
-
 import View from "react-flexbox";
 
+var Fluxxor = require('fluxxor');
 var moment = require('moment');
-
 var mui = require('material-ui'),
   ThemeManager = new mui.Styles.ThemeManager(),
   FlatButton = mui.FlatButton,
   RaisedButton = mui.RaisedButton,
   FontIcon = mui.FontIcon,
-
   Tabs = mui.Tabs,
   Tab = mui.Tab,
   Toolbar = mui.Toolbar,
@@ -27,7 +22,6 @@ var mui = require('material-ui'),
   ToolbarTitle = mui.ToolbarTitle;
 
 var DataGrid = require('react-datagrid')
-
 var FluxMixin = Fluxxor.FluxMixin(React),
     StoreWatchMixin = Fluxxor.StoreWatchMixin;
 
