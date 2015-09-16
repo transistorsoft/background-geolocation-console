@@ -14,8 +14,14 @@ var FluxMixin       = Fluxxor.FluxMixin(React),
 var DevicesStore = require('../stores/DevicesStore');
 var Constants = require('../constants/Constants');
 
+// Views
+var StatsView = require('./Stats.react');
+
 // For date-formatting
 var moment = require('moment');
+
+// Custom formatting toolbox
+var Format = require('../lib/Format');
 
 // Material deps
 var mui = require('material-ui'),
@@ -34,34 +40,15 @@ var mui = require('material-ui'),
   ToolbarGroup  = mui.ToolbarGroup,
   ToolbarTitle  = mui.ToolbarTitle;
 
+// DataGrid
 var DataGrid = require('react-datagrid')
-
-/**
-* Grid-column booleanRenderer
-*/
-function booleanRenderer(v, rec, cell) {
-  if (v===null) { return "-"; }
-  if (v) {
-    cell.className = "cell-green";
-  } else {
-    cell.className = "cell-red";
-  }
-  return '';
-}
-/**
-* Grid-column date-renderer
-*/
-function dateRenderer(v) {
-  return moment(v).format('MM/DD, HH:mm:ss:S');
-}
-
 
 // DataGrid columns
 var gridColumns = [
   { name: 'device_id', title: 'Device ID', render: function(v) { return (v) ? v.split('-').pop() : '-'; }},
-  { name: 'uuid', title: 'UUID', render: function(v) { return (v) ? v.split('-').pop() : '-'; }},
-  { name: 'recorded_at', title: "Timestamp", render: dateRenderer, width: 150},
-  { name: 'created_at', title: 'Created at', render: dateRenderer, width: 150},
+  { name: 'uuid', title: 'UUID', width: 140, render: function(v) { return (v) ? v.split('-').pop() : '-'; }},
+  { name: 'recorded_at', title: "Timestamp", render: Format.dateRenderer, width: 160},
+  { name: 'created_at', title: 'Created at', render: Format.dateRenderer, width: 160},
   { name: 'latitude', title: "Lat", width: 120},
   { name: 'longitude', title: "Lng", width: 120},
   { name: 'accuracy', textAlign: 'center', width: 100, render: function(v) { return parseFloat(v).toFixed(0); } },
@@ -102,7 +89,7 @@ var Map = React.createClass({
     } else {
       filter = {};
     }
-    return {      
+    return {
       device: filter.device_id,
       currentPosition: null,
       currentPositionMarker: null,
@@ -187,50 +174,9 @@ var Map = React.createClass({
 
     flux.on("dispatch", function(type, payload) {
       if (type === Constants.LOAD_LOCATIONS_SUCCESS) {
-        var path = [], latLng;
-        var markers = payload.data.map(function(location) {
-          latLng = {lat: location.latitude, lng: location.longitude};
-          path.push(latLng);
-
-          return {
-            position: latLng,
-            location: location,
-            key: location.id,
-            zIndex: 1,
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: (location.is_moving) ? 7 : 10,
-              fillColor: (location.is_moving) ? '#11b700' : '#b71100',//'26cc77',
-              fillOpacity: (location.is_moving) ? 1 : 0.5,
-              strokeColor: (location.is_moving) ? '#0d6104' : '#f00',
-              strokeWeight: 1,
-              strokeOpacity: 0.7
-            }
-          }
-        });
-        
-        me.setState({          
-          locations: payload.data,
-          markers: markers,
-          path: path
-        })
+        me.onLoadLocations(payload);
       } else if (type === Constants.LOAD_DEVICES_SUCCESS) {
-        var filter = me.getFilter(), 
-            deviceIndex = 0;
-        if (!filter.device_id && payload.data.length) {
-          filter.device_id = payload.data[0].device_id;
-          me.setFilter(filter);
-        }
-        for (var n=0,len=payload.data.length;n<len;n++) {
-          if (payload.data[n].device_id === filter.device_id) {
-            deviceIndex = n;
-          }
-        }
-        me.setState({
-          devices: payload.data,
-          deviceIndex: deviceIndex
-        });
-        me.onFilter();
+        me.onLoadDevices(payload);
       }
     });
 
@@ -270,6 +216,53 @@ var Map = React.createClass({
     setTimeout(function() {
       
     }, 500);
+  },
+  onLoadLocations: function(payload) {
+    var path = [], latLng;
+    var markers = payload.data.map(function(location) {
+      latLng = {lat: location.latitude, lng: location.longitude};
+      path.push(latLng);
+
+      return {
+        position: latLng,
+        location: location,
+        key: location.id,
+        zIndex: 1,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: (location.is_moving) ? 7 : 10,
+          fillColor: (location.is_moving) ? '#11b700' : '#b71100',//'26cc77',
+          fillOpacity: (location.is_moving) ? 1 : 0.5,
+          strokeColor: (location.is_moving) ? '#0d6104' : '#f00',
+          strokeWeight: 1,
+          strokeOpacity: 0.7
+        }
+      }
+    });
+    
+    this.setState({          
+      locations: payload.data,
+      markers: markers,
+      path: path
+    });
+  },
+  onLoadDevices: function(payload) {
+    var filter = this.getFilter(), 
+        deviceIndex = 0;
+    if (!filter.device_id && payload.data.length) {
+      filter.device_id = payload.data[0].device_id;
+      this.setFilter(filter);
+    }
+    for (var n=0,len=payload.data.length;n<len;n++) {
+      if (payload.data[n].device_id === filter.device_id) {
+        deviceIndex = n;
+      }
+    }
+    this.setState({
+      devices: payload.data,
+      deviceIndex: deviceIndex
+    });
+    this.onFilter();
   },
   getFilter: function() {
     return JSON.parse(window.localStorage.getItem('filter')) || {};
@@ -380,7 +373,7 @@ var Map = React.createClass({
               <RaisedButton label="Filter" primary={true} onClick={this.onFilter}  />
             </ToolbarGroup>
           </Toolbar>
-
+          <StatsView flux={this.props.flux} />
         </View>
         <View ref="container" className="blue">
           <View column width="100%">

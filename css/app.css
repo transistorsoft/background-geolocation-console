@@ -78,3 +78,33 @@ body {
 	color: #acacac;
 	font-family: monospace;
 }
+
+/**
+* Stats
+*/
+table.stats {
+	border: 1px solid red;
+	background-color: #e00;
+}
+table.stats th{
+	width: 100px;
+	vertical-align: top;
+	color: #fff;
+}
+table.stats th, table.stats td {
+	padding: 1em;
+	white-space: normal;
+}
+table.stats .duplicate {
+	float: left;
+	background-color: #fff;
+	margin: 0.3em;
+	color: black;
+	border-radius: 0.5em;
+	border: 1px solid #ccc;
+	padding: 0.3em;
+}
+.duplicate pre {
+	padding: 0;
+	margin: 0;
+}
