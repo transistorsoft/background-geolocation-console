@@ -45,7 +45,7 @@ var server = app.listen(8080, function () {
   var port = server.address().port;
 
   console.log('*************************************************************************');
-  console.log('* Background Geolocation Analyzer listening at http://%s:%s', host, port);
+  console.log('* Background Geolocation Server listening at http://%s:%s', host, port);
   console.log('*************************************************************************', "\n");
 });
 
