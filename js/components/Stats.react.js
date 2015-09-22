@@ -8,6 +8,7 @@ var FluxMixin       = Fluxxor.FluxMixin(React),
 
 // Stores
 var Constants = require('../constants/Constants');
+var Format = require('../lib/Format');
 
 // Material deps
 var mui = require('material-ui'),
@@ -109,7 +110,7 @@ var Stats = React.createClass({
                 this.state.duplicates.map((location, index) => { 
                   return (
                     <a href="#" className="duplicate" onClick={this.onClick.bind(this, location)}>
-                      <pre>{location.uuid.split('-').pop()}</pre>
+                      <pre>{location.uuid.split('-').pop()} ({Format.dateRenderer(location.recorded_at)})</pre>
                     </a>
                   ); 
                 })

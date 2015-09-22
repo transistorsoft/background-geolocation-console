@@ -170,8 +170,6 @@ var Map = React.createClass({
       this.refs.endTime.setValue(moment(endDate).format("HH:mm"));
     }
 
-    this.getCurrentPosition();
-
     flux.on("dispatch", function(type, payload) {
       if (type === Constants.LOAD_LOCATIONS_SUCCESS) {
         me.onLoadLocations(payload);
@@ -218,12 +216,14 @@ var Map = React.createClass({
     }, 500);
   },
   onLoadLocations: function(payload) {
-    var path = [], latLng;
-    var markers = payload.data.map(function(location) {
+    var path = [], latLng, marker;
+    var currentPosition = payload.data[0] || {};
+    var markers = payload.data.map(function(location, index) {
       latLng = {lat: location.latitude, lng: location.longitude};
       path.push(latLng);
 
-      return {
+      marker = {
+        title: moment(location.timestamp).format("MM-DD HH:mm:ss:S"),
         position: latLng,
         location: location,
         key: location.id,
@@ -237,10 +237,25 @@ var Map = React.createClass({
           strokeWeight: 1,
           strokeOpacity: 0.7
         }
+      };
+      if (index === 0) {
+        marker.title = "Current Location";
+        marker.icon.scale = 12;
+        marker.icon.fillColor = '#2677FF';
+        marker.icon.fillOpacity = 1;
+        marker.icon.strokeColor = '#ffffff';
+        marker.icon.strokeOpacity = 1;
+        marker.icon.strokeWeight = 6;
       }
+      return marker;
     });
     
-    this.setState({          
+    this.setState({
+      center: {
+        lat: currentPosition.latitude,
+        lng: currentPosition.longitude
+      },
+      currentPosition: currentPosition,
       locations: payload.data,
       markers: markers,
       path: path
