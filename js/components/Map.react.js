@@ -222,21 +222,38 @@ var Map = React.createClass({
       latLng = {lat: location.latitude, lng: location.longitude};
       path.push(latLng);
 
+      var icon = {
+        path: google.maps.SymbolPath.CIRCLE,
+        strokeWeight: 1,
+        strokeOpacity: 0.7
+      };
+
+      if (location.geofence) {
+        icon.scale = 50;
+        icon.fillColor = '#11b700';
+        icon.fillOpacity = 0.2;
+        icon.strokeColor = '#11b700';
+        icon.strokeWeight = 2;
+        icon.strokeOpacity = 0.9;
+      } else if (location.is_moving) {
+        icon.scale = 7;
+        icon.fillColor = '#11b700';
+        icon.fillOpacity = 1;
+        icon.strokeColor = '#0d6104';
+      } else {
+        icon.scale = 10;
+        icon.fillColor = '#b71100';
+        icon.fillOpacity = 0.5;
+        icon.strokeColor = '#f00';
+      }
+
       marker = {
         title: moment(location.timestamp).format("MM-DD HH:mm:ss:S"),
         position: latLng,
         location: location,
         key: location.id,
         zIndex: 1,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: (location.is_moving) ? 7 : 10,
-          fillColor: (location.is_moving) ? '#11b700' : '#b71100',//'26cc77',
-          fillOpacity: (location.is_moving) ? 1 : 0.5,
-          strokeColor: (location.is_moving) ? '#0d6104' : '#f00',
-          strokeWeight: 1,
-          strokeOpacity: 0.7
-        }
+        icon: icon
       };
       if (index === 0) {
         marker.title = "Current Location";

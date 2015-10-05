@@ -71,6 +71,12 @@ var Device = (function() {
 * Location model
 */
 var Location = (function() {
+
+  function hydrate(record) {
+    if (record.geofence) { record.geofence = JSON.parse(record.geofence); }
+    return record;
+  }
+
   return {
     all: function(params, callback) {
       var query = ["SELECT * FROM locations"];
@@ -90,7 +96,7 @@ var Location = (function() {
       var onQuery = function(err, rows) {
         var rs = [];
         rows.forEach(function (row) {
-          rs.push(row);
+          rs.push(hydrate(row));
         });
         callback(rs);
       }
@@ -108,12 +114,13 @@ var Location = (function() {
           battery   = location.battery  || {level: null, is_charging: null},
           activity  = location.activity || {type: null, confidence: null},
           device    = params.device,
+          geofence  = (location.geofence) ? JSON.stringify(location.geofence) : null,
           now       = new Date(),
-          query     = "INSERT INTO locations (uuid, device_id, device_model, latitude, longitude, accuracy, altitude, speed, heading, activity_type, activity_confidence, battery_level, battery_is_charging, is_moving, recorded_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+          query     = "INSERT INTO locations (uuid, device_id, device_model, latitude, longitude, accuracy, altitude, speed, heading, activity_type, activity_confidence, battery_level, battery_is_charging, is_moving, geofence, recorded_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
           
       var sth       = dbh.prepare(query);
       
-      sth.run(location.uuid, device.uuid, device.model, coords.latitude, coords.longitude, coords.accuracy, coords.altitude, coords.speed, coords.heading, activity.type, activity.confidence, battery.level, battery.is_charging, location.is_moving, location.timestamp, now);
+      sth.run(location.uuid, device.uuid, device.model, coords.latitude, coords.longitude, coords.accuracy, coords.altitude, coords.speed, coords.heading, activity.type, activity.confidence, battery.level, battery.is_charging, location.is_moving, geofence, location.timestamp, now);
       sth.finalize();
     }
   }
@@ -150,6 +157,7 @@ function initDB(filename) {
       "battery_level REAL",
       "battery_is_charging BOOLEAN",
       "is_moving BOOLEAN",
+      "geofence TEXT",
       "recorded_at DATETIME",
       "created_at DATETIME"
     ];
