@@ -92,9 +92,13 @@ var Location = (function() {
       }
       query.push("ORDER BY recorded_at DESC");
 
-      console.log(query.join(' '));
       var onQuery = function(err, rows) {
         var rs = [];
+        if (err) {
+          console.log("ERROR: " + err);
+          callback([]);
+          return;
+        }
         rows.forEach(function (row) {
           rs.push(hydrate(row));
         });
@@ -110,14 +114,19 @@ var Location = (function() {
     },
     create: function(params) {
       var location  = params.location,
-          coords    = location.coords,
-          battery   = location.battery  || {level: null, is_charging: null},
+          coords    = location.coords;
+
+      if (!coords) {
+        console.log("- Location#create ERROR: No coords on location!", params);
+        return false;
+      }
+      var battery   = location.battery  || {level: null, is_charging: null},
           activity  = location.activity || {type: null, confidence: null},
           device    = params.device,
           geofence  = (location.geofence) ? JSON.stringify(location.geofence) : null,
           now       = new Date(),
           query     = "INSERT INTO locations (uuid, device_id, device_model, latitude, longitude, accuracy, altitude, speed, heading, activity_type, activity_confidence, battery_level, battery_is_charging, is_moving, geofence, recorded_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-          
+
       var sth       = dbh.prepare(query);
       
       sth.run(location.uuid, device.uuid, device.model, coords.latitude, coords.longitude, coords.accuracy, coords.altitude, coords.speed, coords.heading, activity.type, activity.confidence, battery.level, battery.is_charging, location.is_moving, geofence, location.timestamp, now);
