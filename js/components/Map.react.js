@@ -389,7 +389,7 @@ var Map = React.createClass({
           <Toolbar style={{backgroundColor:"#fff"}}>
             <ToolbarGroup key={0}>
               <ToolbarTitle text="Device:" style={{float:"left"}} />
-              <SelectField ref="device" selectedIndex={this.state.deviceIndex} displayMember="device_model" valueMember="device_id" menuItems={this.state.devices} onChange={this.onSelectDevice} style={{float:"left", marginTop:"5px", width:"150px"}} />
+              <SelectField ref="device" selectedIndex={this.state.deviceIndex} displayMember="device_model" valueMember="device_id" menuItems={this.state.devices} onChange={this.onSelectDevice} style={{float:"left", marginTop:"5px", width:"300px"}} />
             </ToolbarGroup>
 
             <ToolbarGroup key={1} float="left">
