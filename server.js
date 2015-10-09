@@ -38,6 +38,9 @@ app.post('/locations', function (req, res) {
   console.log('POST /locations', JSON.stringify(req.body), "\n");
   Location.create(req.body);
   res.send('POST /locations');
+  //res.status(500).send("Internal Server Error");
+  //res.status(404).send("Not Found");
+
 });
 
 var server = app.listen(8080, function () {
@@ -110,17 +113,30 @@ var Location = (function() {
     },
     create: function(params) {
       var location  = params.location,
-          coords    = location.coords,
-          battery   = location.battery  || {level: null, is_charging: null},
-          activity  = location.activity || {type: null, confidence: null},
           device    = params.device,
-          geofence  = (location.geofence) ? JSON.stringify(location.geofence) : null,
           now       = new Date(),
           query     = "INSERT INTO locations (uuid, device_id, device_model, latitude, longitude, accuracy, altitude, speed, heading, activity_type, activity_confidence, battery_level, battery_is_charging, is_moving, geofence, recorded_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-          
+      
       var sth       = dbh.prepare(query);
       
-      sth.run(location.uuid, device.uuid, device.model, coords.latitude, coords.longitude, coords.accuracy, coords.altitude, coords.speed, coords.heading, activity.type, activity.confidence, battery.level, battery.is_charging, location.is_moving, geofence, location.timestamp, now);
+      var insert = function(location) {
+        var coords = location.coords,
+            battery   = location.battery  || {level: null, is_charging: null},
+            activity  = location.activity || {type: null, confidence: null},
+            geofence  = (location.geofence) ? JSON.stringify(location.geofence) : null;
+
+        sth.run(location.uuid, device.uuid, device.model, coords.latitude, coords.longitude, coords.accuracy, coords.altitude, coords.speed, coords.heading, activity.type, activity.confidence, battery.level, battery.is_charging, location.is_moving, geofence, location.timestamp, now);
+      }
+      // Check for batchSync, ie: location: {...} OR location: [...]
+      if (typeof(location.length) === 'number') {
+        // batchSync: true        
+        for (var n=0,len=location.length;n<len;n++) {
+          insert(location[n]);          
+        }
+      } else {        
+        // batchSync: false
+        insert(location);
+      }
       sth.finalize();
     }
   }
