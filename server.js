@@ -139,11 +139,6 @@ var Location = (function() {
       } else {        
         // batchSync: false
         insert(location);
-
-
-
-
-
       }
       sth.finalize();
     }
