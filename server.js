@@ -123,10 +123,13 @@ var Location = (function() {
         var coords = location.coords,
             battery   = location.battery  || {level: null, is_charging: null},
             activity  = location.activity || {type: null, confidence: null},
+            device    = location.device   || {type: "UNKNOWN"};
+            
             geofence  = (location.geofence) ? JSON.stringify(location.geofence) : null;
 
         sth.run(location.uuid, device.uuid, device.model, coords.latitude, coords.longitude, coords.accuracy, coords.altitude, coords.speed, coords.heading, activity.type, activity.confidence, battery.level, battery.is_charging, location.is_moving, geofence, location.timestamp, now);
       }
+
       // Check for batchSync, ie: location: {...} OR location: [...]
       if (typeof(location.length) === 'number') {
         // batchSync: true        
@@ -136,6 +139,11 @@ var Location = (function() {
       } else {        
         // batchSync: false
         insert(location);
+
+
+
+
+
       }
       sth.finalize();
     }
