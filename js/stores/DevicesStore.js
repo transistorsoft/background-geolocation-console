@@ -26,6 +26,9 @@ var DevicesStore = Fluxxor.createStore({
     // Re-format device_model, appending device_id, eg:  iPhone8,1 (61CA53C7)
     for (var n=0,len=result.data.length;n<len;n++) {
       device = result.data[n];
+      if (!device.device_id) {
+        continue;
+      }
       device.device_model += " (" + device.device_id.split("-").shift() + ")";
     }
     this.data = result.data;

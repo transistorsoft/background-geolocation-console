@@ -106,7 +106,7 @@ var Map = React.createClass({
     };
   },
 
-  getStateFromFlux: function() {
+  getStateFromFlux: function() {  
     var store = this.getFlux().store("LocationsStore");
 
     return {
@@ -153,6 +153,7 @@ var Map = React.createClass({
     ThemeManager.setTheme(ThemeManager.types.LIGHT);
   },
   componentDidMount: function() {
+
     var me = this;
     var flux = this.getFlux();
 
@@ -217,7 +218,7 @@ var Map = React.createClass({
   },
   onLoadLocations: function(payload) {
     var path = [], latLng, marker;
-    var currentPosition = payload.data[0] || {};
+    var currentPosition = payload.data[0] || false;
     var markers = payload.data.map(function(location, index) {
       latLng = {lat: location.latitude, lng: location.longitude};
       path.push(latLng);
@@ -267,16 +268,19 @@ var Map = React.createClass({
       return marker;
     });
     
-    this.setState({
-      center: {
-        lat: currentPosition.latitude,
-        lng: currentPosition.longitude
-      },
-      currentPosition: currentPosition,
+    var state = {
       locations: payload.data,
       markers: markers,
       path: path
-    });
+    };
+    if (currentPosition) {
+      state.center = {
+        lat: currentPosition.latitude,
+        lng: currentPosition.longitude
+      };
+      state.currentPosition = currentPosition;
+    }
+    this.setState(state);
   },
   onLoadDevices: function(payload) {
     var filter = this.getFilter(), 
