@@ -8,13 +8,11 @@
  */
 
 var React = require('react');
-
+var ReactDOM = require('react-dom');
 var Fluxxor = require('fluxxor');
-
-var Router = require('react-router');
-var Route = Router.Route;
-var DefaultRoute = Router.DefaultRoute;
-var RouteHandler = Router.RouteHandler;
+var Router = require('react-router').Router
+var Route = require('react-router').Route
+var Link = require('react-router').Link
 
 var Viewport = require('./components/Viewport.react');
 
@@ -31,18 +29,19 @@ var stores = {
 
 var flux = new Fluxxor.Flux(stores, actions);
 
-flux.on("dispatch", function(type, payload) {
-  if (console && console.log) {
-    console.log("[Dispatch]", type, payload);
-  }
-});
+const createFluxComponent = (Component, props) => {
+  return <Component {...props} flux={flux} />;
+};
 
 var routes = (
-  <Route handler={Viewport} path="/">
-    <DefaultRoute handler={Viewport} />  
-  </Route>
+  <Router createElement={createFluxComponent}>
+    <Route path="/" component={Viewport} flux={flux}>
+      <Route path="*" component={Viewport} flux={flux}/>
+    </Route>
+  </Router>
 );
 
-Router.run(routes, function (Handler) {
-  React.render(<Handler flux={flux}/>, document.body);
-});
+
+
+ReactDOM.render(routes, document.getElementById('app'));
+

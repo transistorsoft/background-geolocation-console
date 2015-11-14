@@ -8,6 +8,7 @@ var dbFile      = "db/background-geolocation.db";
 // Init db.
 var dbh = initDB(dbFile);
 
+app.disable('etag');
 app.use(express.static('.'));
 app.use(bodyParser.json());
 
@@ -16,7 +17,7 @@ app.use(bodyParser.json());
 */
 app.get('/devices', function(req, res) {
   console.log('GET /devices', "\n");
-  Device.all({}, function(rs) {
+  Device.all(req.query, function(rs) {
     res.send(rs);
   })
 });
@@ -25,7 +26,7 @@ app.get('/devices', function(req, res) {
 * GET /locations
 */
 app.get('/locations', function(req, res) {
-  console.log('GET /locations', JSON.stringify(req.query), "\n");
+  console.log('GET /locations', JSON.stringify(req.query));
   Location.all(req.query, function(rs) {
     res.send(rs);
   });
@@ -37,10 +38,24 @@ app.get('/locations', function(req, res) {
 app.post('/locations', function (req, res) {
   console.log('POST /locations', JSON.stringify(req.body), "\n");
   Location.create(req.body);
-  res.send('POST /locations');
+  res.send({success: true});
   //res.status(500).send("Internal Server Error");
   //res.status(404).send("Not Found");
 
+});
+
+app.post('/configure', function(req, res) {
+  console.log('/configure');
+
+  var response = {
+    "access_token":"e7ebae5e-4bea-4d63-8f28-8a104acd2f4c",   
+    "token_type":"Bearer",   
+    "expires_in":3600,   
+    "refresh_token":"2a69e1cd-d7db-44f6-87fc-3d66c4505ee4",   
+    "scope":"openid+email+profile+phone+address+group"   
+  };
+
+  res.send(response);
 });
 
 var server = app.listen(8080, function () {
@@ -87,7 +102,7 @@ var Location = (function() {
       if (params.start_date && params.end_date) {
         conditions.push("recorded_at BETWEEN ? AND ?")
       }
-      if (params.device_id) {
+      if (params.device_id && params.device_id !== '') {
         conditions.push("device_id = ?")
       }
       if (conditions.length) {
@@ -95,8 +110,12 @@ var Location = (function() {
       }
       query.push("ORDER BY recorded_at DESC");
 
-      console.log(query.join(' '));
+      console.log('- ', query.join(' '), "\n");
       var onQuery = function(err, rows) {
+        if (err) {
+          console.log('ERROR: ', err);
+          return;
+        }
         var rs = [];
         rows.forEach(function (row) {
           rs.push(hydrate(row));
@@ -123,9 +142,11 @@ var Location = (function() {
         var coords = location.coords,
             battery   = location.battery  || {level: null, is_charging: null},
             activity  = location.activity || {type: null, confidence: null},
-            device    = location.device   || {type: "UNKNOWN"};
+            device    = params.device     || {type: "UNKNOWN"};
             
             geofence  = (location.geofence) ? JSON.stringify(location.geofence) : null;
+
+        console.log('INSERT: ', JSON.stringify(location));
 
         sth.run(location.uuid, device.uuid, device.model, coords.latitude, coords.longitude, coords.accuracy, coords.altitude, coords.speed, coords.heading, activity.type, activity.confidence, battery.level, battery.is_charging, location.is_moving, geofence, location.timestamp, now);
       }
