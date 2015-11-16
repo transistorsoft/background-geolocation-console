@@ -29,7 +29,7 @@ var Header = React.createClass({
       <View row className="header">
         <AppBar
           title="Background Geolocation Console"
-          iconElementRight={<FlatButton label="Transistor Software" />}
+          iconElementRight={<a href="http://transistorsoft.com" target="_blank"><img style={{width:'180', marginTop:'-15'}} src="images/transistor-logo.svg" /></a>}
         />
       </View>
     );
