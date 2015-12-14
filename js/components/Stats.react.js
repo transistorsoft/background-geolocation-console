@@ -12,17 +12,17 @@ var Format = require('../lib/Format');
 
 // Material deps
 var mui = require('material-ui'),
-  ThemeManager  = new mui.Styles.ThemeManager(),
-  Colors        = mui.Styles.Colors,
+  ThemeManager  = require('material-ui/lib/styles/theme-manager'),
+  Colors        = require('material-ui/lib/styles/colors'),
 
   // Table
-  Table         = mui.Table,
-  TableBody = mui.TableBody,
-  TableHeader   = mui.TableHeader,
-  TableRow= mui.TableRow,
-  TableHeaderColumn = mui.TableHeaderColumn,
-  TableRowColumn = mui.TableRowColumn,
-  TableFooter = mui.TableFooter;
+  Table         = require('material-ui/lib/table/table'),
+  TableBody     = require('material-ui/lib/table/table-body'),
+  TableHeader   = require('material-ui/lib/table/table-header'),
+  TableRow      = require('material-ui/lib/table/table-row'),
+  TableHeaderColumn = require('material-ui/lib/table/table-header-column'),
+  TableRowColumn = require('material-ui/lib/table/table-row-column'),
+  TableFooter = require('material-ui/lib/table/table-footer');
 
 var Stats = React.createClass({
   mixins: [FluxMixin, StoreWatchMixin("LocationsStore")],

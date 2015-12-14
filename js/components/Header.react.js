@@ -4,9 +4,9 @@ var React = require('react');
 var injectTapEventPlugin = require("react-tap-event-plugin");
 
 var mui = require('material-ui'),
-  ThemeManager = new mui.Styles.ThemeManager(),
-  FlatButton = mui.FlatButton,
-  AppBar = mui.AppBar;
+  ThemeManager = require('material-ui/lib/styles/theme-manager'),
+  FlatButton = require('material-ui/lib/flat-button'),
+  AppBar = require('material-ui/lib/app-bar');
   
 injectTapEventPlugin();
 
@@ -18,7 +18,7 @@ var Header = React.createClass({
   },
   getChildContext: function() {
     return {
-      muiTheme: ThemeManager.getCurrentTheme()
+      //muiTheme: ThemeManager.getCurrentTheme()
     };
   },
   /**

@@ -25,20 +25,20 @@ var Format = require('../lib/Format');
 
 // Material deps
 var mui = require('material-ui'),
-  ThemeManager  = new mui.Styles.ThemeManager(),
-  Colors        = mui.Styles.Colors,
-  FlatButton    = mui.FlatButton,
-  SelectField   = mui.SelectField,
-  RaisedButton  = mui.RaisedButton,
-  FontIcon      = mui.FontIcon,
-  Tabs          = mui.Tabs,
-  Tab           = mui.Tab,
-  Toolbar       = mui.Toolbar,
-  DatePicker    = mui.DatePicker,
-  TextField     = mui.TextField,
-  ToolbarSeparator = mui.ToolbarSeparator,
-  ToolbarGroup  = mui.ToolbarGroup,
-  ToolbarTitle  = mui.ToolbarTitle;
+  ThemeManager  = require('material-ui/lib/styles/theme-manager'),
+  Colors        = require('material-ui/lib/styles/colors'),
+  FlatButton    = require('material-ui/lib/flat-button'),
+  SelectField   = require('material-ui/lib/select-field'),
+  RaisedButton  = require('material-ui/lib/raised-button'),
+  FontIcon      = require('material-ui/lib/font-icon'),
+  Tabs          = require('material-ui/lib/tabs/tabs'),
+  Tab           = require('material-ui/lib/tabs/tab'),
+  Toolbar       = require('material-ui/lib/toolbar/toolbar'),
+  DatePicker    = require('material-ui/lib/date-picker/date-picker'),
+  TextField     = require('material-ui/lib/text-field'),
+  ToolbarSeparator = require('material-ui/lib/toolbar/toolbar-separator'),
+  ToolbarGroup  = require('material-ui/lib/toolbar/toolbar-group'),
+  ToolbarTitle  = require('material-ui/lib/toolbar/toolbar-title');
 
 // DataGrid
 var DataGrid = require('react-datagrid')
@@ -78,7 +78,7 @@ var Map = React.createClass({
   },
   getChildContext: function() {
     return {
-      muiTheme: ThemeManager.getCurrentTheme()
+      //muiTheme: ThemeManager.getCurrentTheme()
     };
   },
 
@@ -150,7 +150,7 @@ var Map = React.createClass({
       accent1Color: Colors.deepOrange500,
     });
     */
-    ThemeManager.setTheme(ThemeManager.types.LIGHT);
+    //ThemeManager.setTheme(ThemeManager.types.LIGHT);
   },
   componentDidMount: function() {
 
