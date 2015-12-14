@@ -210,11 +210,7 @@ var Map = React.createClass({
       map.style.height = cssHeight;
       grid.style.height = cssHeight;
     }    
-    resize();
-
-    setTimeout(function() {
-      
-    }, 500);
+    resize();    
   },
   onLoadLocations: function(payload) {
     var path = [], latLng, marker;
@@ -279,6 +275,8 @@ var Map = React.createClass({
         lng: currentPosition.longitude
       };
       state.currentPosition = currentPosition;
+    } else {
+      this.getCurrentPosition();
     }
     this.setState(state);
   },
