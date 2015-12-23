@@ -320,7 +320,9 @@ var Map = React.createClass({
     var filter = this.getFilter();
     filter.start_date = startDate.toISOString();
     filter.end_date   = endDate.toISOString();
-
+    if (device.props.selectedIndex >= 0 && device.props.menuItems.length) {
+      filter.device_id  = device.props.menuItems[device.props.selectedIndex].device_id
+    }
     this.setFilter(filter);
 
     this.getFlux().actions.loadLocations(filter);
