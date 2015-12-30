@@ -20,7 +20,7 @@
     "react-datagrid":"~2.0.0",
     "react-flexbox":"3.0.0",
     "react-google-maps":"4.2.0",
-    "history":"~1.13.1",
+    "history":"~1.17.0",
     "react-router":"~1.0.2",
     "react-tap-event-plugin":"^0.2.1",
     "sqlite3":"~3.1.1"
