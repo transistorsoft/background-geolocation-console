@@ -29,6 +29,7 @@ var mui = require('material-ui'),
   Colors        = require('material-ui/lib/styles/colors'),
   FlatButton    = require('material-ui/lib/flat-button'),
   SelectField   = require('material-ui/lib/select-field'),
+  MenuItem      = require('material-ui/lib/menus/menu-item'),
   RaisedButton  = require('material-ui/lib/raised-button'),
   FontIcon      = require('material-ui/lib/font-icon'),
   Tabs          = require('material-ui/lib/tabs/tabs'),
@@ -108,7 +109,7 @@ var Map = React.createClass({
 
   getStateFromFlux: function() {  
     var store = this.getFlux().store("LocationsStore");
-
+    console.log("111 debug",store)
     return {
       loading: store.loading,
       error: store.error,
@@ -172,9 +173,13 @@ var Map = React.createClass({
     }
 
     flux.on("dispatch", function(type, payload) {
+      
       if (type === Constants.LOAD_LOCATIONS_SUCCESS) {
+    	  console.log("177",payload)
         me.onLoadLocations(payload);
+        
       } else if (type === Constants.LOAD_DEVICES_SUCCESS) {
+    	  console.log("181",payload)
         me.onLoadDevices(payload);
       }
     });
@@ -385,7 +390,7 @@ var Map = React.createClass({
   },
   render: function() {
     var today = new Date();
-
+    console.log("debug me 392",this.state.devices);
     return (
 
       <View column auto width="100%">
@@ -393,7 +398,10 @@ var Map = React.createClass({
           <Toolbar style={{backgroundColor:"#fff"}}>
             <ToolbarGroup key={0}>
               <ToolbarTitle text="Device:" style={{float:"left"}} />
-              <SelectField ref="device" selectedIndex={this.state.deviceIndex} displayMember="device_model" valueMember="device_id" menuItems={this.state.devices} onChange={this.onSelectDevice} style={{float:"left", marginTop:"5px", width:"300px"}} />
+              <SelectField ref="device"  value={this.state.devices} onChange={this.onSelectDevice} style={{float:"left", marginTop:"5px", width:"300px"}} >
+              <MenuItem value="158c09b8f3d711e7" primaryText="Che1-L04 (158c09b8f3d711e7)"/>
+              <MenuItem value="1f045f895a84f52d" primaryText="HUAWEI Y300-0100"/>
+              </SelectField>
             </ToolbarGroup>
 
             <ToolbarGroup key={1} float="left">
