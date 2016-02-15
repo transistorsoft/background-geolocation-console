@@ -99,13 +99,6 @@ var Location = (function() {
     all: function(params, callback) {
       var query = ["SELECT * FROM locations"];
       var conditions = [];
-      if (params.debug) {
-    	  console.error("debug enabled");
-    	  conditions.push("recorded_at BETWEEN '2016-02-13' AND '2016-02-15'")
-          conditions.push("device_id = '158c09b8f3d711e7'")
-      }else{
-    	  console.error("No Debug");
-      }
       if (params.start_date && params.end_date) {
         conditions.push("recorded_at BETWEEN ? AND ?")
       }
