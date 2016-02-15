@@ -109,7 +109,6 @@ var Map = React.createClass({
 
   getStateFromFlux: function() {  
     var store = this.getFlux().store("LocationsStore");
-    console.log("111 debug",store)
     return {
       loading: store.loading,
       error: store.error,
@@ -175,11 +174,9 @@ var Map = React.createClass({
     flux.on("dispatch", function(type, payload) {
       
       if (type === Constants.LOAD_LOCATIONS_SUCCESS) {
-    	  console.log("177",payload)
         me.onLoadLocations(payload);
         
       } else if (type === Constants.LOAD_DEVICES_SUCCESS) {
-    	  console.log("181",payload)
         me.onLoadDevices(payload);
       }
     });
@@ -390,7 +387,10 @@ var Map = React.createClass({
   },
   render: function() {
     var today = new Date();
-    console.log("debug me 392",this.state.devices);
+    const items = [];
+    for (let i = 0; i < this.state.devices.length; i++ ) {
+      items.push(<MenuItem value={this.state.devices[i].device_id} key={i} primaryText={this.state.devices[i].device_model}/>);
+    }
     return (
 
       <View column auto width="100%">
@@ -399,8 +399,7 @@ var Map = React.createClass({
             <ToolbarGroup key={0}>
               <ToolbarTitle text="Device:" style={{float:"left"}} />
               <SelectField ref="device"  value={this.state.devices} onChange={this.onSelectDevice} style={{float:"left", marginTop:"5px", width:"300px"}} >
-              <MenuItem value="158c09b8f3d711e7" primaryText="Che1-L04 (158c09b8f3d711e7)"/>
-              <MenuItem value="1f045f895a84f52d" primaryText="HUAWEI Y300-0100"/>
+              {items}
               </SelectField>
             </ToolbarGroup>
 
