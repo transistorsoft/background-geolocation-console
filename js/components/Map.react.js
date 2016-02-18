@@ -160,15 +160,17 @@ var Map = React.createClass({
     flux.actions.loadDevices();
 
     // Init filter form
+    var startDate = new Date();
+    var startTime = "00:00";
+    var endDate = new Date();
+    var endTime = "23:59";
+
     var filter = this.getFilter();
     if (filter.start_date && filter.end_date) {
-      var startDate = new Date(filter.start_date),
-          endDate = new Date(filter.end_date);
-
-      this.refs.startDate.setDate(startDate);
-      this.refs.endDate.setDate(endDate);
-      this.refs.startTime.setValue(moment(startDate).format("HH:mm"));
-      this.refs.endTime.setValue(moment(endDate).format("HH:mm"));
+      startDate = new Date(filter.start_date);
+      endTime = moment(startDate).format("HH:mm");
+      endDate = new Date(filter.end_date);
+      endTime = moment(endDate).format("HH:mm");
     }
 
     flux.on("dispatch", function(type, payload) {
@@ -189,7 +191,11 @@ var Map = React.createClass({
     window.addEventListener("resize", resize);
 
     this.setState({
-      bodyHeight: window.document.body.clientHeight
+      bodyHeight: window.document.body.clientHeight,
+      startDate: startDate,
+      startTime: startTime,
+      endDate: endDate,
+      endTime: endTime
     });
 
     /**
@@ -330,15 +336,23 @@ var Map = React.createClass({
     this.getFlux().actions.loadLocations(filter);
   },
 
-  onSelectDevice: function(events, index, record) {
+  onSelectDevice: function(events, index, value) {
     var filter = this.getFilter();
-    filter.device_id = record.device_id;
+    filter.device_id = value;
     this.setFilter(filter);
 
     this.setState({
+      device: value,
       deviceIndex: index
     });
   },
+  onChangeTime: function(ev) {
+    var target = ev.currentTarget;
+    var state = {};
+    state[target.id] = target.value;
+    this.setState(state);  
+  },
+
   showInfoWindow: function(marker) {
     var location = marker.location,
         isChargingCls = '';
@@ -398,21 +412,21 @@ var Map = React.createClass({
           <Toolbar style={{backgroundColor:"#fff"}}>
             <ToolbarGroup key={0}>
               <ToolbarTitle text="Device:" style={{float:"left"}} />
-              <SelectField ref="device"  value={this.state.devices} onChange={this.onSelectDevice} style={{float:"left", marginTop:"5px", width:"300px"}} >
+              <SelectField ref="device" value={this.state.device} onChange={this.onSelectDevice} style={{float:"left", marginTop:"5px", width:"300px"}} >
               {items}
               </SelectField>
             </ToolbarGroup>
 
             <ToolbarGroup key={1} float="left">
               <ToolbarTitle text="Start date" style={{float:"left", marginLeft:"20px"}} />
-              <DatePicker ref="startDate" autoOk={true} width="100px" formatDate={this.formatDate} defaultDate={today} style={{marginTop:"5px", float: "left", width: "100px"}} textFieldStyle={{width:"100px"}}/>
-              <TextField ref="startTime" defaultValue="00:00" width="100" style={{marginLeft: "10px", marginTop: "5px", float: "left", width: "50px"}} />
+              <DatePicker id="startDate" ref="startDate" autoOk={true} width="100px" formatDate={this.formatDate} defaultDate={today} style={{marginTop:"5px", float: "left", width: "100px"}} textFieldStyle={{width:"100px"}}/>
+              <TextField id="startTime" ref="startTime" defaultValue="00:00" value={this.state.startTime} onChange={this.onChangeTime} width="100" style={{marginLeft: "10px", marginTop: "5px", float: "left", width: "50px"}} />
             </ToolbarGroup>
 
             <ToolbarGroup key={2} float="left" style={{marginLeft:"20px"}}>
               <ToolbarTitle text="End date" style={{float:"left"}} />
-              <DatePicker ref="endDate" autoOk={true} formatDate={this.formatDate} defaultDate={today} style={{marginTop:"5px", float: "left"}} textFieldStyle={{width:"100px"}} />
-              <TextField ref="endTime" defaultValue="23:59" style={{marginLeft: "10px", marginTop:"5px", float: "left", width: "50px"}} />
+              <DatePicker id="endDate" ref="endDate" autoOk={true} formatDate={this.formatDate} defaultDate={today} style={{marginTop:"5px", float: "left"}} textFieldStyle={{width:"100px"}} />
+              <TextField id="endTime" ref="endTime" defaultValue="23:59" value={this.state.endTime} onChange={this.onChangeTime} style={{marginLeft: "10px", marginTop:"5px", float: "left", width: "50px"}} />
               <RaisedButton label="Filter" primary={true} onClick={this.onFilter}  />
             </ToolbarGroup>
           </Toolbar>
