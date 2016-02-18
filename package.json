@@ -13,7 +13,7 @@
     "google-map-react":"^0.4.1",
     "keymirror":"~0.1.0",
     "react":"0.14.7",
-    "material-ui":"^0.14.0-rc1",
+    "material-ui":"^0.14.4",
     "moment":"^2.10.6",
     "object-assign":"^1.0.0",
     
