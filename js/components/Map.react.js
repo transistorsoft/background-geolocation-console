@@ -16,6 +16,7 @@ var Constants = require('../constants/Constants');
 
 // Views
 var StatsView = require('./Stats.react');
+var FilterView = require('./Filter.react');
 
 // For date-formatting
 var moment = require('moment');
@@ -53,6 +54,7 @@ var gridColumns = [
   { name: 'latitude', title: "Lat", width: 120},
   { name: 'longitude', title: "Lng", width: 120},
   { name: 'accuracy', textAlign: 'center', width: 100, render: function(v) { return parseFloat(v).toFixed(0); } },
+  { name: 'speed', textAlign: 'center', width: 100, render: function(v) { return parseFloat(v).toFixed(1); } },
   { name: 'activity_type', title: "Activity", width: 150, render: function(v, rec, cell) {
     if (!v) { return "-"; }
     return [rec.activity_type, " (", rec.activity_confidence, "%)"].join('');
@@ -157,29 +159,11 @@ var Map = React.createClass({
     var me = this;
     var flux = this.getFlux();
 
-    flux.actions.loadDevices();
-
-    // Init filter form
-    var startDate = new Date();
-    var startTime = "00:00";
-    var endDate = new Date();
-    var endTime = "23:59";
-
-    var filter = this.getFilter();
-    if (filter.start_date && filter.end_date) {
-      startDate = new Date(filter.start_date);
-      endTime = moment(startDate).format("HH:mm");
-      endDate = new Date(filter.end_date);
-      endTime = moment(endDate).format("HH:mm");
-    }
-
     flux.on("dispatch", function(type, payload) {
       
       if (type === Constants.LOAD_LOCATIONS_SUCCESS) {
         me.onLoadLocations(payload);
         
-      } else if (type === Constants.LOAD_DEVICES_SUCCESS) {
-        me.onLoadDevices(payload);
       }
     });
 
@@ -191,11 +175,7 @@ var Map = React.createClass({
     window.addEventListener("resize", resize);
 
     this.setState({
-      bodyHeight: window.document.body.clientHeight,
-      startDate: startDate,
-      startTime: startTime,
-      endDate: endDate,
-      endTime: endTime
+      bodyHeight: window.document.body.clientHeight
     });
 
     /**
@@ -306,52 +286,6 @@ var Map = React.createClass({
     });
     this.onFilter();
   },
-  getFilter: function() {
-    return JSON.parse(window.localStorage.getItem('filter')) || {};
-  },
-  setFilter: function(filter) {
-    window.localStorage.setItem('filter', JSON.stringify(filter));
-  },
-  onFilter: function() {
-    var device    = this.refs.device,
-        startDate = new Date(this.refs.startDate.getDate()),
-        startTime = this.refs.startTime.getValue().split(':'),
-        endDate = new Date(this.refs.endDate.getDate()),
-        endTime = this.refs.endTime.getValue().split(':');
-
-    startDate.setHours(parseInt(startTime[0], 10));
-    startDate.setMinutes(parseInt(startTime[1], 10));
-
-    endDate.setHours(parseInt(endTime[0], 10));
-    endDate.setMinutes(parseInt(endTime[1], 10));
-
-    var filter = this.getFilter();
-    filter.start_date = startDate.toISOString();
-    filter.end_date   = endDate.toISOString();
-    if (device.props.selectedIndex >= 0 && device.props.menuItems.length) {
-      filter.device_id  = device.props.menuItems[device.props.selectedIndex].device_id
-    }
-    this.setFilter(filter);
-
-    this.getFlux().actions.loadLocations(filter);
-  },
-
-  onSelectDevice: function(events, index, value) {
-    var filter = this.getFilter();
-    filter.device_id = value;
-    this.setFilter(filter);
-
-    this.setState({
-      device: value,
-      deviceIndex: index
-    });
-  },
-  onChangeTime: function(ev) {
-    var target = ev.currentTarget;
-    var state = {};
-    state[target.id] = target.value;
-    this.setState(state);  
-  },
 
   showInfoWindow: function(marker) {
     var location = marker.location,
@@ -409,27 +343,7 @@ var Map = React.createClass({
 
       <View column auto width="100%">
         <View column auto>
-          <Toolbar style={{backgroundColor:"#fff"}}>
-            <ToolbarGroup key={0}>
-              <ToolbarTitle text="Device:" style={{float:"left"}} />
-              <SelectField ref="device" value={this.state.device} onChange={this.onSelectDevice} style={{float:"left", marginTop:"5px", width:"300px"}} >
-              {items}
-              </SelectField>
-            </ToolbarGroup>
-
-            <ToolbarGroup key={1} float="left">
-              <ToolbarTitle text="Start date" style={{float:"left", marginLeft:"20px"}} />
-              <DatePicker id="startDate" ref="startDate" autoOk={true} width="100px" formatDate={this.formatDate} defaultDate={today} style={{marginTop:"5px", float: "left", width: "100px"}} textFieldStyle={{width:"100px"}}/>
-              <TextField id="startTime" ref="startTime" defaultValue="00:00" value={this.state.startTime} onChange={this.onChangeTime} width="100" style={{marginLeft: "10px", marginTop: "5px", float: "left", width: "50px"}} />
-            </ToolbarGroup>
-
-            <ToolbarGroup key={2} float="left" style={{marginLeft:"20px"}}>
-              <ToolbarTitle text="End date" style={{float:"left"}} />
-              <DatePicker id="endDate" ref="endDate" autoOk={true} formatDate={this.formatDate} defaultDate={today} style={{marginTop:"5px", float: "left"}} textFieldStyle={{width:"100px"}} />
-              <TextField id="endTime" ref="endTime" defaultValue="23:59" value={this.state.endTime} onChange={this.onChangeTime} style={{marginLeft: "10px", marginTop:"5px", float: "left", width: "50px"}} />
-              <RaisedButton label="Filter" primary={true} onClick={this.onFilter}  />
-            </ToolbarGroup>
-          </Toolbar>
+          <FilterView flux={this.props.flux} />
           <StatsView flux={this.props.flux} />
         </View>
         <View ref="container" className="blue">

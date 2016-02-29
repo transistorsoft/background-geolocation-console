@@ -26,7 +26,8 @@ app.get('/devices', function(req, res) {
 * GET /locations
 */
 app.get('/locations', function(req, res) {
-  console.log('GET /locations', JSON.stringify(req.query));
+  console.log('--------------------------------------------------------------------');
+  console.log('- GET /locations', JSON.stringify(req.query));
   Location.all(req.query, function(rs) {
     res.send(rs);
   });
@@ -36,7 +37,8 @@ app.get('/locations', function(req, res) {
 * POST /locations
 */
 app.post('/locations', function (req, res) {
-  console.log('POST /locations', JSON.stringify(req.body), "\n");
+  console.log('---------------------------------------------------------------------');
+  console.log("- POST /locations\n", JSON.stringify(req.body, null, 2), "\n");
   Location.create(req.body);
   res.send({success: true});
   //res.status(500).send("Internal Server Error");
@@ -145,8 +147,6 @@ var Location = (function() {
             device    = params.device     || {type: "UNKNOWN"};
             
             geofence  = (location.geofence) ? JSON.stringify(location.geofence) : null;
-
-        console.log('INSERT: ', JSON.stringify(location));
 
         sth.run(location.uuid, device.uuid, device.model, coords.latitude, coords.longitude, coords.accuracy, coords.altitude, coords.speed, coords.heading, activity.type, activity.confidence, battery.level, battery.is_charging, location.is_moving, geofence, location.timestamp, now);
       }

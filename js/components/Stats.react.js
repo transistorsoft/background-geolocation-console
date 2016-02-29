@@ -90,10 +90,12 @@ var Stats = React.createClass({
         dictionary[uuid] = true;
       }
     }
+    /* DISABLE DUPLICATES VIEW
     this.setState({          
       duplicates: duplicates,
       dictionary: dictionary
     });
+    */
   },
   onClick: function() {
     alert('click');
