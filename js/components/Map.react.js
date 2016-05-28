@@ -221,12 +221,14 @@ var Map = React.createClass({
         icon.strokeWeight = 2;
         icon.strokeOpacity = 0.9;
       } else if (location.is_moving) {
-        icon.scale = 7;
+        icon.scale = 3;
+        icon.path = google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+        icon.rotation = location.heading,
         icon.fillColor = '#11b700';
         icon.fillOpacity = 1;
         icon.strokeColor = '#0d6104';
       } else {
-        icon.scale = 10;
+        icon.scale = 15;
         icon.fillColor = '#b71100';
         icon.fillOpacity = 0.5;
         icon.strokeColor = '#f00';
@@ -355,7 +357,7 @@ var Map = React.createClass({
                   ref="map"
                   defaultZoom={18}
                   center={this.state.center}>
-                    <Polyline path={this.state.path} options={{geodesic: true, strokeColor: '#2677FF', strokeOpacity: 0.7, strokeWeight: 5}} />
+                    <Polyline path={this.state.path} options={{geodesic: true, strokeColor: '#2677FF', strokeOpacity: 0.7, strokeWeight: 4}} />
                     {this.state.markers.map((marker, index) => { return (
                       <Marker{...marker} onClick={this.onMarkerClick.bind(this, marker)}>
                         {marker.showInfo ? this.showInfoWindow(marker) : null}

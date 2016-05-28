@@ -41,6 +41,7 @@ app.post('/locations', function (req, res) {
   console.log("- POST /locations\n", JSON.stringify(req.body, null, 2), "\n");
   Location.create(req.body);
   res.send({success: true});
+  //res.status(427).send("Too many requests");
   //res.status(500).send("Internal Server Error");
   //res.status(404).send("Not Found");
 
