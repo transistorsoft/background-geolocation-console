@@ -222,7 +222,7 @@ var Map = React.createClass({
         icon.strokeOpacity = 0.9;
       } else if (location.is_moving) {
         icon.scale = 3;
-        icon.path = google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+        icon.path = (index % 2) ? google.maps.SymbolPath.FORWARD_CLOSED_ARROW : google.maps.SymbolPath.CIRCLE,
         icon.rotation = location.heading,
         icon.fillColor = '#11b700';
         icon.fillOpacity = 1;
