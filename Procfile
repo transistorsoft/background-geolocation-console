@@ -1,0 +1,1 @@
+web: sed -i "s/maps.googleapis.com\\/maps\\/api\\/js/maps.googleapis.com\\/maps\\/api\\/js?key=$GMAP_API_KEY/" index.html && sed -i "s/js\\/bundle.js/js\\/bundle.min.js/" index.html && npm run build && node server.js
