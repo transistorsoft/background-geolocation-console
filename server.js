@@ -127,8 +127,10 @@ var Location = (function() {
       }
 
       query = query.join(' ');
-      if (params.start_date && params.end_date) {
+      if (params.device_id && params.start_date && params.end_date) {
         dbh.all(query, params.start_date, params.end_date, params.device_id, onQuery)
+      } else if (params.start_date && params.end_date) {
+        dbh.all(query, params.start_date, params.end_date, onQuery);
       } else {
         dbh.all(query, onQuery);
       }
@@ -161,11 +163,6 @@ var Location = (function() {
       } else {        
         // batchSync: false
         insert(location);
-
-
-
-
-
       }
       sth.finalize();
     }
