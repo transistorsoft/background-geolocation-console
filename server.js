@@ -137,7 +137,6 @@ var Location = (function() {
     },
     create: function(params) {
       var location  = params.location,
-          device    = params.device,
           now       = new Date(),
           query     = "INSERT INTO locations (uuid, device_id, device_model, latitude, longitude, accuracy, altitude, speed, heading, activity_type, activity_confidence, battery_level, battery_is_charging, is_moving, geofence, recorded_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
       
@@ -147,7 +146,7 @@ var Location = (function() {
         var coords = location.coords,
             battery   = location.battery  || {level: null, is_charging: null},
             activity  = location.activity || {type: null, confidence: null},
-            device    = params.device     || {type: "UNKNOWN"};
+            device    = params.device     || {model: "UNKNOWN"};
             
             geofence  = (location.geofence) ? JSON.stringify(location.geofence) : null;
 
