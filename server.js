@@ -127,15 +127,16 @@ var Location = (function() {
       }
 
       query = query.join(' ');
-      if (params.start_date && params.end_date) {
+      if (params.device_id && params.start_date && params.end_date) {
         dbh.all(query, params.start_date, params.end_date, params.device_id, onQuery)
+      } else if (params.start_date && params.end_date) {
+        dbh.all(query, params.start_date, params.end_date, onQuery);
       } else {
         dbh.all(query, onQuery);
       }
     },
     create: function(params) {
       var location  = params.location,
-          device    = params.device,
           now       = new Date(),
           query     = "INSERT INTO locations (uuid, device_id, device_model, latitude, longitude, accuracy, altitude, speed, heading, activity_type, activity_confidence, battery_level, battery_is_charging, is_moving, geofence, recorded_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
       
@@ -145,7 +146,7 @@ var Location = (function() {
         var coords = location.coords,
             battery   = location.battery  || {level: null, is_charging: null},
             activity  = location.activity || {type: null, confidence: null},
-            device    = params.device     || {type: "UNKNOWN"};
+            device    = params.device     || {model: "UNKNOWN"};
             
             geofence  = (location.geofence) ? JSON.stringify(location.geofence) : null;
 
@@ -161,11 +162,6 @@ var Location = (function() {
       } else {        
         // batchSync: false
         insert(location);
-
-
-
-
-
       }
       sth.finalize();
     }
