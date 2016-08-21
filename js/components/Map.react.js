@@ -1,4 +1,6 @@
 import {default as React, Component} from "react";
+import ReactDOM from "react-dom";
+
 import {default as GoogleMap} from "react-google-maps/lib/GoogleMap";
 import {default as Marker} from "react-google-maps/lib/Marker";
 import {default as InfoWindow} from "react-google-maps/lib/InfoWindow";
@@ -25,25 +27,11 @@ var moment = require('moment');
 var Format = require('../lib/Format');
 
 // Material deps
-var mui = require('material-ui'),
-  ThemeManager  = require('material-ui/lib/styles/theme-manager'),
-  Colors        = require('material-ui/lib/styles/colors'),
-  FlatButton    = require('material-ui/lib/flat-button'),
-  SelectField   = require('material-ui/lib/select-field'),
-  MenuItem      = require('material-ui/lib/menus/menu-item'),
-  RaisedButton  = require('material-ui/lib/raised-button'),
-  FontIcon      = require('material-ui/lib/font-icon'),
-  Tabs          = require('material-ui/lib/tabs/tabs'),
-  Tab           = require('material-ui/lib/tabs/tab'),
-  Toolbar       = require('material-ui/lib/toolbar/toolbar'),
-  DatePicker    = require('material-ui/lib/date-picker/date-picker'),
-  TextField     = require('material-ui/lib/text-field'),
-  ToolbarSeparator = require('material-ui/lib/toolbar/toolbar-separator'),
-  ToolbarGroup  = require('material-ui/lib/toolbar/toolbar-group'),
-  ToolbarTitle  = require('material-ui/lib/toolbar/toolbar-title');
+import Colors from 'material-ui/styles/colors';
+import {FlatButton, SelectField, MenuItem, RaisedButton, FontIcon, Tabs, Tab, Toolbar, DatePicker, TextField, ToolbarSeparator, ToolbarGroup, ToolbarTitle} from 'material-ui';
 
 // DataGrid
-var DataGrid = require('react-datagrid')
+import DataGrid from 'react-datagrid';
 
 // DataGrid columns
 var gridColumns = [
@@ -147,15 +135,9 @@ var Map = React.createClass({
     };
   },
   componentWillMount: function() {
-    /*
-    ThemeManager.setPalette({
-      accent1Color: Colors.deepOrange500,
-    });
-    */
-    //ThemeManager.setTheme(ThemeManager.types.LIGHT);
+    
   },
   componentDidMount: function() {
-
     var me = this;
     var flux = this.getFlux();
 
@@ -168,10 +150,11 @@ var Map = React.createClass({
     });
 
     // Ugly-ass height-resize code for Map & Grid tabs.
-    var ct    = React.findDOMNode(this.refs.container),
-        map   = React.findDOMNode(this.refs.map),
-        grid  = React.findDOMNode(this.refs.grid);
-    
+    var ct    = ReactDOM.findDOMNode(this.refs.container),
+        map   = ReactDOM.findDOMNode(this.refs.map),
+        grid  = ReactDOM.findDOMNode(this.refs.grid);
+  
+
     window.addEventListener("resize", resize);
 
     this.setState({
@@ -183,7 +166,6 @@ var Map = React.createClass({
     */
     function resize() {
       var cssHeight;
-
       if (me.state.bodyHeight) {
         var diff = window.document.body.clientHeight - me.state.bodyHeight;
 
@@ -192,9 +174,12 @@ var Map = React.createClass({
         });
         map.style.height = map.clientHeight + diff + 'px';
         grid.style.height = grid.clientHeight + diff + 'px';
+
       } else {
-        cssHeight = (ct.clientHeight-48) + 'px';  // <-- 48 is height if Toolbar
+        //cssHeight = (ct.clientHeight-48) + 'px';  // <-- 48 is height if Toolbar
+        cssHeight = (window.document.body.clientHeight -  210) + 'px';
       }
+
       map.style.height = cssHeight;
       grid.style.height = cssHeight;
     }    
@@ -343,33 +328,31 @@ var Map = React.createClass({
     }
     return (
 
-      <View column auto width="100%">
-        <View column auto>
+      <View style={{flexDirection:"column", alignItems: "stretch"}} width="100%">
+        <View style={{flexDirection: "column", alignItems: "stretch"}}>
           <FilterView flux={this.props.flux} />
           <StatsView flux={this.props.flux} />
         </View>
         <View ref="container" className="blue">
-          <View column width="100%">
-            <Tabs>
-              <Tab label="Map">
-                <GoogleMap 
-                  containerProps={{style: {width: "100%"}}}
-                  ref="map"
-                  defaultZoom={18}
-                  center={this.state.center}>
-                    <Polyline path={this.state.path} options={{geodesic: true, strokeColor: '#2677FF', strokeOpacity: 0.7, strokeWeight: 4}} />
-                    {this.state.markers.map((marker, index) => { return (
-                      <Marker{...marker} onClick={this.onMarkerClick.bind(this, marker)}>
-                        {marker.showInfo ? this.showInfoWindow(marker) : null}
-                      </Marker>
-                    ); })}
-                </GoogleMap>
-              </Tab>
-              <Tab label="Grid">
-                <DataGrid ref="grid" idProperty="id" dataSource={this.state.locations} columns={gridColumns} selected={this.state.selected} rowStyle={this.getRowStyle} onSelectionChange={this.onSelect} style={{width:"100%", height:"800px"}}/>
-              </Tab>
-            </Tabs>
-          </View>
+          <Tabs style={{flex: 1}}>
+            <Tab label="Map">
+              <GoogleMap 
+                containerProps={{style: {width: "100%"}}}
+                ref="map"
+                defaultZoom={18}
+                center={this.state.center}>
+                  <Polyline path={this.state.path} options={{geodesic: true, strokeColor: '#2677FF', strokeOpacity: 0.7, strokeWeight: 4}} />
+                  {this.state.markers.map((marker, index) => { return (
+                    <Marker{...marker} onClick={this.onMarkerClick.bind(this, marker)}>
+                      {marker.showInfo ? this.showInfoWindow(marker) : null}
+                    </Marker>
+                  ); })}
+              </GoogleMap>
+            </Tab>
+            <Tab label="Grid">
+              <DataGrid ref="grid" idProperty="id" dataSource={this.state.locations} columns={gridColumns} selected={this.state.selected} rowStyle={this.getRowStyle} onSelectionChange={this.onSelect} style={{width:"100%", height:"800px"}}/>
+            </Tab>
+          </Tabs>
         </View>
       </View>
     );

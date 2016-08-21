@@ -1,6 +1,8 @@
 var React = require('react');
 import View from "react-flexbox";
 
+import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
+
 var Header = require('./Header.react');
 var Map = require('./Map.react');
 
@@ -11,12 +13,12 @@ var Viewport = React.createClass({
   render: function() {
 
     return (
-      <View column height="100vh">
-        <View column auto>
-          <View height="70px"><Header height="70px" /></View>
+      <MuiThemeProvider>
+        <View style={{flexDirection: 'column'}}>
+          <Header />
+          <Map flux={this.props.flux} />
         </View>
-        <View><Map flux={this.props.flux} /></View>
-      </View>
+      </MuiThemeProvider>
     );
   }
 });

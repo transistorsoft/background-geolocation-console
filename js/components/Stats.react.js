@@ -11,19 +11,11 @@ var Constants = require('../constants/Constants');
 var Format = require('../lib/Format');
 
 // Material deps
-var mui = require('material-ui'),
-  ThemeManager  = require('material-ui/lib/styles/theme-manager'),
-  Colors        = require('material-ui/lib/styles/colors'),
 
-  // Table
-  Table         = require('material-ui/lib/table/table'),
-  TableBody     = require('material-ui/lib/table/table-body'),
-  TableHeader   = require('material-ui/lib/table/table-header'),
-  TableRow      = require('material-ui/lib/table/table-row'),
-  TableHeaderColumn = require('material-ui/lib/table/table-header-column'),
-  TableRowColumn = require('material-ui/lib/table/table-row-column'),
-  TableFooter = require('material-ui/lib/table/table-footer');
+import Colors from 'material-ui/styles/colors';
 
+import {Table, TableBody, TableHeader, TableRow, TableHeaderColumn, TableRowColumn, TableFooter} from "material-ui";
+  
 var Stats = React.createClass({
   mixins: [FluxMixin, StoreWatchMixin("LocationsStore")],
   
