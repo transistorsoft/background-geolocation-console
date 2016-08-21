@@ -13,6 +13,7 @@ var Fluxxor = require('fluxxor');
 var Router = require('react-router').Router
 var Route = require('react-router').Route
 var Link = require('react-router').Link
+import { hashHistory } from 'react-router'
 
 var Viewport = require('./components/Viewport.react');
 
@@ -34,7 +35,7 @@ const createFluxComponent = (Component, props) => {
 };
 
 var routes = (
-  <Router createElement={createFluxComponent}>
+  <Router createElement={createFluxComponent} history={hashHistory}>
     <Route path="/" component={Viewport} flux={flux}>
       <Route path="*" component={Viewport} flux={flux}/>
     </Route>

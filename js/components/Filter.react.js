@@ -15,20 +15,8 @@ var moment = require('moment');
 var Format = require('../lib/Format');
 
 // Material deps
-var mui = require('material-ui'),
-  ThemeManager  = require('material-ui/lib/styles/theme-manager'),
-  Colors        = require('material-ui/lib/styles/colors'),
-  FlatButton    = require('material-ui/lib/flat-button'),
-  SelectField   = require('material-ui/lib/select-field'),
-  MenuItem      = require('material-ui/lib/menus/menu-item'),
-  RaisedButton  = require('material-ui/lib/raised-button'),
-  FontIcon      = require('material-ui/lib/font-icon'),
-  Toolbar       = require('material-ui/lib/toolbar/toolbar'),
-  DatePicker    = require('material-ui/lib/date-picker/date-picker'),
-  TextField     = require('material-ui/lib/text-field'),
-  ToolbarSeparator = require('material-ui/lib/toolbar/toolbar-separator'),
-  ToolbarGroup  = require('material-ui/lib/toolbar/toolbar-group'),
-  ToolbarTitle  = require('material-ui/lib/toolbar/toolbar-title');
+import Colors from 'material-ui/styles/colors';
+import {FlatButton, SelectField, MenuItem, RaisedButton, FontIcon, Toolbar, DatePicker, TextField, ToolbarSeparator, ToolbarGroup, ToolbarTitle} from 'material-ui';
 
 /*
  * Sample From: https://developers.google.com/maps/documentation/javascript/examples/map-simple
@@ -37,18 +25,8 @@ var mui = require('material-ui'),
  */
 var Filter = React.createClass({
   mixins: [FluxMixin, StoreWatchMixin("LocationsStore", "DevicesStore")],
-  /*
-   * 1. Create a component that wraps all your map sub-components.
-   */
-  childContextTypes: {
-    muiTheme: React.PropTypes.object
-  },
-  getChildContext: function() {
-    return {
-      //muiTheme: ThemeManager.getCurrentTheme()
-    };
-  },
 
+  
   getInitialState: function() {
     var filter = window.localStorage.getItem('filter');
     if (filter) {
@@ -186,7 +164,6 @@ var Filter = React.createClass({
       items.push(<MenuItem value={this.state.devices[i].device_id} key={i} primaryText={this.state.devices[i].device_model}/>);
     }
     return (
-
       <Toolbar style={{backgroundColor:"#fff"}}>
         <ToolbarGroup key={0}>
           <ToolbarTitle text="Device:" style={{float:"left"}} />
@@ -195,13 +172,13 @@ var Filter = React.createClass({
           </SelectField>
         </ToolbarGroup>
 
-        <ToolbarGroup key={1} float="left">
+        <ToolbarGroup key={1}>
           <ToolbarTitle text="Start date" style={{float:"left", marginLeft:"20px"}} />
           <DatePicker id="startDate" ref="startDate" autoOk={true} width="100px" formatDate={this.formatDate} defaultDate={today} style={{marginTop:"5px", float: "left", width: "100px"}} textFieldStyle={{width:"100px"}}/>
           <TextField id="startTime" ref="startTime" defaultValue="00:00" value={this.state.startTime} onChange={this.onChangeTime} width="100" style={{marginLeft: "10px", marginTop: "5px", float: "left", width: "50px"}} />
         </ToolbarGroup>
 
-        <ToolbarGroup key={2} float="left" style={{marginLeft:"20px"}}>
+        <ToolbarGroup key={2} style={{marginLeft:"20px"}}>
           <ToolbarTitle text="End date" style={{float:"left"}} />
           <DatePicker id="endDate" ref="endDate" autoOk={true} formatDate={this.formatDate} defaultDate={today} style={{marginTop:"5px", float: "left"}} textFieldStyle={{width:"100px"}} />
           <TextField id="endTime" ref="endTime" defaultValue="23:59" value={this.state.endTime} onChange={this.onChangeTime} style={{marginLeft: "10px", marginTop:"5px", float: "left", width: "50px"}} />
