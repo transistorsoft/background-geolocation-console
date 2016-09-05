@@ -23,6 +23,8 @@ app.get('/devices', function(req, res) {
   console.log('GET /devices', "\n");
   Device.all(req.query, function(rs) {
     res.send(rs);
+  }, function(err){
+    res.status(500).send({ error: 'Something failed!' });
   })
 });
 
@@ -34,6 +36,8 @@ app.get('/locations', function(req, res) {
   console.log('- GET /locations', JSON.stringify(req.query));
   Location.all(req.query, function(rs) {
     res.send(rs);
+  }, function(err){
+    res.status(500).send({ error: 'Something failed!' });
   });
 });
 
@@ -101,14 +105,15 @@ var LocationModel = sequelize.define("locations", {
 */
 var Device = (function() {
   return {
-    all: function(conditions, callback) {
+    all: function(conditions, success, error) {
       LocationModel.findAll({
         attributes: [ 'device_id', 'device_model'],
         group: [ 'device_id', 'device_model' ],
         order: 'max(recorded_at) DESC'
-      }).then(callback, function(err){
+      }).then(success, function(err){
         console.error("Error while fetching all devices", err);
-      });
+        error(err);
+      }).catch(error);
     }
   }
 })();
@@ -123,7 +128,7 @@ var Location = (function() {
   }
 
   return {
-    all: function(params, callback) {
+    all: function(params, success, error) {
       var whereConditions = {};
       if (params.start_date && params.end_date) {
         whereConditions.recorded_at = { $between: [params.start_date, params.end_date] };
@@ -140,10 +145,11 @@ var Location = (function() {
         rows.forEach(function (row) {
           locations.push(hydrate(row));
         });
-        callback(locations);
+        success(locations);
       }, function(err){
         console.error("Fetch all locations error : ", err);
-      });
+        error(err);
+      }).catch(error);
     },
     create: function(params) {
       var location  = params.location,
