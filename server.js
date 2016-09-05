@@ -1,12 +1,16 @@
 var express     = require('express');
 var bodyParser  = require('body-parser')
 var app         = express();
-var sqlite3     = require("sqlite3").verbose();
+var Sequelize   = require('sequelize');
 var fs          = require("fs");
-var dbFile      = "db/background-geolocation.db";
 
-// Init db.
-var dbh = initDB(dbFile);
+// ENVIRONMENT VARIABLES :
+// PORT (optional, defaulted to 8080) : http port server will listen to
+// DB_CONNECTION_URL (defaulted to "sqlite://db/background-geolocation.db") : connection url used to connect to a db
+//    Currently, only postgresql & sqlite dialect are supported
+//    Sample pattern for postgresql connection url : postgres://<username>:<password>@<hostname>:<port>/<dbname>
+
+var sequelize = new Sequelize(process.env.DB_CONNECTION_URL || { dialect: "sqlite", storage: "./db/background-geolocation.db" });
 
 app.disable('etag');
 app.use(express.static('.'));
@@ -19,6 +23,8 @@ app.get('/devices', function(req, res) {
   console.log('GET /devices', "\n");
   Device.all(req.query, function(rs) {
     res.send(rs);
+  }, function(err){
+    res.status(500).send({ error: 'Something failed!' });
   })
 });
 
@@ -30,6 +36,8 @@ app.get('/locations', function(req, res) {
   console.log('- GET /locations', JSON.stringify(req.query));
   Location.all(req.query, function(rs) {
     res.send(rs);
+  }, function(err){
+    res.status(500).send({ error: 'Something failed!' });
   });
 });
 
@@ -70,21 +78,42 @@ var server = app.listen((process.env.PORT || 8080), function () {
   console.log('*************************************************************************', "\n");
 });
 
+
+var LocationModel = sequelize.define("locations", {
+  id: { type: Sequelize.INTEGER, autoIncrement: true, primaryKey: true},
+  uuid: { type: Sequelize.TEXT },
+  device_id: { type: Sequelize.TEXT },
+  device_model: { type: Sequelize.TEXT },
+  latitude: { type: Sequelize.REAL },
+  longitude: { type: Sequelize.REAL },
+  accuracy: { type: Sequelize.INTEGER },
+  altitude: { type: Sequelize.REAL },
+  speed: { type: Sequelize.REAL },
+  heading: { type: Sequelize.REAL },
+  activity_type: { type: Sequelize.TEXT },
+  activity_confidence: { type: Sequelize.INTEGER },
+  battery_level: { type: Sequelize.REAL },
+  battery_is_charging: { type: Sequelize.BOOLEAN },
+  is_moving: { type: Sequelize.BOOLEAN },
+  geofence: { type: Sequelize.TEXT },
+  recorded_at: { type: Sequelize.DATE },
+  created_at: { type: Sequelize.DATE }
+});
+
 /**
 * Device model
 */
 var Device = (function() {
   return {
-    all: function(conditions, callback) {
-      var query = "SELECT device_id, device_model FROM locations GROUP BY device_id, device_model ORDER BY recorded_at DESC";
-      var onQuery = function(err, rows) {
-        var rs = [];
-        rows.forEach(function (row) {
-          rs.push(row);
-        });
-        callback(rs);
-      }      
-      dbh.all(query, onQuery);
+    all: function(conditions, success, error) {
+      LocationModel.findAll({
+        attributes: [ 'device_id', 'device_model'],
+        group: [ 'device_id', 'device_model' ],
+        order: 'max(recorded_at) DESC'
+      }).then(success, function(err){
+        console.error("Error while fetching all devices", err);
+        error(err);
+      }).catch(error);
     }
   }
 })();
@@ -99,113 +128,77 @@ var Location = (function() {
   }
 
   return {
-    all: function(params, callback) {
-      var query = ["SELECT * FROM locations"];
-      var conditions = [];
+    all: function(params, success, error) {
+      var whereConditions = {};
       if (params.start_date && params.end_date) {
-        conditions.push("recorded_at BETWEEN ? AND ?")
+        whereConditions.recorded_at = { $between: [params.start_date, params.end_date] };
       }
       if (params.device_id && params.device_id !== '') {
-        conditions.push("device_id = ?")
+        whereConditions.device_id = params.device_id;
       }
-      if (conditions.length) {
-        query.push("WHERE " + conditions.join(' AND '));
-      }
-      query.push("ORDER BY recorded_at DESC");
 
-      console.log('- ', query.join(' '), "\n");
-      var onQuery = function(err, rows) {
-        if (err) {
-          console.log('ERROR: ', err);
-          return;
-        }
-        var rs = [];
+      LocationModel.findAll({
+        where: whereConditions,
+        order: 'recorded_at DESC'
+      }).then(function(rows) {
+        var locations = [];
         rows.forEach(function (row) {
-          rs.push(hydrate(row));
+          locations.push(hydrate(row));
         });
-        callback(rs);
-      }
-
-      query = query.join(' ');
-      if (params.device_id && params.start_date && params.end_date) {
-        dbh.all(query, params.start_date, params.end_date, params.device_id, onQuery)
-      } else if (params.start_date && params.end_date) {
-        dbh.all(query, params.start_date, params.end_date, onQuery);
-      } else {
-        dbh.all(query, onQuery);
-      }
+        success(locations);
+      }, function(err){
+        console.error("Fetch all locations error : ", err);
+        error(err);
+      }).catch(error);
     },
     create: function(params) {
       var location  = params.location,
-          now       = new Date(),
-          query     = "INSERT INTO locations (uuid, device_id, device_model, latitude, longitude, accuracy, altitude, speed, heading, activity_type, activity_confidence, battery_level, battery_is_charging, is_moving, geofence, recorded_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-      
-      var sth       = dbh.prepare(query);
-      
-      var insert = function(location) {
+          now       = new Date();
+
+      // Considering we're always working with locations array
+      var locations = location.length?location:[location];
+
+      locations.forEach(function(location){
         var coords = location.coords,
             battery   = location.battery  || {level: null, is_charging: null},
             activity  = location.activity || {type: null, confidence: null},
-            device    = params.device     || {model: "UNKNOWN"};
-            
+            device    = params.device     || {model: "UNKNOWN"},
             geofence  = (location.geofence) ? JSON.stringify(location.geofence) : null;
 
-        sth.run(location.uuid, device.uuid, device.model, coords.latitude, coords.longitude, coords.accuracy, coords.altitude, coords.speed, coords.heading, activity.type, activity.confidence, battery.level, battery.is_charging, location.is_moving, geofence, location.timestamp, now);
-      }
-
-      // Check for batchSync, ie: location: {...} OR location: [...]
-      if (typeof(location.length) === 'number') {
-        // batchSync: true        
-        for (var n=0,len=location.length;n<len;n++) {
-          insert(location[n]);          
-        }
-      } else {        
-        // batchSync: false
-        insert(location);
-      }
-      sth.finalize();
+        LocationModel.create({
+          uuid: location.uuid,
+          device_id: device.uuid,
+          device_model: device.model,
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          accuracy: coords.accuracy,
+          altitude: coords.altitude,
+          speed: coords.speed,
+          heading: coords.heading,
+          activity_type: activity.type,
+          activity_confidence: activity.confidence,
+          battery_level: battery.level,
+          battery_is_charging: battery.is_charging,
+          is_moving: location.is_moving,
+          geofence: geofence,
+          recorded_at: location.timestamp,
+          created_at: now
+        });
+      });
     }
   }
 })();
 
 /**
-* Init / create database
-*/
-function initDB(filename) {
-  if(fs.existsSync(filename)) {
-    return new sqlite3.Database(filename);
-  } else {
-    console.log("Creating DB file.");
-    fs.mkdir("db", function(e) {
-      fs.openSync(filename, "w");
+ * Init / create database
+ */
+sequelize.authenticate()
+    .then(function(err) {
+      console.log('DB Connection has been established successfully.');
+      return LocationModel.sync();
+    }, function(err){
+      console.log('Unable to connect to the database:', err);
+    })
+    .catch(function (err) {
+      console.log('Unable to sync database:', err);
     });
-    
-    
-    var dbh = new sqlite3.Database(filename);  
-
-    var LOCATIONS_COLUMNS = [
-      "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL", 
-      "uuid TEXT",
-      "device_id TEXT",
-      "device_model TEXT",
-      "latitude REAL", 
-      "longitude REAL",
-      "accuracy INTEGER", 
-      "altitude REAL",
-      "speed REAL",
-      "heading REAL",
-      "activity_type TEXT",
-      "activity_confidence INTEGER",
-      "battery_level REAL",
-      "battery_is_charging BOOLEAN",
-      "is_moving BOOLEAN",
-      "geofence TEXT",
-      "recorded_at DATETIME",
-      "created_at DATETIME"
-    ];
-    dbh.serialize(function() {
-      dbh.run("CREATE TABLE locations (" + LOCATIONS_COLUMNS.join(',') + ")");
-    });
-    return dbh;
-  }
-}
