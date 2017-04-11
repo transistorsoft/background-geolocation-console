@@ -22,16 +22,23 @@ app.get('/devices', function(req, res) {
   })
 });
 
+app.get('/api/locations', function(req, res) {
+  console.log('GET /api/locations');
+  res.send({success: true, locations: []});
+});
+
 /**
 * GET /locations
 */
 app.get('/locations', function(req, res) {
   console.log('--------------------------------------------------------------------');
   console.log('- GET /locations', JSON.stringify(req.query));
+
   Location.all(req.query, function(rs) {
     res.send(rs);
   });
 });
+
 
 /**
 * POST /locations
@@ -39,12 +46,34 @@ app.get('/locations', function(req, res) {
 app.post('/locations', function (req, res) {
   console.log('---------------------------------------------------------------------');
   console.log("- POST /locations\n", JSON.stringify(req.body, null, 2), "\n");
-  Location.create(req.body);
+
+  console.log('- headers: ', req.headers);
+
+  var auth = req.get('Authorization');
+  console.log('Authorization: ', auth);
+
+  try {
+    Location.create(req.body);
+  } catch(e) {
+    console.log(e.message);
+  }
   res.send({success: true});
+  //res.status(401).send("Unauthorized");
+  //res.status(403).send("Forbidden");
+  //res.status(201).send({success: true});
+  //res.status(201).send({success: true});
   //res.status(427).send("Too many requests");
   //res.status(500).send("Internal Server Error");
   //res.status(404).send("Not Found");
+  //res.status(408).send("Timeout");
+});
 
+app.post('/locations_template', function (req, res) {
+  console.log('---------------------------------------------------------------------');
+  console.log("- POST /locations_template\n", JSON.stringify(req.body, null, 2), "\n");
+  res.set('Retry-After', 5);
+  res.send({success: true});
+  //res.status(401).send("Unauthorized");
 });
 
 app.post('/configure', function(req, res) {
@@ -61,7 +90,17 @@ app.post('/configure', function(req, res) {
   res.send(response);
 });
 
-var server = app.listen((process.env.PORT || 8080), function () {
+/**
+* Fetch iOS simulator city_drive route
+*/
+app.get('/data/city_drive', function(req, res) {
+  console.log('GET /data/city_drive.json');
+  fs.readFile('./data/city_drive.json', 'utf8', function (err,data) {
+    res.send(data);
+  });
+});
+
+var server = app.listen((process.env.PORT || 9000), function () {
   var host = server.address().address;
   var port = server.address().port;
 
@@ -83,7 +122,7 @@ var Device = (function() {
           rs.push(row);
         });
         callback(rs);
-      }      
+      }
       dbh.all(query, onQuery);
     }
   }
@@ -138,7 +177,7 @@ var Location = (function() {
     create: function(params) {
       var location  = params.location,
           now       = new Date(),
-          query     = "INSERT INTO locations (uuid, device_id, device_model, latitude, longitude, accuracy, altitude, speed, heading, activity_type, activity_confidence, battery_level, battery_is_charging, is_moving, geofence, recorded_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+          query     = "INSERT INTO locations (uuid, device_id, device_model, latitude, longitude, accuracy, altitude, speed, heading, odometer, event, activity_type, activity_confidence, battery_level, battery_is_charging, is_moving, geofence, recorded_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
       
       var sth       = dbh.prepare(query);
       
@@ -147,10 +186,11 @@ var Location = (function() {
             battery   = location.battery  || {level: null, is_charging: null},
             activity  = location.activity || {type: null, confidence: null},
             device    = params.device     || {model: "UNKNOWN"};
-            
             geofence  = (location.geofence) ? JSON.stringify(location.geofence) : null;
 
-        sth.run(location.uuid, device.uuid, device.model, coords.latitude, coords.longitude, coords.accuracy, coords.altitude, coords.speed, coords.heading, activity.type, activity.confidence, battery.level, battery.is_charging, location.is_moving, geofence, location.timestamp, now);
+        var uuid = (device.framework) ? (device.framework + '-' + device.uuid) : device.uuid;
+        var model = (device.framework) ?  (device.model + ' (' + device.framework + ')') : device.model;
+        sth.run(location.uuid, uuid, model, coords.latitude, coords.longitude, coords.accuracy, coords.altitude, coords.speed, coords.heading, location.odometer, location.event, activity.type, activity.confidence, battery.level, battery.is_charging, location.is_moving, geofence, location.timestamp, now);
       }
 
       // Check for batchSync, ie: location: {...} OR location: [...]
@@ -192,8 +232,10 @@ function initDB(filename) {
       "longitude REAL",
       "accuracy INTEGER", 
       "altitude REAL",
-      "speed REAL",
+      "speed REAL",      
       "heading REAL",
+      "odometer REAL",
+      "event TEXT",
       "activity_type TEXT",
       "activity_confidence INTEGER",
       "battery_level REAL",

@@ -1,0 +1,45 @@
+
+#app-container {
+
+}
+
+.viewport {
+  align-items: stretch;
+  flex-direction: row;
+}
+
+.logo {
+  width: 180px;
+  margin-top: -6px;
+  margin-right: -50px;
+}
+
+.workspace {
+  top: 0;
+  bottom: 0;
+  right:0;
+}
+.map {
+  flex: 1;
+  position:absolute;
+  top: 112px;
+  bottom: 0;
+  left: 0;
+  right:0;
+}
+.navDrawer {
+  
+}
+
+.content {
+  padding: 5px;
+}
+
+.tableCellRed {
+  background-color: #FE381E;
+  color: #fff;
+}
+.tableCellGreen {
+  background-color: #16BE42;
+  color: #fff;
+}

@@ -11,31 +11,31 @@
 You must have [npm](https://www.npmjs.org/) installed on your computer.
 From the root project directory run these commands from the command line:
 
-    npm install
+```bash
+$ npm install
+```
 
-This will install all dependencies.
+## Client & Server
 
-To build the project, first run this command:
+This app hosts two servers:  one for the backend (port 9000) and other to serve the client web app (port 9001).  You need to boot both, in two separate terminal windows:
 
-    npm start
+In one terminal window, boot the backend server:
 
-This will perform an initial build of the Javascript and boot the web-server on port `8080`
+```bash
+$ npm run server
+```
 
-Now visit [http://localhost:8080](http://localhost:8080)
+And in another terminal window, boot the frontend web app:
 
-## Running on Heroku
+```bash
+$ npm run client
+```
 
-You can deploy easily the app on Heroku by pushing the code to your heroku git repository.
-
-Before this, you will need to create 2 environment variables :
-- `NPM_CONFIG_PRODUCTION = false` : It will tell heroku to install `devDependencies` (and not only `dependencies`), required to build browserify's `bundle.min.js` file
-- `GMAP_API_KEY = <PUT YOUR KEY HERE>` : A Google Maps API v3 allowed for your heroku domain (see https://console.developers.google.com)
-
-And to reference both `heroku/nodejs` and `https://github.com/weibeld/heroku-buildpack-run.git` buildpacks (either in the heroku dashboard, or by executing `heroku buildpacks:add --index 1 heroku/nodejs && heroku buildpacks:add --index 2 https://github.com/weibeld/heroku-buildpack-run.git`)
+A browser window will automatically launch the front-end web app.
 
 ## Configure The Sample App
 
-The Background Geolocation [Sample App](https://github.com/transistorsoft/cordova-background-geolocation-SampleApp) is perfect for use with this web-application.  To configure the app, simply edit `Settings->url` and set it to `http://<your.ip.ad.dress>:8080/locations`.
+The Background Geolocation [Sample App](https://github.com/transistorsoft/cordova-background-geolocation-SampleApp) is perfect for use with this web-application.  To configure the app, simply edit `Settings->url` and set it to `http://<your.ip.ad.dress>:9000/locations`.
 
 ![](https://dl.dropboxusercontent.com/u/2319755/cordova-background-geolocaiton/settings-url.png)
 
