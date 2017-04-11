@@ -118,7 +118,7 @@ class ListView extends Component {
     this.data = this.prepareData();
 
     return (
-      <Table onRowSelect={this.handleRowSelect.bind(this)} style={{ marginTop: 10 }}>
+      <Table onRowSelect={this.handleRowSelect.bind(this)}>
         <TableHead>
           <TableCell>uuid</TableCell>
           <TableCell numeric>Recorded at</TableCell>
