@@ -31,7 +31,9 @@ export default class App {
     this.state = this._loadState();
     this.selectedLocation = undefined;
 
-    store.dispatch(getLocations(this.state));
+    if (this.state.deviceId) {
+      store.dispatch(getLocations(this.state));
+    }
     store.dispatch(getDevices());
   }
 
@@ -52,7 +54,9 @@ export default class App {
       case 'startDate':
       case 'endDate':
         this.setLocation(null);
-        store.dispatch(getLocations(this.state));
+        if (this.state.deviceId) {
+          store.dispatch(getLocations(this.state));
+        }
         break;
     }    
     eventEmitter.emit('filter', {
