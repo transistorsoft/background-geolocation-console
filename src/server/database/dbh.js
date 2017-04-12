@@ -22,6 +22,8 @@ var LOCATIONS_COLUMNS = [
   "battery_is_charging BOOLEAN",
   "is_moving BOOLEAN",
   "geofence TEXT",
+  "provider TEXT",
+  "extras TEXT",
   "recorded_at DATETIME",
   "created_at DATETIME"
 ];

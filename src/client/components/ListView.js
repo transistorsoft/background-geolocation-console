@@ -15,16 +15,6 @@ import Styles from "../assets/styles/app.css";
 
 import App from "./App";
 
-const data = [
-  {name: 'Cupcake', calories: 305, fat: 3.7, sodium: 413, calcium: '3%', iron: '8%'},
-  {name: 'Donut', calories: 452, fat: 25.0, sodium: 326, calcium: '2%', iron: '22%'},
-  {name: 'Eclair', calories: 262, fat: 16.0, sodium: 337, calcium: '6%', iron: '7%'},
-  {name: 'Frozen yogurt', calories: 159, fat: 6.0, sodium: 87, calcium: '14%', iron: '1%'},
-  {name: 'Gingerbread', calories: 356, fat: 16.0, sodium: 327, calcium: '7%', iron: '16%'},
-  {name: 'Ice cream sandwich', calories: 237, fat: 9.0, sodium: 129, calcium: '8%', iron: '1%'},
-  {name: 'Jelly bean', calories: 375, fat: 0.0, sodium: 50, calcium: '0%', iron: '0%'},
-  {name: 'KitKat', calories: 518, fat: 26.0, sodium: 54, calcium: '12%', iron: '6%'}
-];
 
 const sortByCaloriesAsc = (a, b) => {
   if (a.calories < b.calories) return -1;
@@ -87,11 +77,8 @@ class ListView extends Component {
 
   prepareData() {
     return (this.props.locations) ? this.props.locations.map((location) => {
-      let event = '';
+      let event = location.event || '';
       switch(location.event) {
-        case 'motionchange':
-          event = location.event;
-          break;
         case 'geofence':
           event = location.event + ': ' + location.geofence.action + ' ' + location.geofence.identifier;
           break;        
