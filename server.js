@@ -12,12 +12,11 @@ const webpackHotMiddleware  = require('webpack-hot-middleware');
 
 const isDev = true;
 
-require('./src/server/routes.js')(app);
-
 app.disable('etag');
 app.use(express.static('./src/client'));
 app.use(bodyParser.json());
 
+require('./src/server/routes.js')(app);
 
 var compiler = webpack(webpackConfig);
 
