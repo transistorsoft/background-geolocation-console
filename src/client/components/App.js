@@ -37,6 +37,12 @@ export default class App {
     store.dispatch(getDevices());
   }
 
+  reload() {
+    if (this.state.deviceId) {
+      store.dispatch(getLocations(this.state));
+    }
+  }
+
   getStore() {
     return store;
   }

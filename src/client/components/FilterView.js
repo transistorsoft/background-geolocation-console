@@ -8,6 +8,8 @@ import * as moment from 'moment';
 
 import {
   AppBar,
+  Button,
+  IconButton,
   DatePicker,
   TimePicker,
   Checkbox,
@@ -48,6 +50,10 @@ class FilterView extends Component {
     this.setState(state);
   }
 
+  onClickReload() {
+    App.getInstance().reload();
+  }
+
   render() {
     let devices = this.props.devices.map((device) => {
       return {value: device.device_id, label: device.device_model}
@@ -55,7 +61,7 @@ class FilterView extends Component {
 
     return (        
         <div className="filterView">
-          <AppBar title="Filter"></AppBar>
+          <AppBar title="Filter" rightIcon="refresh" onRightIconClick={this.onClickReload.bind(this)}></AppBar>
           <div className={Styles.content}>
             <Card style={{marginBottom:'10px'}}>
               <div className={Styles.content}>
@@ -97,6 +103,8 @@ class FilterView extends Component {
                     onChange={this.onChange.bind(this, 'endDate')}
                     value={this.state.endDate} />
                 </div>
+                <Button icon="refresh" label="reload" style={{width:'100%'}} raised primary onMouseUp={this.onClickReload.bind(this)}/>
+    
               </div>
             </Card>
             <Card>
