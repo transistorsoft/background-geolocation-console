@@ -6,7 +6,7 @@
 
 ![](https://dl.dropboxusercontent.com/u/2319755/cordova-background-geolocaiton/background-geolocation-console-grid.png)
 
-## Running
+## Install
 
 You must have [npm](https://www.npmjs.org/) installed on your computer.
 From the root project directory run these commands from the command line:
@@ -15,20 +15,10 @@ From the root project directory run these commands from the command line:
 $ npm install
 ```
 
-## Client & Server
-
-This app hosts two servers:  one for the backend (port 9000) and other to serve the client web app (port 9001).  You need to boot both, in two separate terminal windows:
-
-In one terminal window, boot the backend server:
+## Running
 
 ```bash
 $ npm run server
-```
-
-And in another terminal window, boot the frontend web app:
-
-```bash
-$ npm run client
 ```
 
 A browser window will automatically launch the front-end web app.

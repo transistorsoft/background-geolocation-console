@@ -13,26 +13,22 @@ require('./index.html');
 
 const container = document.querySelector('#app-container');
 
-// Render app
-ReactDOM.render(
-  <AppContainer>
-    <Provider store={store}>
-      <Viewport />
-    </Provider>
-  </AppContainer>
-  , container
-);
+const render = Component => {
+  ReactDOM.render(
+    <AppContainer>
+      <Provider store={store}>
+        <Viewport />
+      </Provider>
+    </AppContainer>
+    , container
+  );  
+}
+
+render(Viewport);
 
 if (module.hot) {
   module.hot.accept('./components/Viewport', () => {
-    const HotLoadedApp = require('./components/Viewport')
-    ReactDOM.render(
-      <AppContainer>
-        <Provider store={store}>
-          <Viewport />
-        </Provider>
-      </AppContainer>, container
-    );
+    render(Viewport);
   });
 }
 

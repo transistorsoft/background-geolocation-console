@@ -40,7 +40,7 @@ class MapView extends Component {
   }
 
   componentDidUpdate() {
-    console.log(this.props.locations.length);
+    
   }
 
   onMapLoaded(event) {

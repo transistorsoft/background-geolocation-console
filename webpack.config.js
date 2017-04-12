@@ -2,31 +2,21 @@ const webpack = require('webpack');
 const path = require('path');
 
 module.exports = {
+  context: path.resolve(__dirname, 'src', 'client'),
+
   entry: [
+    'webpack-hot-middleware/client?path=/__webpack_hmr&timeout=20000',
     'react-hot-loader/patch',
-    './src/app.js',
+    './app.js',
   ],
   output: {
     path: path.resolve(__dirname, './build'),
     filename: 'app.bundle.js',
+    publicPath: '/'
   },
   resolve: {
     extensions: [".js", ".json", ".css", ".svg"]
-  },
-  devServer: {
-    hot: true,
-    publicPath: '/',
-    port: 9001,
-    contentBase: path.join(__dirname, "src"),
-    proxy: {
-      '/api/**': {
-        target: 'http://localhost:9000',
-        pathRewrite: {"^/api": ""},
-        secure: true,
-        changeOrigin: true
-      }
-    },
-  },
+  },  
   module: {
     loaders: [
       {
@@ -56,7 +46,8 @@ module.exports = {
       }
     ]
   },
-  plugins: [
+  plugins: [  
     new webpack.NamedModulesPlugin(),
-  ],
+    new webpack.HotModuleReplacementPlugin()
+  ]
 };

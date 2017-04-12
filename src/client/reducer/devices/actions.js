@@ -8,7 +8,7 @@ export const SET_DEVICES = 'SET_DEVICES';
 export function getDevices() {
   return dispatch => {
 
-    fetch(`${API_URL}/api/devices`)
+    fetch(`${API_URL}/devices`)
       .then(res => res.json())
       .then(res => res)
       .then(devices => 
@@ -25,4 +25,3 @@ export function setDevices(devices) {
     devices
   }
 }
-

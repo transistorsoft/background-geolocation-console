@@ -8,7 +8,7 @@ export const SET_LOCATIONS = 'SET_LOCATIONS';
 export function getLocations(filter) {
   return dispatch => {
 
-    fetch(`${API_URL}/api/locations?device_id=${filter.deviceId}&start_date=${filter.startDate.toISOString()}&end_date=${filter.endDate.toISOString()}`)
+    fetch(`${API_URL}/locations?device_id=${filter.deviceId}&start_date=${filter.startDate.toISOString()}&end_date=${filter.endDate.toISOString()}`)
       .then(res => res.json())
       .then(res => res)
       .then((locations) => {
