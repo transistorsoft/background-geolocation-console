@@ -31,6 +31,10 @@ export default class App {
     this.state = this._loadState();
     this.selectedLocation = undefined;
 
+    this.load();
+  }
+
+  load() {
     if (this.state.deviceId) {
       store.dispatch(getLocations(this.state));
     }
@@ -38,9 +42,7 @@ export default class App {
   }
 
   reload() {
-    if (this.state.deviceId) {
-      store.dispatch(getLocations(this.state));
-    }
+    this.load();
   }
 
   getStore() {

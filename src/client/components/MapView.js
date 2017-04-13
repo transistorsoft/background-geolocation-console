@@ -47,13 +47,26 @@ class MapView extends Component {
     this.gmap = event.map;
 
     // Route polyline
+    let seq = {
+      repeat: '50px',
+      icon: {
+        path: google.maps.SymbolPath.BACKWARD_OPEN_ARROW,
+        scale: 1,
+        fillOpacity: 0,
+        strokeColor: COLORS.white,
+        strokeWeight: 1,
+        strokeOpacity: 1
+      }
+    };
+
     this.polyline = new google.maps.Polyline({
       map: this.gmap,
       zIndex: 1,
       geodesic: true,
       strokeColor: COLORS.polyline_color,
       strokeOpacity: 0.6,
-      strokeWeight: 6
+      strokeWeight: 8,
+      icons: [seq]
     });
 
     this.getCurrentPosition();
@@ -159,16 +172,7 @@ class MapView extends Component {
           motionChangePosition = latLng;
         } else if (searchingForStart) {
           searchingForStart = false;
-          let polyline = new google.maps.Polyline({
-            map: (settings.showPolyline) ? this.gmap : null,
-            zIndex: 1001,
-            geodesic: true,
-            strokeColor: COLORS.green,
-            strokeOpacity: 1,
-            strokeWeight: 6,
-            path: [motionChangePosition, latLng]
-          });
-          this.motionChangePolylines.push(polyline);
+          this.motionChangePolylines.push(this.buildMotionChangePolyline(motionChangePosition, latLng));
         }
       }
     });
@@ -176,6 +180,33 @@ class MapView extends Component {
       let currentPosition = this.props.locations[length-1];      
       this.gmap.setCenter({lat: currentPosition.latitude, lng: currentPosition.longitude});      
     }
+  }
+
+  buildMotionChangePolyline(stationaryPosition, movingPosition) {
+    let settings = App.getInstance().getState();
+    let seq = {
+      repeat: '25px',
+      icon: {
+        path: google.maps.SymbolPath.BACKWARD_OPEN_ARROW,
+        scale: 1,
+        fillColor: COLORS.white,
+        fillOpacity: 0,
+        strokeColor: COLORS.white,
+        strokeWeight: 1,
+        strokeOpacity: 1
+      }
+    };
+    return new google.maps.Polyline({
+      map: (settings.showPolyline) ? this.gmap : null,
+      zIndex: 1001,
+      geodesic: true,
+      strokeColor: COLORS.green,
+      fillColor: COLORS.red,
+      icons: [seq],
+      strokeOpacity: 1,
+      strokeWeight: 8,
+      path: [stationaryPosition, movingPosition]
+    });
   }
 
   buildGeofenceMarker(location, options) {
@@ -238,6 +269,7 @@ class MapView extends Component {
 
     var locationMarker = this.buildLocationMarker(location, {
       showHeading: true,
+      zIndex: 2000,
       map: options.map,
       fillColor: color
     });
@@ -258,7 +290,7 @@ class MapView extends Component {
   // Build a bread-crumb location marker.
   buildLocationMarker(location, options?) {
     options = options || {};
-    let zIndex = 1;
+    let zIndex = options.zIndex || 1;
     let latLng = new google.maps.LatLng(location.latitude, location.longitude);
     let marker = new google.maps.Marker({
       zIndex: zIndex,
@@ -274,11 +306,15 @@ class MapView extends Component {
 
   buildLocationIcon(location, options) {
     options = options || {};
-
+    let anchor    = undefined;
     let fillColor = COLORS.polyline_color;
-    let path = google.maps.SymbolPath.FORWARD_CLOSED_ARROW;
+    let scale     = options.scale || 2;
+    let path      = google.maps.SymbolPath.FORWARD_CLOSED_ARROW;
+
     if (location.geofence) {
-      path = google.maps.SymbolPath.FORWARD_OPEN_ARROW;
+      path = google.maps.SymbolPath.FORWARD_CLOSED_ARROW;
+      anchor = new google.maps.Point(0, 2.6);
+      scale = 3;
       switch (location.geofence.action) {
         case 'ENTER':
           fillColor = COLORS.green;
@@ -293,27 +329,29 @@ class MapView extends Component {
     }
     let fillOpacity = 1;
     
-    let scale = options.scale || 3;
     if (location.event === 'motionchange') {
       if (!location.is_moving) {
+        anchor = undefined;
         path = google.maps.SymbolPath.CIRCLE;
         scale = 10;
         fillOpacity = 0.7;
         fillColor = COLORS.red;
       } else {
+        path = google.maps.SymbolPath.FORWARD_OPEN_ARROW;
         fillColor = COLORS.green;
-        fillOpacity = 0.7;
+        scale = 3;
+        fillOpacity = 1;
       }
     }
     if (options.selected) {
       scale *= 2;
     }
-    let anchor = new google.maps.Point(0, 2.6);
+    
     return {
       path: path,
       rotation: location.heading,
       scale: scale,
-      //anchor: anchor,
+      anchor: anchor,
       fillColor: options.fillColor || fillColor,
       fillOpacity: options.fillOpacity || fillOpacity,
       strokeColor: options.strokeColor || COLORS.black,
