@@ -46,7 +46,7 @@ app.use(middleware);
 
 const spawn = require('child_process').spawn
 
-var server = app.listen(9000, function () {
+var server = app.listen((process.env.PORT || 9000), function () {
   var host = server.address().address;
   var port = server.address().port;
 
