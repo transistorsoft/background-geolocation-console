@@ -55,6 +55,16 @@ var Routes = function(app) {
     //res.status(408).send("Timeout");
   });
 
+  app.delete('/locations', function(req, res) {
+      console.log('---------------------------------------------------------------------');
+      console.log("- DELETE /locations", JSON.stringify(req.query));
+      Location.deleteLocations(req.query, function() {
+          res.send({ success: true });
+      }, function(err) {
+          res.status(500).send({ error: 'Something failed!' });
+      });
+  });
+
   app.post('/locations_template', function (req, res) {
     console.log("POST /locations_template\n%s\n".green, JSON.stringify(req.body, null, 2));
     res.set('Retry-After', 5);

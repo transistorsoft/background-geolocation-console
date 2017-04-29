@@ -78,6 +78,22 @@ var Location = (function() {
                     created_at: now
                 });
             });
+        },
+        deleteLocations: function(params, success, error) {
+            var whereConditions = {};
+            if(params && params.deviceId) {
+                whereConditions.device_id = params.deviceId;
+            }
+            if(params && params.start_date && params.end_date) {
+                whereConditions.recorded_at = { $between: [params.start_date, params.end_date] };
+            }
+
+            if(!Object.keys(whereConditions).length) {
+                error("Missing some location deletion constraints");
+                return;
+            }
+
+            LocationModel.destroy({ where: whereConditions }).then(success, error);
         }
     }
 })();
