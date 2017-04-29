@@ -13,7 +13,7 @@ var Location = (function() {
     }
 
     return {
-        all: function(params, callback) {
+        all: function(params, success, error) {
             var whereConditions = {};
             if (params.start_date && params.end_date) {
                 whereConditions.recorded_at = { $between: [params.start_date, params.end_date] };
@@ -30,10 +30,11 @@ var Location = (function() {
                 rows.forEach(function (row) {
                     locations.push(hydrate(row));
                 });
-                callback(locations);
+                success(locations);
             }, function(err){
                 console.error("Fetch all locations error : ", err);
-            });
+                error(err);
+            }).catch(error);
         },
         create: function(params) {
             var location  = params.location,

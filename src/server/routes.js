@@ -11,6 +11,8 @@ var Routes = function(app) {
     console.log("GET /devices\n".green);
     Device.all(req.query, function(rs) {
       res.send(rs);
+    }, function(err){
+        res.status(500).send({ error: 'Something failed!' });
     })
   });
 
@@ -22,6 +24,8 @@ var Routes = function(app) {
 
     Location.all(req.query, function(rs) {
       res.send(rs);
+    }, function(err){
+        res.status(500).send({ error: 'Something failed!' });
     });
   });
 
