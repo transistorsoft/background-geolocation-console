@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "build": "webpack",
-    "server": "node server.js"
+    "server": "node server.js",
+    "heroku-postbuild": "webpack -p --config ./webpack.config.js --progress"
   },
   "author": "Chris Scott, Transistor Software",
   "license": "MIT",
