@@ -12,6 +12,10 @@ const webpackHotMiddleware  = require('webpack-hot-middleware');
 
 const isDev = true;
 
+process.on('uncaughtException', function(error){
+  console.error("Uncaught error : ", error);
+});
+
 app.disable('etag');
 app.use(express.static('./src/client'));
 app.use(bodyParser.json());
