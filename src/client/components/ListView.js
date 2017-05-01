@@ -15,7 +15,7 @@ import Styles from "../assets/styles/app.css";
 
 import App from "./App";
 
-
+/*
 const sortByCaloriesAsc = (a, b) => {
   if (a.calories < b.calories) return -1;
   if (a.calories > b.calories) return 1;
@@ -27,6 +27,7 @@ const sortByCaloriesDesc = (a, b) => {
   if (a.calories < b.calories) return 1;
   return 0;
 };
+*/
 
 class ListView extends Component {  
 
@@ -107,15 +108,15 @@ class ListView extends Component {
     return (
       <Table onRowSelect={this.handleRowSelect.bind(this)}>
         <TableHead>
-          <TableCell>uuid</TableCell>
-          <TableCell numeric>Recorded at</TableCell>
-          <TableCell numeric>Coordinate</TableCell>
-          <TableCell numeric>Accuracy</TableCell>
-          <TableCell numeric>Speed</TableCell>
-          <TableCell numeric>Event</TableCell>
-          <TableCell numeric>Moving?</TableCell>
-          <TableCell numeric>Activity</TableCell>
-          <TableCell numeric>Battery</TableCell>
+          <TableCell>UUID</TableCell>
+          <TableCell numeric>RECORDED AT</TableCell>
+          <TableCell numeric>COORDINATE</TableCell>
+          <TableCell numeric>ACCURACY</TableCell>
+          <TableCell numeric>SPEED</TableCell>
+          <TableCell numeric>EVENT</TableCell>
+          <TableCell numeric>IS MOVING</TableCell>
+          <TableCell numeric>ACTIVITY</TableCell>
+          <TableCell numeric>BATTERY</TableCell>
         </TableHead>
         {this.data.map((item, idx) => (
           <TableRow key={idx} selected={this.state.selected.indexOf(idx) !== -1} onSelect={this.handleRowSelect.bind(this)}>
@@ -124,14 +125,13 @@ class ListView extends Component {
             <TableCell numeric>{item.coordinate}</TableCell>
             <TableCell numeric>{item.accuracy}</TableCell>
             <TableCell numeric>{item.speed}</TableCell>
-            <TableCell numeric>{item.event}</TableCell>
+            <TableCell numeric><strong>{item.event}</strong></TableCell>
             <TableCell numeric>{item.is_moving}</TableCell>
             <TableCell numeric>{item.activity}</TableCell>
             <TableCell numeric className={(item.battery_is_charging) ? Styles.tableCellGreen : Styles.tableCellRed}>{item.battery_level*100}%</TableCell>
           </TableRow>
         ))}
       </Table>
-
     );
   }
 }
