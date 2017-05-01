@@ -66,7 +66,7 @@ export default class Viewport extends Component {
           <Sidebar pinned={this.state.sideBarActive} width={6}>
             <LocationView location={this.state.location} onClose={this.onCloseLocationView.bind(this)} />
           </Sidebar>
-          <Panel className={Styles.workspace}>
+          <Panel className={Styles.workspace} bodyScroll={false} scrollY={false}>
             <HeaderView />
             <Tabs index={this.state.activeTab} hideMode="display" onChange={this.handleTabChange.bind(this)} inverse>
               <Tab label="Map">
