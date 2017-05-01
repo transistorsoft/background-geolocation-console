@@ -12,6 +12,10 @@ const webpackHotMiddleware  = require('webpack-hot-middleware');
 
 const isDev = true;
 
+process.on('uncaughtException', function(error){
+  console.error("Uncaught error : ", error);
+});
+
 app.disable('etag');
 app.use(express.static('./src/client'));
 app.use(bodyParser.json());
@@ -40,9 +44,7 @@ const middleware = [
 
 app.use(middleware);
 
-const spawn = require('child_process').spawn
-
-var server = app.listen(9000, function () {
+var server = app.listen((process.env.PORT || 9000), function () {
   var host = server.address().address;
   var port = server.address().port;
 
@@ -50,9 +52,14 @@ var server = app.listen(9000, function () {
   console.log('║ Background Geolocation Server | port: %s'.green.bold, port);
   console.log('╚═══════════════════════════════════════════════════════════'.green.bold);
 
-  
-  spawn('open', ['http://localhost:' + port]);
-
+  // Spawning dedicated process on opened port.. only if not deployed on heroku
+  if(!process.env.DYNO) {
+      const spawn = require('child_process').spawn;
+      var child = spawn('open', ['http://localhost:' + port]);
+      child.on('error', function(err) {
+          console.error('Error during spawned child process : ', err);
+      });
+  }
 });
 
 
