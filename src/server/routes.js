@@ -11,6 +11,8 @@ var Routes = function(app) {
     console.log("GET /devices\n".green);
     Device.all(req.query, function(rs) {
       res.send(rs);
+    }, function(err){
+        res.status(500).send({ error: 'Something failed!' });
     })
   });
 
@@ -22,6 +24,8 @@ var Routes = function(app) {
 
     Location.all(req.query, function(rs) {
       res.send(rs);
+    }, function(err){
+        res.status(500).send({ error: 'Something failed!' });
     });
   });
 
@@ -49,6 +53,16 @@ var Routes = function(app) {
     //res.status(500).send("Internal Server Error");
     //res.status(404).send("Not Found");
     //res.status(408).send("Timeout");
+  });
+
+  app.delete('/locations', function(req, res) {
+      console.log('---------------------------------------------------------------------');
+      console.log("- DELETE /locations", JSON.stringify(req.query));
+      Location.deleteLocations(req.query, function() {
+          res.send({ success: true });
+      }, function(err) {
+          res.status(500).send({ error: 'Something failed!' });
+      });
   });
 
   app.post('/locations_template', function (req, res) {

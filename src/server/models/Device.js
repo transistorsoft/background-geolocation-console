@@ -1,20 +1,19 @@
-var dbh = require("../database/dbh.js");
+var LocationModel = require("../database/LocationModel");
 
 /**
 * Device model
 */
 var Device = (function() {
   return {
-    all: function(conditions, callback) {
-      var query = "SELECT device_id, device_model FROM locations GROUP BY device_id, device_model ORDER BY recorded_at DESC";
-      var onQuery = function(err, rows) {
-        var rs = [];
-        rows.forEach(function (row) {
-          rs.push(row);
-        });
-        callback(rs);
-      }
-      dbh.all(query, onQuery);
+    all: function(conditions, success, error) {
+        LocationModel.findAll({
+            attributes: [ 'device_id', 'device_model'],
+            group: [ 'device_id', 'device_model' ],
+            order: 'max(recorded_at) DESC'
+        }).then(success, function(err){
+            console.error("Error while fetching all devices", err);
+            error(err);
+        }).catch(error);
     }
   }
 })();
