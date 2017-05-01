@@ -7,7 +7,8 @@
     "build": "webpack",
     "start": "node server.js",
     "server": "node server.js",
-    "heroku-postbuild": "webpack -p --config ./webpack.config.js --progress"
+    "heroku-postbuild": "webpack -p --config ./webpack.config.js --progress",
+    "migrate": "node ./src/server/database/migrate.js"
   },
   "author": "Chris Scott, Transistor Software",
   "license": "MIT",
