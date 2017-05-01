@@ -16,7 +16,7 @@ var Location = (function() {
         all: function(params, success, error) {
             var whereConditions = {};
             if (params.start_date && params.end_date) {
-                whereConditions.recorded_at = { $between: [params.start_date, params.end_date] };
+                whereConditions.recorded_at = { $between: [new Date(params.start_date), new Date(params.end_date)] };
             }
             if (params.device_id && params.device_id !== '') {
                 whereConditions.device_id = params.device_id;
