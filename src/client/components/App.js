@@ -30,7 +30,8 @@ export default class App {
   constructor(props) {
     this.state = this._loadState();
     this.selectedLocation = undefined;
-
+    this.watchId = undefined;
+    this.lastRequestAt = undefined;
     this.load();
   }
 
@@ -51,6 +52,10 @@ export default class App {
 
   getState() {
     return this.state;
+  }
+
+  isWatching() {
+    return (this.watchId) ? true : false;
   }
 
   set(key, value) {
@@ -80,6 +85,33 @@ export default class App {
   setLocation(location) {
     this.selectedLocation = location;
     eventEmitter.emit('selectlocation', location);
+  }
+
+  setWatchMode(value) {
+    if (value === true) {
+      this.startWatchMode();
+    } else {
+      this.stopWatchMode();
+    }
+  }
+
+  startWatchMode() {
+    this.stopWatchMode();
+    this.watchId = setInterval(() => {
+      let first = store.getState().locations[0];
+      let filter = {
+        startDate: new Date(first.recorded_at),
+        endDate: this.state.endDate,
+        deviceId: this.state.deviceId
+      };
+      store.dispatch(getLocations(filter));
+    }, 1500);
+  }
+
+  stopWatchMode() {
+    if (this.watchId) {
+      this.watchId = clearInterval(this.watchId);
+    }
   }
 
   _loadState() {
@@ -123,7 +155,8 @@ export default class App {
       deviceId: '',
       showMarkers: true,
       showPolyline: true,
-      showGeofenceHits: true
+      showGeofenceHits: true,
+      watchMode: false
     }
   }
 }

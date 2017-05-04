@@ -69,6 +69,30 @@ class MapView extends Component {
       icons: [seq]
     });
 
+    // Blue current location marker
+    this.currentLocationMarker = new google.maps.Marker({
+      zIndex: 10,
+      map: this.gmap,
+      title: 'Current Location',
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 12,
+        fillColor: COLORS.blue,
+        fillOpacity: 1,
+        strokeColor: COLORS.white,
+        strokeOpacity: 1,
+        strokeWeight: 6
+      }
+    });
+    // Light blue location accuracy circle
+    this.locationAccuracyCircle = new google.maps.Circle({
+      map: this.gmap,
+      zIndex: 9,
+      fillColor: COLORS.light_blue,
+      fillOpacity: 0.4,
+      strokeOpacity: 0
+    });
+
     this.getCurrentPosition();
     this.renderMarkers();
   }
@@ -107,6 +131,7 @@ class MapView extends Component {
 
   getCurrentPosition() {
     var me = this;
+    return;
 
     window.navigator.geolocation.getCurrentPosition(function(location) {
       me.setState({
@@ -141,18 +166,26 @@ class MapView extends Component {
         break;
     }
   }
-  // 2585
-  renderMarkers() {
-    this.clearMarkers();
-    let length = this.props.locations.length;
 
-    let settings = App.getInstance().getState();
+  renderMarkers() {
+    let app = App.getInstance();
+
+    if (!app.isWatching()) {
+      this.clearMarkers();
+    }
+    let length = this.props.locations.length;
+    if (!length) { return; }
+
+    let settings = app.getState();
 
     this.polyline.setMap((settings.showPolyline) ? this.gmap : null);
 
     let motionChangePosition = null;
-    let searchingForStart = false;
-    this.props.locations.forEach((location) => {
+    let searchingForMotionChange = false;
+    
+    // Iterate in reverse order to create polyline points from oldest->latest.  We DO NOT want this.props.locations.reverse()!!!
+    for (var n=length-1; n!=0; n--) {
+      let location = this.props.locations[n];
       let latLng = new google.maps.LatLng(location.latitude, location.longitude);
       if (location.geofence) {
         this.buildGeofenceMarker(location, {
@@ -167,19 +200,21 @@ class MapView extends Component {
       this.polyline.getPath().push(latLng);
 
       if (location.event === 'motionchange') {
-        if (location.is_moving) {
-          searchingForStart = true;
+        if (!location.is_moving) {
+          searchingForMotionChange = true;
           motionChangePosition = latLng;
-        } else if (searchingForStart) {
-          searchingForStart = false;
+        } else if (searchingForMotionChange) {
+          searchingForMotionChange = false;
           this.motionChangePolylines.push(this.buildMotionChangePolyline(motionChangePosition, latLng));
         }
       }
-    });
-    if (length > 0) {
-      let currentPosition = this.props.locations[length-1];      
-      this.gmap.setCenter({lat: currentPosition.latitude, lng: currentPosition.longitude});      
-    }
+    };
+    let currentPosition = this.props.locations[0];
+    let latLng = new google.maps.LatLng(currentPosition.latitude, currentPosition.longitude);
+    this.gmap.setCenter(latLng);
+    this.currentLocationMarker.setPosition(latLng);
+    this.locationAccuracyCircle.setCenter(latLng);
+    this.locationAccuracyCircle.setRadius(currentPosition.accuracy);
   }
 
   buildMotionChangePolyline(stationaryPosition, movingPosition) {
