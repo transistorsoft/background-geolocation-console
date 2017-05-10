@@ -222,7 +222,7 @@ class MapView extends Component {
     let seq = {
       repeat: '25px',
       icon: {
-        path: google.maps.SymbolPath.BACKWARD_OPEN_ARROW,
+        path: google.maps.SymbolPath.FORWARD_OPEN_ARROW,
         scale: 1,
         fillColor: COLORS.white,
         fillOpacity: 0,
