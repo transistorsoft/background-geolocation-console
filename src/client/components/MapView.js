@@ -50,7 +50,7 @@ class MapView extends Component {
     let seq = {
       repeat: '50px',
       icon: {
-        path: google.maps.SymbolPath.BACKWARD_OPEN_ARROW,
+        path: google.maps.SymbolPath.FORWARD_OPEN_ARROW,
         scale: 1,
         fillOpacity: 0,
         strokeColor: COLORS.white,
