@@ -93,6 +93,7 @@ class ListView extends Component {
         is_moving: (location.is_moving) ? 'true' : 'false',
         accuracy: location.accuracy,
         speed: location.speed,
+        odometer: location.odometer,
         event: event,
         activity: location.activity_type + ' (' + location.activity_confidence + '%)',
         battery_level: location.battery_level,
@@ -113,6 +114,7 @@ class ListView extends Component {
           <TableCell numeric>COORDINATE</TableCell>
           <TableCell numeric>ACCURACY</TableCell>
           <TableCell numeric>SPEED</TableCell>
+          <TableCell numeric>ODOMETER</TableCell>
           <TableCell numeric>EVENT</TableCell>
           <TableCell numeric>IS MOVING</TableCell>
           <TableCell numeric>ACTIVITY</TableCell>
@@ -125,6 +127,7 @@ class ListView extends Component {
             <TableCell numeric>{item.coordinate}</TableCell>
             <TableCell numeric>{item.accuracy}</TableCell>
             <TableCell numeric>{item.speed}</TableCell>
+            <TableCell numeric>{item.odometer}</TableCell>
             <TableCell numeric><strong>{item.event}</strong></TableCell>
             <TableCell numeric>{item.is_moving}</TableCell>
             <TableCell numeric>{item.activity}</TableCell>
