@@ -2,6 +2,8 @@ import React, {
   Component
 } from 'react';
 
+import DeviceField from './DeviceField';
+
 import { connect } from 'react-redux';
 
 import * as moment from 'moment';
@@ -14,12 +16,11 @@ import {
   TimePicker,
   Switch,
   Checkbox,
-  Dropdown,
   Card, CardTitle
 } from 'react-toolbox';
 
-import App from './App';
-import Styles from '../assets/styles/app.css';
+import App from '~/components/App';
+import Styles from '~/assets/styles/app.css';
 
 class FilterView extends Component {  
 
@@ -74,13 +75,7 @@ class FilterView extends Component {
             <Card style={{marginBottom:'10px'}}>
               <div className={Styles.content}>
                 <h3>Locations</h3>
-                <Dropdown
-                  auto
-                  label="Device"
-                  onChange={this.onChange.bind(this, 'deviceId')}
-                  source={devices}
-                  value={this.state.deviceId}
-                />
+                <DeviceField onChange={this.onChange.bind(this, 'deviceId')} source={devices} value={this.state.deviceId} />
                 <div style={{display:"flex", flexDirection:"row"}}>
                   <DatePicker 
                     label="Start date" 

@@ -3,7 +3,8 @@ const path = require('path');
 
 module.exports = {
   context: path.resolve(__dirname, 'src', 'client'),
-
+  devtool : 'source-map',
+  target: 'web',
   entry: [
     'webpack-hot-middleware/client?path=/__webpack_hmr&timeout=20000',
     'react-hot-loader/patch',
