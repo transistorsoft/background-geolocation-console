@@ -35,11 +35,17 @@ export default class App {
     this.load();
   }
 
-  load() {
+  async load() {
+    await store.dispatch(getDevices());
+    // select the only device ...
+    const allDevices =  store.getState().devices;
+    if (allDevices && allDevices.length === 1) {
+      this.set('deviceId', allDevices[0].device_id);
+    }
+
     if (this.state.deviceId) {
       store.dispatch(getLocations(this.state));
     }
-    store.dispatch(getDevices());
   }
 
   reload() {
