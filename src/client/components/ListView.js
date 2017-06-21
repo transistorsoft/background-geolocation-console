@@ -15,20 +15,6 @@ import Styles from "../assets/styles/app.css";
 
 import App from "./App";
 
-/*
-const sortByCaloriesAsc = (a, b) => {
-  if (a.calories < b.calories) return -1;
-  if (a.calories > b.calories) return 1;
-  return 0;
-};
-
-const sortByCaloriesDesc = (a, b) => {
-  if (a.calories > b.calories) return -1;
-  if (a.calories < b.calories) return 1;
-  return 0;
-};
-*/
-
 class ListView extends Component {  
 
   constructor(props) {
@@ -65,7 +51,6 @@ class ListView extends Component {
   handleRowSelect(selected) {
     let record = this.data[selected[0]];
     App.getInstance().setLocation(record.data);
-    //const sortedData = this.getSortedData();
     this.setState({ selected: selected });
 
   };
@@ -88,7 +73,7 @@ class ListView extends Component {
         data: location,
         uuid: location.uuid,
         device_id: location.device_id,
-        coordinate: location.latitude + ', ' + location.longitude,
+        coordinate: location.latitude.toFixed(6) + ', ' + location.longitude.toFixed(6),
         recorded_at: moment(new Date(location.recorded_at)).format("MM-DD HH:mm:ss:SSS"),
         is_moving: (location.is_moving) ? 'true' : 'false',
         accuracy: location.accuracy,

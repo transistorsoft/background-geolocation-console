@@ -1,19 +1,20 @@
-import {API_URL} from '../../constants';
-
+import {API_URL} from '~/constants';
+import qs from 'querystring';
 export const SET_LOCATIONS = 'SET_LOCATIONS';
 
 /**
 * locations
 */
 export function getLocations(filter) {
-  return dispatch => {
-
-    fetch(`${API_URL}/locations?device_id=${filter.deviceId}&start_date=${filter.startDate.toISOString()}&end_date=${filter.endDate.toISOString()}`)
-      .then(res => res.json())
-      .then(res => res)
-      .then((locations) => {
-        dispatch(setLocations(locations));
-      });
+  return async function (dispatch, getState) {
+    const params = qs.stringify({
+        device_id: filter.deviceId,
+        start_date: filter.startDate.toISOString(),
+        end_date: filter.endDate.toISOString()
+    });
+    const response = await fetch(`${API_URL}/locations?${params}`);
+    const locations = await response.json();
+    dispatch(setLocations(locations));
   }
 }
 

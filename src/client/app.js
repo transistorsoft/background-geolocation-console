@@ -7,7 +7,7 @@ import {Provider} from 'react-redux';
 
 import App from './components/App';
 
-let store = App.getInstance().getStore();
+import store from './store';
 
 require('./index.html');
 
