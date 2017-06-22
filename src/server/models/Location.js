@@ -40,7 +40,7 @@ var Location = (function() {
             var whereConditions = {
                 device_id: params.device_id
             }
-            LocationModel.findAll({
+            LocationModel.findOne({
                 where: whereConditions,
                 order: 'recorded_at DESC'
             }).then(function(row) {
@@ -51,7 +51,7 @@ var Location = (function() {
             }).catch(error);
 
 
-        }
+        },
 
         create: function(params) {
             var location  = params.location,

@@ -25,8 +25,8 @@ require('./src/server/routes.js')(app);
 var compiler = webpack(webpackConfig);
 
 const middleware = [
-  webpackDevMiddleware(compiler, {    
-    publicPath: "/", // Same as `output.publicPath` in most cases.  
+  webpackDevMiddleware(compiler, {
+    publicPath: "/", // Same as `output.publicPath` in most cases.
     index: "index.html",
     hot: true,
     contentBase: path.join(__dirname, "src", "client"),

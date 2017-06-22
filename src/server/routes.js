@@ -17,6 +17,19 @@ var Routes = function(app) {
   });
 
   /**
+  * GET /locations/latest
+  */
+  app.get('/locations/latest', function(req, res) {
+    console.log("GET /locations %s".green, JSON.stringify(req.query));
+
+    Location.latest(req.query, function(rs) {
+      res.send(rs);
+    }, function(err){
+        res.status(500).send({ error: 'Something failed!' });
+    });
+  });
+
+  /**
   * GET /locations
   */
   app.get('/locations', function(req, res) {
@@ -29,18 +42,6 @@ var Routes = function(app) {
     });
   });
 
-  /**
-  * GET /locations
-  */
-  app.get('/locations/latest', function(req, res) {
-    console.log("GET /locations %s".green, JSON.stringify(req.query));
-
-    Location.latest(req.query, function(rs) {
-      res.send(rs);
-    }, function(err){
-        res.status(500).send({ error: 'Something failed!' });
-    });
-  });
 
   /**
   * POST /locations

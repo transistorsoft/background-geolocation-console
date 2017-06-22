@@ -4,7 +4,7 @@ import Viewport from './components/Viewport';
 import { AppContainer } from 'react-hot-loader';
 
 import { Provider } from 'react-redux';
-import from '';
+import { loadInitialData } from '~/reducer/dashboard';
 
 import store from './store';
 
@@ -23,7 +23,7 @@ const render = () => {
   );
 };
 
-store.dispatch(
+store.dispatch(loadInitialData());
 render();
 
 if (module.hot) {

@@ -8,7 +8,6 @@ import { connect } from 'react-redux';
 import { type GlobalState } from '~/reducer/state';
 import {
   type Device,
-  type Filters,
   reload,
   setDeviceAndReload,
   setStartDateAndReload,
@@ -26,7 +25,9 @@ import Styles from '~/assets/styles/app.css';
 type StateProps = {|
   hasData: boolean,
   devices: { value: string, label: string }[],
-  filters: Filters,
+  deviceId: string,
+  startDate: Date,
+  endDate: Date,
   isWatching: boolean,
   showGeofenceHits: boolean,
   showPolyline: boolean,
@@ -46,7 +47,9 @@ type Props = {| ...StateProps, ...DispatchProps |};
 const FilterView = function ({
   hasData,
   devices,
-  filters,
+  deviceId,
+  startDate,
+  endDate,
   isWatching,
   showGeofenceHits,
   showPolyline,
@@ -67,7 +70,7 @@ const FilterView = function ({
         <Card style={{ marginBottom: '10px' }}>
           <div className={Styles.content}>
             <h3>Locations</h3>
-            <DeviceField onChange={onChangeDeviceId} source={devices} hasData={hasData} value={filters.deviceId} />
+            <DeviceField onChange={onChangeDeviceId} source={devices} hasData={hasData} value={deviceId} />
             <div style={{ display: 'flex', flexDirection: 'row' }}>
               <DatePicker
                 label='Start date'
@@ -75,10 +78,10 @@ const FilterView = function ({
                 autoOk
                 style={{ flex: 1 }}
                 onChange={onChangeStartDate}
-                value={filters.startDate}
+                value={startDate}
                 inputFormat={formatDate}
               />
-              <TimePicker label='Time' style={{ flex: 1 }} onChange={onChangeStartDate} value={filters.startDate} />
+              <TimePicker label='Time' style={{ flex: 1 }} onChange={onChangeStartDate} value={startDate} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'row' }}>
               <DatePicker
@@ -87,15 +90,10 @@ const FilterView = function ({
                 autoOk
                 style={{ flex: 1 }}
                 onChange={onChangeEndDate}
-                value={filters.endDate}
+                value={endDate}
                 inputFormat={formatDate}
               />
-              <TimePicker
-                label='Time'
-                style={{ flex: 1 }}
-                onChange={this.onChange.bind(this, 'endDate')}
-                value={filters.endDate}
-              />
+              <TimePicker label='Time' style={{ flex: 1 }} onChange={onChangeEndDate} value={endDate} />
             </div>
             <Button icon='refresh' label='reload' style={{ width: '100%' }} raised primary onMouseUp={onReload} />
 
@@ -122,7 +120,9 @@ const FilterView = function ({
 
 const mapStateToProps = function (state: GlobalState): StateProps {
   return {
-    filters: state.dashboard.filters,
+    deviceId: state.dashboard.filters.deviceId,
+    startDate: new Date(state.dashboard.filters.startDate),
+    endDate: new Date(state.dashboard.filters.endDate),
     devices: state.dashboard.devices.map((device: Device) => ({ value: device.id, label: device.name })),
     hasData: state.dashboard.hasData,
     isWatching: state.dashboard.isWatching,

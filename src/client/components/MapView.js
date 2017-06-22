@@ -140,14 +140,9 @@ class MapView extends Component {
   }
 
   renderMarkers () {
-    const { isWatching, locations, currentLocation, showPolyline, showMarkers, showGeofenceHits } = this.props;
-    if (!isWatching) {
-      this.clearMarkers();
-    }
-    let length = locations.length;
-    if (!length) {
-      return;
-    }
+    const { locations, isWatching, currentLocation, showPolyline, showMarkers, showGeofenceHits } = this.props;
+    this.clearMarkers();
+    const length = locations.length;
 
     this.polyline.setMap(showPolyline ? this.gmap : null);
 
@@ -156,7 +151,7 @@ class MapView extends Component {
 
     // Iterate in reverse order to create polyline points from oldest->latest.
     // We DO NOT want this.props.locations.reverse()!!!
-    for (var n = length - 1; n !== 0; n--) {
+    for (var n = length - 1; n > 0; n--) {
       let location = locations[n];
       let latLng = new google.maps.LatLng(location.latitude, location.longitude);
       if (location.geofence) {
@@ -181,12 +176,17 @@ class MapView extends Component {
         }
       }
     }
-    if (currentLocation) {
+    if (isWatching && currentLocation) {
       let latLng = new google.maps.LatLng(currentLocation.latitude, currentLocation.longitude);
       this.gmap.setCenter(latLng);
-      // this.currentLocation.setPosition(latLng);
+      this.currentLocationMarker.setMap(this.gmap);
+      this.locationAccuracyCircle.setMap(this.gmap);
+      this.currentLocationMarker.setPosition(latLng);
       this.locationAccuracyCircle.setCenter(latLng);
       this.locationAccuracyCircle.setRadius(currentLocation.accuracy);
+    } else {
+      this.currentLocationMarker.setMap(null);
+      this.locationAccuracyCircle.setMap(null);
     }
   }
 
@@ -393,7 +393,6 @@ class MapView extends Component {
     return (
       <div className={Styles.map}>
         <GoogleMap
-          ref={(x: any) => (this.gmap = x)}
           bootstrapURLKeys={{
             key: API_KEY,
             libraries: 'geometry',

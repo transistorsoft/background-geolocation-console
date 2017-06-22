@@ -287,7 +287,7 @@ export function loadDevices (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     const response = await fetch(`${API_URL}/devices`);
     const records = await response.json();
-    const devices: Device[] = records.map((record: Object) => ({ id: record.device_id, name: record.device_name }));
+    const devices: Device[] = records.map((record: Object) => ({ id: record.device_id, name: record.device_model }));
     dispatch(setDevices(devices));
   };
 }

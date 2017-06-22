@@ -11,8 +11,8 @@ import Styles from '../assets/styles/app.css';
 import { type Location, type DashboardState, setSelectedLocation } from '~/reducer/dashboard';
 import { type GlobalState } from '~/reducer/state';
 
-type MapProps = {|
-  locations: Location[],
+type StateProps = {|
+  locations: Object[],
   selectedLocationId: string,
 |};
 
@@ -20,7 +20,7 @@ type DispatchProps = {|
   onRowSelect: (id: string) => any,
 |};
 
-type Props = {| ...MapProps, ...DispatchProps |};
+type Props = {| ...StateProps, ...DispatchProps |};
 const getRowData = (location: Location) => {
   let event = location.event || '';
   switch (location.event) {
@@ -45,37 +45,43 @@ const getRowData = (location: Location) => {
   };
 };
 
-const ListView = ({ locations, selectedLocationId, onRowSelect }: Props) =>
-  <Table onRowSelect={onRowSelect}>
-    <TableHead>
-      <TableCell>UUID</TableCell>
-      <TableCell numeric>RECORDED AT</TableCell>
-      <TableCell numeric>COORDINATE</TableCell>
-      <TableCell numeric>ACCURACY</TableCell>
-      <TableCell numeric>SPEED</TableCell>
-      <TableCell numeric>ODOMETER</TableCell>
-      <TableCell numeric>EVENT</TableCell>
-      <TableCell numeric>IS MOVING</TableCell>
-      <TableCell numeric>ACTIVITY</TableCell>
-      <TableCell numeric>BATTERY</TableCell>
-    </TableHead>
-    {locations.map((item: Object, idx: number) =>
-      <TableRow key={idx} selected={item.uuid === selectedLocationId} onSelect={onRowSelect}>
-        <TableCell>{item.uuid}</TableCell>
-        <TableCell numeric>{item.recorded_at}</TableCell>
-        <TableCell numeric>{item.coordinate}</TableCell>
-        <TableCell numeric>{item.accuracy}</TableCell>
-        <TableCell numeric>{item.speed}</TableCell>
-        <TableCell numeric>{item.odometer}</TableCell>
-        <TableCell numeric><strong>{item.event}</strong></TableCell>
-        <TableCell numeric>{item.is_moving}</TableCell>
-        <TableCell numeric>{item.activity}</TableCell>
-        <TableCell numeric className={item.battery_is_charging ? Styles.tableCellGreen : Styles.tableCellRed}>
-          {item.battery_level * 100}%
-        </TableCell>
-      </TableRow>
-    )}
-  </Table>;
+const ListView = ({ locations, selectedLocationId, onRowSelect }: Props) => {
+  const selectRow = (indicies: number[]) => {
+    onRowSelect(locations[indicies[0]].uuid);
+  };
+  return (
+    <Table onRowSelect={selectRow}>
+      <TableHead>
+        <TableCell>UUID</TableCell>
+        <TableCell numeric>RECORDED AT</TableCell>
+        <TableCell numeric>COORDINATE</TableCell>
+        <TableCell numeric>ACCURACY</TableCell>
+        <TableCell numeric>SPEED</TableCell>
+        <TableCell numeric>ODOMETER</TableCell>
+        <TableCell numeric>EVENT</TableCell>
+        <TableCell numeric>IS MOVING</TableCell>
+        <TableCell numeric>ACTIVITY</TableCell>
+        <TableCell numeric>BATTERY</TableCell>
+      </TableHead>
+      {locations.map((item: Object, idx: number) =>
+        <TableRow key={idx} selected={item.uuid === selectedLocationId} onSelect={selectRow}>
+          <TableCell>{item.uuid}</TableCell>
+          <TableCell numeric>{item.recorded_at}</TableCell>
+          <TableCell numeric>{item.coordinate}</TableCell>
+          <TableCell numeric>{item.accuracy}</TableCell>
+          <TableCell numeric>{item.speed}</TableCell>
+          <TableCell numeric>{item.odometer}</TableCell>
+          <TableCell numeric><strong>{item.event}</strong></TableCell>
+          <TableCell numeric>{item.is_moving}</TableCell>
+          <TableCell numeric>{item.activity}</TableCell>
+          <TableCell numeric className={item.battery_is_charging ? Styles.tableCellGreen : Styles.tableCellRed}>
+            {item.battery_level * 100}%
+          </TableCell>
+        </TableRow>
+      )}
+    </Table>
+  );
+};
 
 const getLocationsSource = function (dashboard: DashboardState) {
   if (dashboard.isWatching) {
@@ -90,17 +96,15 @@ const getLocations = function (dashboard: DashboardState) {
   return source.map(getRowData);
 };
 
-const mapStateToProps = function (state: GlobalState) {
+const mapStateToProps = function (state: GlobalState): StateProps {
   return {
     locations: getLocations(state.dashboard),
     selectedLocationId: state.dashboard.selectedLocationId,
   };
 };
 
-const mapDispatchToProps = (dispatch: Function) => {
-  return {
-    onRowSelect: (entry: any) => dispatch(setSelectedLocation(entry.uuid)),
-  };
+const mapDispatchToProps: DispatchProps = {
+  onRowSelect: setSelectedLocation,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ListView);
