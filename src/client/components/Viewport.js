@@ -1,83 +1,69 @@
-import React, {
-  PropTypes, 
-  Component,
-  View,
-  Text
-} from 'react';
+// @flow
+import React, { Component } from 'react';
 
-import GoogleMap from 'google-map-react';
-
-import {
-  AppBar,
-  Button,
-  Navigation,
-  Link,
-  FontIcon,
-  Layout, 
-  NavDrawer,
-  Panel, 
-  Tabs,
-  Tab,
-  Sidebar } from 'react-toolbox';
+import { Layout, NavDrawer, Panel, Tabs, Tab, Sidebar } from 'react-toolbox';
 
 import Styles from '../assets/styles/app.css';
 import HeaderView from './HeaderView';
 import FilterView from './FilterView';
 import LocationView from './LocationView';
-import MapView from "./MapView";
-import ListView from "./ListView";
-import App from "./App";
+import MapView from './MapView';
+import ListView from './ListView';
+import LoadingIndicator from './LoadingIndicator';
+import { connect } from 'react-redux';
+import { type GlobalState } from '~/reducer/state';
 
-const API_KEY = "AIzaSyA9j72oZA5SmsA8ugu57pqXwpxh9Sn4xuM";
+type State = {|
+  activeTab: 0 | 1,
+|};
 
-export default class Viewport extends Component {  
+type StateProps = {|
+  isLocationSelected: boolean,
+|};
 
-  constructor(props) {
-    super(props);
+type Props = StateProps;
+class Viewport extends Component {
+  props: Props;
+  state: State = {
+    activeTab: 0,
+  };
 
-    this.state = {
-      activeTab: 0,
-      sideBarActive: false,
-      location: null
-    };
+  handleTabChange = (index: 0 | 1) => {
+    this.setState({ activeTab: index });
+  };
 
-    App.getInstance().on('selectlocation', this.onSelectLocation.bind(this));
-  }
-
-  onSelectLocation(location) {
-    this.setState({
-      sideBarActive: (location !== null),
-      location: location
-    });
-  }
-
-  onCloseLocationView() {
-
-  }
-  handleTabChange(index) {
-    this.setState({activeTab: index});
-  }
-  render() {
+  render () {
+    const { activeTab } = this.state;
+    const { isLocationSelected } = this.props;
     return (
-        <Layout className={Styles.viewport}>
-          <NavDrawer active={true} pinned={true} className={Styles.navDrawer}>
-            <FilterView />
-          </NavDrawer>
-          <Sidebar pinned={this.state.sideBarActive} width={6}>
-            <LocationView location={this.state.location} onClose={this.onCloseLocationView.bind(this)} />
-          </Sidebar>
-          <Panel className={Styles.workspace} bodyScroll={false} scrollY={false}>
-            <HeaderView />
-            <Tabs index={this.state.activeTab} hideMode="display" onChange={this.handleTabChange.bind(this)} inverse>
-              <Tab label="Map">
-                <MapView />
-              </Tab>
-              <Tab label="Data">
-                <ListView selected={this.state.location} />
-              </Tab>
-            </Tabs>
-          </Panel>
-        </Layout>
+      <Layout className={Styles.viewport}>
+        <LoadingIndicator />
+        <NavDrawer active={true} pinned={true} className={Styles.navDrawer}>
+          <FilterView />
+        </NavDrawer>
+        <Sidebar pinned={isLocationSelected} width={6}>
+          <LocationView />
+        </Sidebar>
+        <Panel className={Styles.workspace} bodyScroll={false} scrollY={false}>
+          <HeaderView />
+          <Tabs index={activeTab} hideMode='display' onChange={this.handleTabChange} inverse>
+            <Tab label='Map'>
+              <MapView />
+            </Tab>
+            <Tab label='Data'>
+              <ListView />
+            </Tab>
+          </Tabs>
+        </Panel>
+      </Layout>
     );
   }
 }
+
+const mapStateToProps = function (state: GlobalState) {
+  return {
+    isLocationSelected: !!state.dashboard.selectedLocationId,
+  };
+};
+const mapDispatchToProps = {};
+export default connect(mapStateToProps, mapDispatchToProps)(Viewport);

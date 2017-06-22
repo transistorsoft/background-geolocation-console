@@ -1,9 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Viewport from './components/Viewport';
-import {AppContainer} from 'react-hot-loader';
+import { AppContainer } from 'react-hot-loader';
 
-import {Provider} from 'react-redux';
+import { Provider } from 'react-redux';
+import { loadInitialData } from '~/reducer/dashboard';
 
 import store from './store';
 
@@ -17,11 +18,12 @@ const render = () => {
       <Provider store={store}>
         <Viewport />
       </Provider>
-    </AppContainer>
-    , container
-  );  
-}
+    </AppContainer>,
+    container
+  );
+};
 
+store.dispatch(loadInitialData());
 render();
 
 if (module.hot) {
@@ -29,4 +31,3 @@ if (module.hot) {
     render(Viewport);
   });
 }
-

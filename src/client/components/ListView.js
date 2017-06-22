@@ -1,98 +1,59 @@
-import React, {
-  Component  
-} from 'react';
+// @flow
+import React from 'react';
 
-import PropTypes from "prop-types"
-
-import {connect} from 'react-redux';
+import { connect } from 'react-redux';
 import * as moment from 'moment';
 
-import {
-  Table, TableHead, TableRow, TableCell
-} from 'react-toolbox';
+import { Table, TableHead, TableRow, TableCell } from 'react-toolbox';
 
-import Styles from "../assets/styles/app.css";
+import Styles from '../assets/styles/app.css';
 
-import App from "./App";
+import { type Location, setSelectedLocation } from '~/reducer/dashboard';
+import { type GlobalState } from '~/reducer/state';
+import { createSelector } from 'reselect';
+type StateProps = {|
+  locations: Object[],
+  selectedLocationId: string,
+|};
 
-class ListView extends Component {  
+type DispatchProps = {|
+  onRowSelect: (id: string) => any,
+|};
 
-  constructor(props) {
-    super(props);    
-    this.state = {
-      selected: [],
-      sorted: 'asc'
-    }
-    this.data = [];
-
-    App.getInstance().on('selectlocation', this.onSelectLocation.bind(this));
+type Props = {| ...StateProps, ...DispatchProps |};
+const getRowData = (location: Location) => {
+  let event = location.event || '';
+  switch (location.event) {
+    case 'geofence':
+      event = location.event + ': ' + location.geofence.action + ' ' + location.geofence.identifier;
+      break;
   }
-
-  onSelectLocation(location) {
-    if (!location) {
-      this.setState({selected: []});
-      return;
-    }
-    let record = this.data.find((rec) => {
-      return rec.uuid === location.uuid;
-    });
-    if (record) {
-      this.setState({
-        selected: [this.data.indexOf(record)]
-      });
-    }
-  }
-
-  getSortedData() {
-    const compare = this.state.sorted === 'asc' ? sortByCaloriesAsc : sortByCaloriesDesc;
-    return data.sort(compare);
-  }
-
-  handleRowSelect(selected) {
-    let record = this.data[selected[0]];
-    App.getInstance().setLocation(record.data);
-    this.setState({ selected: selected });
-
+  return {
+    data: location,
+    uuid: location.uuid,
+    device_id: location.device_id,
+    coordinate: location.latitude.toFixed(6) + ', ' + location.longitude.toFixed(6),
+    recorded_at: moment(new Date(location.recorded_at)).format('MM-DD HH:mm:ss:SSS'),
+    is_moving: location.is_moving ? 'true' : 'false',
+    accuracy: location.accuracy,
+    speed: location.speed,
+    odometer: location.odometer,
+    event: event,
+    activity: location.activity_type + ' (' + location.activity_confidence + '%)',
+    battery_level: location.battery_level,
+    battery_is_charging: location.battery_is_charging,
   };
+};
 
-  handleSortClick() {
-    const { sorted } = this.state;
-    const nextSorting = sorted === 'asc' ? 'desc' : 'asc';
-    this.setState({ sorted: nextSorting });
-  }
-
-  prepareData() {
-    return (this.props.locations) ? this.props.locations.map((location) => {
-      let event = location.event || '';
-      switch(location.event) {
-        case 'geofence':
-          event = location.event + ': ' + location.geofence.action + ' ' + location.geofence.identifier;
-          break;        
-      }
-      return {
-        data: location,
-        uuid: location.uuid,
-        device_id: location.device_id,
-        coordinate: location.latitude.toFixed(6) + ', ' + location.longitude.toFixed(6),
-        recorded_at: moment(new Date(location.recorded_at)).format("MM-DD HH:mm:ss:SSS"),
-        is_moving: (location.is_moving) ? 'true' : 'false',
-        accuracy: location.accuracy,
-        speed: location.speed,
-        odometer: location.odometer,
-        event: event,
-        activity: location.activity_type + ' (' + location.activity_confidence + '%)',
-        battery_level: location.battery_level,
-        battery_is_charging: location.battery_is_charging
-      };
-    }) : [];
-  }
-
-  render() {
-    
-    this.data = this.prepareData();
-
+class ListView extends React.PureComponent {
+  props: Props;
+  selectRow = (indicies: number[]) => {
+    this.props.onRowSelect(this.props.locations[indicies[0]].uuid);
+  };
+  render () {
+    const { locations, selectedLocationId } = this.props;
     return (
-      <Table onRowSelect={this.handleRowSelect.bind(this)}>
+      <Table onRowSelect={this.selectRow}>
         <TableHead>
           <TableCell>UUID</TableCell>
           <TableCell numeric>RECORDED AT</TableCell>
@@ -105,8 +66,8 @@ class ListView extends Component {
           <TableCell numeric>ACTIVITY</TableCell>
           <TableCell numeric>BATTERY</TableCell>
         </TableHead>
-        {this.data.map((item, idx) => (
-          <TableRow key={idx} selected={this.state.selected.indexOf(idx) !== -1} onSelect={this.handleRowSelect.bind(this)}>
+        {locations.map((item: Object, idx: number) =>
+          <TableRow key={idx} selected={item.uuid === selectedLocationId} onSelect={this.selectRow}>
             <TableCell>{item.uuid}</TableCell>
             <TableCell numeric>{item.recorded_at}</TableCell>
             <TableCell numeric>{item.coordinate}</TableCell>
@@ -116,22 +77,54 @@ class ListView extends Component {
             <TableCell numeric><strong>{item.event}</strong></TableCell>
             <TableCell numeric>{item.is_moving}</TableCell>
             <TableCell numeric>{item.activity}</TableCell>
-            <TableCell numeric className={(item.battery_is_charging) ? Styles.tableCellGreen : Styles.tableCellRed}>{item.battery_level*100}%</TableCell>
+            <TableCell numeric className={item.battery_is_charging ? Styles.tableCellGreen : Styles.tableCellRed}>
+              {item.battery_level * 100}%
+            </TableCell>
           </TableRow>
-        ))}
+        )}
       </Table>
     );
   }
 }
 
-ListView.propTypes = {
-  selected: PropTypes.object
+type LocationArgs = {
+  isWatching: boolean,
+  currentLocation: ?Location,
+  locations: Location[],
+};
+const getLocationsSource = function ({ locations, currentLocation, isWatching }: LocationArgs) {
+  if (isWatching) {
+    return currentLocation ? [currentLocation] : [];
+  } else {
+    return locations;
+  }
 };
 
-const mapStateToProps = function(store) {
+const getLocations = function ({ locations, currentLocation, isWatching }: LocationArgs) {
+  const source = getLocationsSource({ locations, currentLocation, isWatching });
+  return source.map(getRowData);
+};
+
+const getLocationsSelector = createSelector(
+  [
+    (state: GlobalState) => ({
+      locations: state.dashboard.locations,
+      currentLocation: state.dashboard.currentLocation,
+      isWatching: state.dashboard.isWatching,
+    }),
+  ],
+  ({ locations, currentLocation, isWatching }: LocationArgs) => getLocations({ locations, currentLocation, isWatching })
+);
+
+const mapStateToProps = function (state: GlobalState): StateProps {
   return {
-    locations: store.locations
+    locations: getLocationsSelector(state),
+    selectedLocationId: state.dashboard.selectedLocationId,
   };
 };
 
-export default connect(mapStateToProps)(ListView);
+const mapDispatchToProps: DispatchProps = {
+  onRowSelect: setSelectedLocation,
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(ListView);
