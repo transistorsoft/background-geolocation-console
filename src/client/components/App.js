@@ -1,33 +1,30 @@
-
-import {EventEmitter} from 'events';
-import * as moment from 'moment';
+import { EventEmitter } from 'events';
 
 import store from '../store';
-import {getLocations} from '../reducer/locations/actions';
-import {getDevices} from '../reducer/devices/actions';
+import { getLocations } from '../reducer/locations/actions';
+import { getDevices } from '../reducer/devices/actions';
 
 let instance = null;
 let eventEmitter = new EventEmitter();
 
 const SETTINGS = [
-  {name: 'startDate', dataType: 'datetime'},
-  {name: 'endDate', dataType: 'datetime'},
-  {name: 'deviceId', dateType: 'string'},
-  {name: 'showMarkers', dataType: 'boolean', defaultValue: true},
-  {name: 'showPolyline', dataType: 'boolean', defaultValue: true},
-  {name: 'showGeofenceHits', dataType: 'boolean', defaultValue: true}
+  { name: 'startDate', dataType: 'datetime' },
+  { name: 'endDate', dataType: 'datetime' },
+  { name: 'deviceId', dateType: 'string' },
+  { name: 'showMarkers', dataType: 'boolean', defaultValue: true },
+  { name: 'showPolyline', dataType: 'boolean', defaultValue: true },
+  { name: 'showGeofenceHits', dataType: 'boolean', defaultValue: true },
 ];
 
 export default class App {
-
-  static getInstance() {
+  static getInstance () {
     if (instance === null) {
       instance = new App();
     }
     return instance;
   }
 
-  constructor(props) {
+  constructor (props) {
     this.state = this._loadState();
     this.selectedLocation = undefined;
     this.watchId = undefined;
@@ -35,10 +32,10 @@ export default class App {
     this.load();
   }
 
-  async load() {
+  async load () {
     await store.dispatch(getDevices());
     // select the only device ...
-    const allDevices =  store.getState().devices;
+    const allDevices = store.getState().devices;
     if (allDevices && allDevices.length === 1) {
       this.set('deviceId', allDevices[0].device_id);
     }
@@ -48,27 +45,27 @@ export default class App {
     }
   }
 
-  reload() {
+  reload () {
     this.load();
   }
 
-  getStore() {
+  getStore () {
     return store;
   }
 
-  getState() {
+  getState () {
     return this.state;
   }
 
-  isWatching() {
-    return (this.watchId) ? true : false;
+  isWatching () {
+    return !!this.watchId;
   }
 
-  set(key, value) {
+  set (key, value) {
     this.state[key] = value;
     this._saveState(this.state);
 
-    switch(key) {
+    switch (key) {
       case 'deviceId':
       case 'startDate':
       case 'endDate':
@@ -77,23 +74,23 @@ export default class App {
           store.dispatch(getLocations(this.state));
         }
         break;
-    }    
+    }
     eventEmitter.emit('filter', {
       name: key,
-      value: value
+      value: value,
     });
   }
 
-  on(event, callback) {
+  on (event, callback) {
     eventEmitter.addListener(event, callback);
   }
 
-  setLocation(location) {
+  setLocation (location) {
     this.selectedLocation = location;
     eventEmitter.emit('selectlocation', location);
   }
 
-  setWatchMode(value) {
+  setWatchMode (value) {
     if (value === true) {
       this.startWatchMode();
     } else {
@@ -101,26 +98,26 @@ export default class App {
     }
   }
 
-  startWatchMode() {
+  startWatchMode () {
     this.stopWatchMode();
     this.watchId = setInterval(() => {
       let first = store.getState().locations[0];
       let filter = {
         startDate: new Date(first.recorded_at),
         endDate: this.state.endDate,
-        deviceId: this.state.deviceId
+        deviceId: this.state.deviceId,
       };
       store.dispatch(getLocations(filter));
     }, 1500);
   }
 
-  stopWatchMode() {
+  stopWatchMode () {
     if (this.watchId) {
       this.watchId = clearInterval(this.watchId);
     }
   }
 
-  _loadState() {
+  _loadState () {
     let state = window.localStorage.getItem('settings');
     let defaultState = this._getDefaultState();
     if (!state) {
@@ -129,7 +126,7 @@ export default class App {
     } else {
       state = JSON.parse(state);
       // Ensure each setting exists (in case we add settings)
-      SETTINGS.forEach((setting) => {
+      SETTINGS.forEach(setting => {
         if (!state.hasOwnProperty(setting.name)) {
           state[setting.name] = defaultState[setting.name];
           this._saveState(state);
@@ -141,12 +138,11 @@ export default class App {
     return state;
   }
 
-  _saveState(state) {
+  _saveState (state) {
     window.localStorage.setItem('settings', JSON.stringify(state));
   }
 
-  _getDefaultState() {
-
+  _getDefaultState () {
     var startDate = new Date();
     startDate.setHours(0);
     startDate.setMinutes(0);
@@ -154,7 +150,7 @@ export default class App {
     var endDate = new Date();
     endDate.setHours(23);
     endDate.setMinutes(59);
-      
+
     return {
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
@@ -162,7 +158,7 @@ export default class App {
       showMarkers: true,
       showPolyline: true,
       showGeofenceHits: true,
-      watchMode: false
-    }
+      watchMode: false,
+    };
   }
 }
