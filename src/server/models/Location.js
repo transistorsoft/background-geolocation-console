@@ -36,6 +36,23 @@ var Location = (function() {
                 error(err);
             }).catch(error);
         },
+        latest: function(params, success, error) {
+            var whereConditions = {
+                device_id: params.device_id
+            }
+            LocationModel.findAll({
+                where: whereConditions,
+                order: 'recorded_at DESC'
+            }).then(function(row) {
+                success(row ? hydrate(row) : null);
+            }, function(err){
+                console.error("Fetch latest locations error : ", err);
+                error(err);
+            }).catch(error);
+
+
+        }
+
         create: function(params) {
             var location  = params.location,
                 device    = params.device || {model: "UNKNOWN"};

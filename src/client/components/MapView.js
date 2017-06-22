@@ -1,40 +1,57 @@
+// @flow
+
 import React, { Component } from 'react';
 
 import { connect } from 'react-redux';
+import { type Location, setSelectedLocation } from '~/reducer/dashboard';
+import { type GlobalState } from '~/reducer/state';
 
 import GoogleMap from 'google-map-react';
 
 import Styles from '../assets/styles/app.css';
-import App from './App';
 import { COLORS } from '../constants';
 
 const API_KEY = process.env.GMAP_API_KEY || 'AIzaSyA9j72oZA5SmsA8ugu57pqXwpxh9Sn4xuM';
 
+declare var google: any;
+type StateProps = {|
+  showMarkers: boolean,
+  showPolyline: boolean,
+  showGeofenceHits: boolean,
+  isWatching: boolean,
+  currentLocation: ?Location,
+  locations: Location[],
+  selectedLocationId: ?string,
+|};
+
+type DispatchProps = {|
+  onSelectLocation: string => any,
+|};
+
+type Props = {| ...StateProps, ...DispatchProps |};
+
+type State = {|
+  center: {| lat: number, lng: number |},
+  zoom: number,
+|};
+
 class MapView extends Component {
-  constructor (props) {
-    super(props);
+  props: Props;
+  motionChangePolylines: any = [];
+  selectedMarker: any = null;
+  geofenceMarkers: any = {};
+  geofenceHitMarkers: any = [];
+  markers: any = [];
+  gmap: any = null;
+  polyline: any = null;
+  currentLocationMarker: any = null;
+  locationAccuracyCircle: any = null;
+  state: State = {
+    center: { lat: -25.363882, lng: 131.044922 },
+    zoom: 18,
+  };
 
-    this.state = {
-      currentPosition: undefined,
-      center: { lat: -25.363882, lng: 131.044922 },
-      zoom: 18,
-    };
-    this.motionChangePolylines = [];
-    this.selectedMarker = null;
-    this.geofenceMarkers = {};
-    this.geofenceHitMarkers = [];
-    this.markers = [];
-    this.gmap = undefined;
-
-    let app = App.getInstance();
-
-    app.on('filter', this.onFilter.bind(this));
-    app.on('selectlocation', this.onSelectLocation.bind(this));
-  }
-
-  componentDidUpdate () {}
-
-  onMapLoaded (event) {
+  onMapLoaded = (event: any) => {
     this.gmap = event.map;
 
     // Route polyline
@@ -84,11 +101,10 @@ class MapView extends Component {
       strokeOpacity: 0,
     });
 
-    this.getCurrentPosition();
     this.renderMarkers();
-  }
+  };
 
-  onSelectLocation (location) {
+  onSelectLocation (location: Location) {
     if (this.selectedMarker) {
       this.selectedMarker.setIcon(this.buildLocationIcon(this.selectedMarker.location));
       this.selectedMarker.setZIndex(1);
@@ -97,11 +113,11 @@ class MapView extends Component {
       this.selectedMarker = null;
       return;
     }
-    let marker = this.markers.find(marker => {
+    let marker = this.markers.find((marker: any) => {
       return marker.location.uuid === location.uuid;
     });
     if (!marker) {
-      marker = this.geofenceHitMarkers.find(marker => {
+      marker = this.geofenceHitMarkers.find((marker: any) => {
         return marker.location && marker.location.uuid === location.uuid;
       });
     }
@@ -118,60 +134,22 @@ class MapView extends Component {
       );
     }
   }
-  onMarkerClick (marker) {
-    App.getInstance().setLocation(this.location);
-  }
 
-  getCurrentPosition () {
-    // var me = this;
-    // window.navigator.geolocation.getCurrentPosition(function (location) {
-    // me.setState({
-    // currentPosition: location,
-    // center: {
-    // lat: location.coords.latitude,
-    // lng: location.coords.longitude,
-    // },
-    // });
-    // });
-  }
-
-  onFilter (filter) {
-    let map = filter.value ? this.gmap : null;
-
-    switch (filter.name) {
-      case 'showMarkers':
-        this.markers.forEach(marker => {
-          marker.setMap(map);
-        });
-        break;
-      case 'showPolyline':
-        this.polyline.setMap(map);
-        this.motionChangePolylines.forEach(polyline => {
-          polyline.setMap(map);
-        });
-        break;
-      case 'showGeofenceHits':
-        this.geofenceHitMarkers.forEach(marker => {
-          marker.setMap(map);
-        });
-        break;
-    }
+  onMarkerClick () {
+    // this.props.onSelectLocation(this.location.id);
   }
 
   renderMarkers () {
-    let app = App.getInstance();
-
-    if (!app.isWatching()) {
+    const { isWatching, locations, currentLocation, showPolyline, showMarkers, showGeofenceHits } = this.props;
+    if (!isWatching) {
       this.clearMarkers();
     }
-    let length = this.props.locations.length;
+    let length = locations.length;
     if (!length) {
       return;
     }
 
-    let settings = app.getState();
-
-    this.polyline.setMap(settings.showPolyline ? this.gmap : null);
+    this.polyline.setMap(showPolyline ? this.gmap : null);
 
     let motionChangePosition = null;
     let searchingForMotionChange = false;
@@ -179,15 +157,15 @@ class MapView extends Component {
     // Iterate in reverse order to create polyline points from oldest->latest.
     // We DO NOT want this.props.locations.reverse()!!!
     for (var n = length - 1; n !== 0; n--) {
-      let location = this.props.locations[n];
+      let location = locations[n];
       let latLng = new google.maps.LatLng(location.latitude, location.longitude);
       if (location.geofence) {
         this.buildGeofenceMarker(location, {
-          map: settings.showGeofenceHits ? this.gmap : null,
+          map: showGeofenceHits ? this.gmap : null,
         });
       } else {
         let marker = this.buildLocationMarker(location, {
-          map: settings.showMarkers ? this.gmap : null,
+          map: showMarkers ? this.gmap : null,
         });
         this.markers.push(marker);
       }
@@ -203,16 +181,17 @@ class MapView extends Component {
         }
       }
     }
-    let currentPosition = this.props.locations[0];
-    let latLng = new google.maps.LatLng(currentPosition.latitude, currentPosition.longitude);
-    this.gmap.setCenter(latLng);
-    this.currentLocationMarker.setPosition(latLng);
-    this.locationAccuracyCircle.setCenter(latLng);
-    this.locationAccuracyCircle.setRadius(currentPosition.accuracy);
+    if (currentLocation) {
+      let latLng = new google.maps.LatLng(currentLocation.latitude, currentLocation.longitude);
+      this.gmap.setCenter(latLng);
+      // this.currentLocation.setPosition(latLng);
+      this.locationAccuracyCircle.setCenter(latLng);
+      this.locationAccuracyCircle.setRadius(currentLocation.accuracy);
+    }
   }
 
-  buildMotionChangePolyline (stationaryPosition, movingPosition) {
-    let settings = App.getInstance().getState();
+  buildMotionChangePolyline (stationaryPosition: any, movingPosition: any) {
+    const { showPolyline } = this.props;
     let seq = {
       repeat: '25px',
       icon: {
@@ -226,7 +205,7 @@ class MapView extends Component {
       },
     };
     return new google.maps.Polyline({
-      map: settings.showPolyline ? this.gmap : null,
+      map: showPolyline ? this.gmap : null,
       zIndex: 1001,
       geodesic: true,
       strokeColor: COLORS.green,
@@ -238,7 +217,7 @@ class MapView extends Component {
     });
   }
 
-  buildGeofenceMarker (location, options) {
+  buildGeofenceMarker (location: any, options: any) {
     let geofence = location.geofence;
     let circle = this.geofenceMarkers[geofence.identifier];
     if (!circle) {
@@ -276,9 +255,6 @@ class MapView extends Component {
       color = COLORS.red;
     }
     let circleLatLng = circle.getCenter();
-    // let locationLatLng = new google.maps.LatLng(location.latitude, location.longitude);
-    // let distance = google.maps.geometry.spherical.computeDistanceBetween(circleLatLng, locationLatLng);
-    // var heading = google.maps.geometry.spherical.computeHeading(circleLatLng, locationLatLng);
     let circleEdgeLatLng = google.maps.geometry.spherical.computeOffset(circleLatLng, circle.getRadius(), heading);
 
     var geofenceEdgeMarker = new google.maps.Marker({
@@ -318,7 +294,7 @@ class MapView extends Component {
   }
 
   // Build a bread-crumb location marker.
-  buildLocationMarker (location, options?) {
+  buildLocationMarker (location: any, options: any) {
     options = options || {};
     let zIndex = options.zIndex || 1;
     let marker = new google.maps.Marker({
@@ -333,7 +309,7 @@ class MapView extends Component {
     return marker;
   }
 
-  buildLocationIcon (location, options) {
+  buildLocationIcon (location: any, options: any) {
     options = options || {};
     let anchor;
     let fillColor = COLORS.polyline_color;
@@ -390,20 +366,20 @@ class MapView extends Component {
   }
 
   clearMarkers () {
-    this.markers.forEach(marker => {
+    this.markers.forEach((marker: any) => {
       google.maps.event.clearInstanceListeners(marker);
       marker.setMap(null);
     });
     this.markers = [];
 
     this.geofenceMarkers = {};
-    this.geofenceHitMarkers.forEach(marker => {
+    this.geofenceHitMarkers.forEach((marker: any) => {
       marker.setMap(null);
     });
     this.geofenceHitMarkers = [];
 
     this.polyline.setPath([]);
-    this.motionChangePolylines.forEach(polyline => {
+    this.motionChangePolylines.forEach((polyline: any) => {
       polyline.setMap(null);
     });
     this.motionChangePolylines = [];
@@ -417,26 +393,36 @@ class MapView extends Component {
     return (
       <div className={Styles.map}>
         <GoogleMap
-          ref={x => (this.map = x)}
+          ref={(x: any) => (this.gmap = x)}
           bootstrapURLKeys={{
             key: API_KEY,
             libraries: 'geometry',
           }}
-          // apiKey={null}
           className='map'
           center={this.state.center}
           zoom={15}
-          onGoogleApiLoaded={this.onMapLoaded.bind(this)}
+          onGoogleApiLoaded={this.onMapLoaded}
         />
       </div>
     );
   }
 }
 
-const mapStateToProps = function (store) {
+const mapStateToProps = function (state: GlobalState) {
+  const { dashboard } = state;
   return {
-    locations: store.locations,
+    locations: dashboard.locations,
+    showMarkers: dashboard.showMarkers,
+    showPolyline: dashboard.showPolyline,
+    showGeofenceHits: dashboard.showGeofenceHits,
+    isWatching: dashboard.isWatching,
+    currentLocation: dashboard.currentLocation,
+    selectedLocationId: dashboard.selectedLocationId,
   };
 };
 
-export default connect(mapStateToProps)(MapView);
+const mapDispatchToProps = {
+  onSelectLocation: setSelectedLocation,
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(MapView);

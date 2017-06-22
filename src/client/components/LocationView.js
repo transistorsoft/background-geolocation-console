@@ -1,41 +1,43 @@
-import React, { Component } from 'react';
-import PropTypes from 'prop-types';
+// @flow
+import React from 'react';
 
 import { AppBar, Card } from 'react-toolbox';
 
-import App from './App';
 import Styles from '../assets/styles/app.css';
+import _ from 'lodash';
 
-class LocationView extends Component {
-  constructor (props) {
-    super(props);
+import { connect } from 'react-redux';
+import { type Location, unselectLocation } from '~/reducer/dashboard';
+import { type GlobalState } from '~/reducer/state';
 
-    this.state = {};
-  }
+type StateProps = {|
+  location: ?Location,
+|};
+type DispatchProps = {|
+  onClose: () => any,
+|};
 
-  onClickClose () {
-    App.getInstance().setLocation(null);
-  }
+type Props = {| ...StateProps, ...DispatchProps |};
 
-  render () {
-    return (
-      <div className='filterView'>
-        <AppBar title='Location' rightIcon='close' onRightIconClick={this.onClickClose.bind(this)} />
+const LocationView = ({ location, onClose }: Props) =>
+  <div className='filterView'>
+    <AppBar title='Location' rightIcon='close' onRightIconClick={onClose} />
+    <div className={Styles.content}>
+      <Card style={{ marginBottom: '10px' }}>
         <div className={Styles.content}>
-          <Card style={{ marginBottom: '10px' }}>
-            <div className={Styles.content}>
-              <pre style={{ fontSize: '12px' }}>{JSON.stringify(this.props.location, null, 2)}</pre>
-            </div>
-          </Card>
+          <pre style={{ fontSize: '12px' }}>{JSON.stringify(location, null, 2)}</pre>
         </div>
-      </div>
-    );
-  }
-}
+      </Card>
+    </div>
+  </div>;
 
-LocationView.propTypes = {
-  location: PropTypes.object,
-  onClose: PropTypes.func,
+const mapStateToProps = (state: GlobalState): StateProps => ({
+  location: state.dashboard.isWatching
+    ? state.dashboard.currentLocation
+    : _.find(state.dashboard.locations, { uuid: state.dashboard.selectedLocationId }),
+});
+const mapDispatchToProps: DispatchProps = {
+  onClose: unselectLocation,
 };
 
-export default LocationView;
+export default connect(mapStateToProps, mapDispatchToProps)(LocationView);

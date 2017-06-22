@@ -30,6 +30,19 @@ var Routes = function(app) {
   });
 
   /**
+  * GET /locations
+  */
+  app.get('/locations/latest', function(req, res) {
+    console.log("GET /locations %s".green, JSON.stringify(req.query));
+
+    Location.latest(req.query, function(rs) {
+      res.send(rs);
+    }, function(err){
+        res.status(500).send({ error: 'Something failed!' });
+    });
+  });
+
+  /**
   * POST /locations
   */
   app.post('/locations', function (req, res) {
@@ -38,7 +51,7 @@ var Routes = function(app) {
     console.log("POST /locations\n%s".green, JSON.stringify(req.headers, null, 2));
     console.log("Authorization: %s".green, auth);
     console.log("%s\n".yellow, JSON.stringify(req.body, null, 2))
-          
+
     try {
       Location.create(req.body);
     } catch(e) {
@@ -76,11 +89,11 @@ var Routes = function(app) {
     console.log('/configure');
 
     var response = {
-      "access_token":"e7ebae5e-4bea-4d63-8f28-8a104acd2f4c",   
-      "token_type":"Bearer",   
-      "expires_in":3600,   
-      "refresh_token":"2a69e1cd-d7db-44f6-87fc-3d66c4505ee4",   
-      "scope":"openid+email+profile+phone+address+group"   
+      "access_token":"e7ebae5e-4bea-4d63-8f28-8a104acd2f4c",
+      "token_type":"Bearer",
+      "expires_in":3600,
+      "refresh_token":"2a69e1cd-d7db-44f6-87fc-3d66c4505ee4",
+      "scope":"openid+email+profile+phone+address+group"
     };
 
     res.send(response);

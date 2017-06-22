@@ -1,3 +1,4 @@
+// @flow
 import React, { Component } from 'react';
 
 import { Layout, NavDrawer, Panel, Tabs, Tab, Sidebar } from 'react-toolbox';
@@ -8,49 +9,47 @@ import FilterView from './FilterView';
 import LocationView from './LocationView';
 import MapView from './MapView';
 import ListView from './ListView';
-import App from './App';
+import { connect } from 'react-redux';
+import { type GlobalState } from '~/reducer/state';
 
-export default class Viewport extends Component {
-  constructor (props) {
-    super(props);
+type State = {|
+  activeTab: 0 | 1,
+|};
 
-    this.state = {
-      activeTab: 0,
-      sideBarActive: false,
-      location: null,
-    };
+type StateProps = {|
+  isLocationSelected: boolean,
+|};
 
-    App.getInstance().on('selectlocation', this.onSelectLocation.bind(this));
-  }
+type Props = StateProps;
+class Viewport extends Component {
+  props: Props;
+  state: State = {
+    activeTab: 0,
+  };
 
-  onSelectLocation (location) {
-    this.setState({
-      sideBarActive: location !== null,
-      location: location,
-    });
-  }
-
-  onCloseLocationView () {}
-  handleTabChange (index) {
+  handleTabChange = (index: 0 | 1) => {
     this.setState({ activeTab: index });
-  }
+  };
+
   render () {
+    const { activeTab } = this.state;
+    const { isLocationSelected } = this.props;
     return (
       <Layout className={Styles.viewport}>
         <NavDrawer active={true} pinned={true} className={Styles.navDrawer}>
           <FilterView />
         </NavDrawer>
-        <Sidebar pinned={this.state.sideBarActive} width={6}>
-          <LocationView location={this.state.location} onClose={this.onCloseLocationView.bind(this)} />
+        <Sidebar pinned={isLocationSelected} width={6}>
+          <LocationView />
         </Sidebar>
         <Panel className={Styles.workspace} bodyScroll={false} scrollY={false}>
           <HeaderView />
-          <Tabs index={this.state.activeTab} hideMode='display' onChange={this.handleTabChange.bind(this)} inverse>
+          <Tabs index={activeTab} hideMode='display' onChange={this.handleTabChange} inverse>
             <Tab label='Map'>
               <MapView />
             </Tab>
             <Tab label='Data'>
-              <ListView selected={this.state.location} />
+              <ListView />
             </Tab>
           </Tabs>
         </Panel>
@@ -58,3 +57,11 @@ export default class Viewport extends Component {
     );
   }
 }
+
+const mapStateToProps = function (state: GlobalState) {
+  return {
+    isLocationSelected: !!state.dashboard.selectedLocationId,
+  };
+};
+const mapDispatchToProps = {};
+export default connect(mapStateToProps, mapDispatchToProps)(Viewport);
