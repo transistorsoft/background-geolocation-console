@@ -20,7 +20,7 @@ export default class HeaderView extends Component {
 
   render() {
     return (
-      <AppBar title="Consola de Verificador ONP" leftIcon="menu">
+      <AppBar title="Consola de Verificador ONP" leftIcon="menu" className={Styles.cabecera}>
         <Navigation type='horizontal'>                
           <Link href="https://www.onp.gob.pe/" label=""><img className={Styles.logo} src="assets/images/LogoONP.png" /></Link>
         </Navigation>

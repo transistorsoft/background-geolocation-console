@@ -4,8 +4,8 @@ export const API_URL = window.location.origin;
 export const COLORS = {
   gold: '#fedd1e',
   white: "#fff",
-  blue: "#fff",
-  light_blue: "#fff",
+  blue: "#2677FF",
+  light_blue: "#3366cc",
   polyline_color: "#00B3FD",
   green: "#16BE42",
   dark_purple: "#2A0A73",
