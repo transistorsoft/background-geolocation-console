@@ -9,13 +9,13 @@ import { type GlobalState } from '~/reducer/state';
 import {
   type Device,
   reload,
-  setDeviceAndReload,
-  setStartDateAndReload,
-  setEndDateAndReload,
-  setIsWatching,
-  setShowMarkers,
-  setShowPolyline,
-  setShowGeofenceHits,
+  changeDeviceId,
+  changeStartDate,
+  changeEndDate,
+  changeIsWatching,
+  changeShowMarkers,
+  changeShowPolyline,
+  changeShowGeofenceHits,
 } from '~/reducer/dashboard';
 
 import { AppBar, Button, DatePicker, TimePicker, Switch, Checkbox, Card } from 'react-toolbox';
@@ -134,13 +134,13 @@ const mapStateToProps = function (state: GlobalState): StateProps {
 
 const mapDispatchToProps: DispatchProps = {
   onReload: reload,
-  onChangeDeviceId: setDeviceAndReload,
-  onChangeStartDate: setStartDateAndReload,
-  onChangeEndDate: setEndDateAndReload,
-  onChangeIsWatching: setIsWatching,
-  onChangeShowMarkers: setShowMarkers,
-  onChangeShowPolyline: setShowPolyline,
-  onChangeShowGeofenceHits: setShowGeofenceHits,
+  onChangeDeviceId: changeDeviceId,
+  onChangeStartDate: changeStartDate,
+  onChangeEndDate: changeEndDate,
+  onChangeIsWatching: changeIsWatching,
+  onChangeShowMarkers: changeShowMarkers,
+  onChangeShowPolyline: changeShowPolyline,
+  onChangeShowGeofenceHits: changeShowGeofenceHits,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(FilterView);
