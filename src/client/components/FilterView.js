@@ -113,12 +113,8 @@ class FilterView extends Component {
                 </div>
                 <Button icon="refresh" label="Refrescar" style={{width:'100%'}} raised primary onMouseUp={this.onClickReload.bind(this)}/>
                 
-                <!--
-                <div style={{display:"flex", flexDirection:"row", marginTop: 10}}>
-                  <label style={{flex:1}}>Watch mode</label>
-                  <Switch checked={this.state.watchMode} onChange={this.onToggleWatchMode.bind(this)} style={{flex:1}}/>                
-                </div>
-                -->
+                
+                                
 
               </div>
             </Card>
