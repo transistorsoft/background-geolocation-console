@@ -69,7 +69,7 @@ class FilterView extends Component {
 
     return (        
         <div className="filterView">
-          <AppBar title="Filtro" rightIcon="refresh" onRightIconClick={this.onClickReload.bind(this)}></AppBar>
+          <AppBar title="Filtro" rightIcon="refresh" onRightIconClick={this.onClickReload.bind(this)} className={Styles.cabeceraTabla}></AppBar>
           <div className={Styles.content}>
             <Card style={{marginBottom:'10px'}}>
               <div className={Styles.content}>
@@ -111,7 +111,7 @@ class FilterView extends Component {
                     onChange={this.onChange.bind(this, 'endDate')}
                     value={this.state.endDate} />
                 </div>
-                <Button icon="refresh" label="Refrescar" style={{width:'100%'}} raised primary onMouseUp={this.onClickReload.bind(this)}/>
+                <Button icon="refresh" label="Refrescar" style={{width:'100%'}} raised primary onMouseUp={this.onClickReload.bind(this)} className={Styles.cabeceraTabla}/>
                 
                 
                                 

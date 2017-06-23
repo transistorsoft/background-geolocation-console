@@ -30,7 +30,7 @@ class LocationView extends Component {
   render() {
     return (        
         <div className="filterView">
-          <AppBar title="Ubiación" rightIcon="close" onRightIconClick={this.onClickClose.bind(this)} className={Styles.cabeceraTabla}></AppBar>
+          <AppBar title="Ubicación" rightIcon="close" onRightIconClick={this.onClickClose.bind(this)} className={Styles.cabeceraTabla}></AppBar>
           <div className={Styles.content}>
             <Card style={{marginBottom:'10px'}}>
               <div className={Styles.content}>
