@@ -458,12 +458,14 @@ class MapView extends Component {
   }
 
   componentWillUpdate (nextProps: Props) {
-    this.updateFlags = {
-      needsMarkersRedraw: nextProps.locations !== this.props.locations,
-      needsShowMarkersUpdate: nextProps.showMarkers !== this.props.showMarkers,
-      needsShowPolylineUpdate: nextProps.showPolyline !== this.props.showPolyline,
-      needsShowGeofenceHitsUpdate: nextProps.showGeofenceHits !== this.props.showGeofenceHits,
-    };
+    if (this.gmap) {
+      this.updateFlags = {
+        needsMarkersRedraw: nextProps.locations !== this.props.locations,
+        needsShowMarkersUpdate: nextProps.showMarkers !== this.props.showMarkers,
+        needsShowPolylineUpdate: nextProps.showPolyline !== this.props.showPolyline,
+        needsShowGeofenceHitsUpdate: nextProps.showGeofenceHits !== this.props.showGeofenceHits,
+      };
+    }
   }
 
   render () {

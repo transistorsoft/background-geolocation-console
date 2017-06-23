@@ -3,8 +3,7 @@ import React from 'react';
 
 import { connect } from 'react-redux';
 import moment from 'moment';
-
-import { Table, TableHead, TableRow, TableCell } from 'react-toolbox';
+import { List } from 'react-virtualized';
 
 import Styles from '../assets/styles/app.css';
 
@@ -47,42 +46,58 @@ const getRowData = (location: Location) => {
 
 class ListView extends React.PureComponent {
   props: Props;
+  list: any;
   selectRow = (indicies: number[]) => {
     this.props.onRowSelect(this.props.locations[indicies[0]].uuid);
   };
-  render () {
-    const { locations, selectedLocationId } = this.props;
+  rowRenderer = ({ index, isScrolling, isVisible, key, parent, style }: any) => {
+    const item = this.props.locations[index];
     return (
-      <Table onRowSelect={this.selectRow}>
-        <TableHead>
-          <TableCell>UUID</TableCell>
-          <TableCell numeric>RECORDED AT</TableCell>
-          <TableCell numeric>COORDINATE</TableCell>
-          <TableCell numeric>ACCURACY</TableCell>
-          <TableCell numeric>SPEED</TableCell>
-          <TableCell numeric>ODOMETER</TableCell>
-          <TableCell numeric>EVENT</TableCell>
-          <TableCell numeric>IS MOVING</TableCell>
-          <TableCell numeric>ACTIVITY</TableCell>
-          <TableCell numeric>BATTERY</TableCell>
-        </TableHead>
-        {locations.map((item: Object, idx: number) =>
-          <TableRow key={idx} selected={item.uuid === selectedLocationId} onSelect={this.selectRow}>
-            <TableCell>{item.uuid}</TableCell>
-            <TableCell numeric>{item.recorded_at}</TableCell>
-            <TableCell numeric>{item.coordinate}</TableCell>
-            <TableCell numeric>{item.accuracy}</TableCell>
-            <TableCell numeric>{item.speed}</TableCell>
-            <TableCell numeric>{item.odometer}</TableCell>
-            <TableCell numeric><strong>{item.event}</strong></TableCell>
-            <TableCell numeric>{item.is_moving}</TableCell>
-            <TableCell numeric>{item.activity}</TableCell>
-            <TableCell numeric className={item.battery_is_charging ? Styles.tableCellGreen : Styles.tableCellRed}>
-              {item.battery_level * 100}%
-            </TableCell>
-          </TableRow>
-        )}
-      </Table>
+      <div
+        key={key}
+        className={Styles.listRow}
+        style={style}
+        selected={item.uuid === this.props.selectedLocationId}
+        onSelect={this.selectRow}
+      >
+        <span style={{ width: 140 }}>{item.uuid}</span>
+        <span style={{ width: 100 }}>{item.recorded_at}</span>
+        <span style={{ width: 80 }}>{item.coordinate}</span>
+        <span style={{ width: 80 }}>{item.accuracy}</span>
+        <span style={{ width: 80 }}>{item.speed}</span>
+        <span style={{ width: 80 }}>{item.odometer}</span>
+        <span style={{ width: 200 }}><strong>{item.event}</strong></span>
+        <span style={{ width: 80 }}>{item.is_moving}</span>
+        <span style={{ width: 140 }}>{item.activity}</span>
+        <span style={{ width: 60 }} className={item.battery_is_charging ? Styles.tableCellGreen : Styles.tableCellRed}>
+          {item.battery_level * 100}%
+        </span>
+      </div>
+    );
+  };
+  render () {
+    return (
+      <div>
+        <div className={Styles.listRow}>
+          <span style={{ width: 140 }}>UUID</span>
+          <span style={{ width: 100 }}>RECORDED AT</span>
+          <span style={{ width: 80 }}>COORDINATE</span>
+          <span style={{ width: 80 }}>ACCURACY</span>
+          <span style={{ width: 80 }}>SPEED</span>
+          <span style={{ width: 80 }}>ODOMETER</span>
+          <span style={{ width: 200 }}>EVENT</span>
+          <span style={{ width: 80 }}>IS MOVING</span>
+          <span style={{ width: 140 }}>ACTIVITY</span>
+          <span style={{ width: 60 }}>BATTERY</span>
+        </div>
+        <List
+          width={1200}
+          height={800}
+          rowCount={this.props.locations.length}
+          rowHeight={48}
+          rowRenderer={this.rowRenderer}
+        />
+      </div>
     );
   }
 }

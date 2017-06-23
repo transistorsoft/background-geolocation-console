@@ -445,7 +445,7 @@ const invalidateSelectedLocationHandler = function (
   if (state.isWatching) {
     return cloneState(state, { selectedLocationId: state.currentLocation ? state.currentLocation.uuid : null });
   } else {
-    const existingLocation = _.find(state.locations, { id: state.locations });
+    const existingLocation = _.find(state.locations, { uuid: state.selectedLocationId });
     if (!existingLocation) {
       return cloneState(state, { selectedLocationId: null });
     } else {

@@ -15,7 +15,7 @@
 }
 
 .workspace {
-  overflow-y: hidden;
+  overflow: hidden;
   top: 0;
   bottom: 0;
   right:0;
@@ -34,6 +34,23 @@
 
 .content {
   padding: 5px;
+}
+
+.listRow {
+
+
+}
+
+.listRow span {
+  display: inline-block;
+  color: rgba(0, 0, 0, 0.54);
+  font-size: 12px;
+  font-weight: 500;
+  height: 48px;
+  line-height: 24px;
+  padding-bottom: 8px;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
 }
 
 .tableCellRed {
