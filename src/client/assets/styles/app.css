@@ -19,7 +19,7 @@
   top: 0;
   bottom: 0;
   right:0;
-  background-color: #2b4383;
+  
   
 
 }
@@ -51,4 +51,8 @@
 .cabecera {
   background-color: #fff;
   color: #2b4383;
+}
+.cabeceraTabla {
+  background-color: #2b4383;
+  
 }

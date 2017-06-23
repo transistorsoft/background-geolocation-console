@@ -68,7 +68,7 @@ export default class Viewport extends Component {
           </Sidebar>
           <Panel className={Styles.workspace} bodyScroll={false} scrollY={false}>
             <HeaderView />
-            <Tabs index={this.state.activeTab} hideMode="display" onChange={this.handleTabChange.bind(this)} inverse>
+            <Tabs index={this.state.activeTab} hideMode="display" onChange={this.handleTabChange.bind(this)} inverse className={Styles.cabeceraTabla}>
               <Tab label="Mapa">
                 <MapView />
               </Tab>
