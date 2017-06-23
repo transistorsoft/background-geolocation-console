@@ -1,5 +1,5 @@
 {
-  "presets": [['es2015', {modules: false}], 'react', 'stage-0'],
+  "presets": [['es2015', {modules: false}], 'node6', 'react', 'stage-0'],
   "plugins": [
       ["react-hot-loader/babel"],
       ["transform-runtime"],

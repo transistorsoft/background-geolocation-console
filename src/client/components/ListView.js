@@ -2,7 +2,7 @@
 import React from 'react';
 
 import { connect } from 'react-redux';
-import * as moment from 'moment';
+import moment from 'moment';
 
 import { Table, TableHead, TableRow, TableCell } from 'react-toolbox';
 

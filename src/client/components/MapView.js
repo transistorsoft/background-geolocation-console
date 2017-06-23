@@ -186,6 +186,7 @@ class MapView extends Component {
     if (this.state.needsMarkersRedraw) {
       this.clearMarkers();
       const length = locations.length;
+      console.info('draw markers: ' + length);
 
       this.polyline.setMap(showPolyline ? this.gmap : null);
 
