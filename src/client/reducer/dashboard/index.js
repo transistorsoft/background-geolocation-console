@@ -7,12 +7,6 @@ import qs from 'querystring';
 import { fitBoundsBus } from '~/globalBus';
 
 // Types
-export type Filters = {
-  deviceId: ?string,
-  startDate: Date,
-  endDate: Date,
-};
-
 export type Device = {
   id: string,
   name: string,
@@ -48,7 +42,9 @@ export type Location = {
 export type DashboardState = {
   isLoading: boolean,
   hasData: boolean,
-  filters: Filters,
+  deviceId: ?string,
+  startDate: Date,
+  endDate: Date,
   showMarkers: boolean,
   showPolyline: boolean,
   showGeofenceHits: boolean,
@@ -304,11 +300,11 @@ export function loadDevices (): ThunkAction {
 
 export function loadLocations (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const filters = getState().dashboard.filters;
+    const { deviceId, startDate, endDate } = getState().dashboard;
     const params = qs.stringify({
-      device_id: filters.deviceId,
-      start_date: filters.startDate.toISOString(),
-      end_date: filters.endDate.toISOString(),
+      device_id: deviceId,
+      start_date: startDate.toISOString(),
+      end_date: endDate.toISOString(),
     });
     const response = await fetch(`${API_URL}/locations?${params}`);
     const records = await response.json();
@@ -318,7 +314,7 @@ export function loadLocations (): ThunkAction {
 
 export function loadCurrentLocation (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const { deviceId } = getState().dashboard.filters;
+    const { deviceId } = getState().dashboard;
     const params = qs.stringify({
       device_id: deviceId,
     });
@@ -352,12 +348,24 @@ export function setDeviceAndReload (value: string) {
 // Action Handlers
 // ------------------------------------
 
-const setDevicesActionHandler = function (state: DashboardState, action: SetDevicesAction): DashboardState {
+const setDevicesHandler = function (state: DashboardState, action: SetDevicesAction): DashboardState {
   return cloneState(state, { devices: action.devices });
 };
 
-const setLocationsActionHandler = function (state: DashboardState, action: SetLocationsAction): DashboardState {
-  return cloneState(state, { locations: action.locations });
+const areLocationsEqual = function (existingLocations: Location[], newLocations: Location[]) {
+  const firstExistingLocation = existingLocations[0];
+  const firstNewLocation = newLocations[0];
+  const lastExistingLocation = existingLocations[existingLocations.length - 1];
+  const lastNewLocation = newLocations[newLocations.length - 1];
+  return _.isEqual([firstExistingLocation, lastExistingLocation], [firstNewLocation, lastNewLocation]);
+};
+
+const setLocationsHandler = function (state: DashboardState, action: SetLocationsAction): DashboardState {
+  if (areLocationsEqual(state.locations, action.locations)) {
+    return state;
+  } else {
+    return cloneState(state, { locations: action.locations });
+  }
 };
 
 const autoselectOrInvalidateSelectedDeviceHandler = function (
@@ -365,15 +373,15 @@ const autoselectOrInvalidateSelectedDeviceHandler = function (
   action: AutoselectOrInvalidateSelectedDeviceAction
 ): DashboardState {
   if (state.devices.length === 0) {
-    return cloneState(state, { filters: cloneState(state.filters, { deviceId: null }) });
+    return cloneState(state, { deviceId: null });
   }
   if (state.devices.length === 1) {
-    return cloneState(state, { filters: cloneState(state.filters, { deviceId: state.devices[0].id }) });
+    return cloneState(state, { deviceId: state.devices[0].id });
   }
   if (state.devices.length > 1) {
-    const existingDevice = _.find(state.devices, { id: state.filters.deviceId });
+    const existingDevice = _.find(state.devices, { id: state.deviceId });
     if (!existingDevice) {
-      return cloneState(state, { filters: cloneState(state.filters, { deviceId: state.devices[0].id }) });
+      return cloneState(state, { deviceId: state.devices[0].id });
     } else {
       return state;
     }
@@ -424,13 +432,13 @@ const setCurrentLocationHandler = function (state: DashboardState, action: SetCu
   return cloneState(state, { currentLocation: action.location });
 };
 const setStartDateHandler = function (state: DashboardState, action: SetStartDateAction): DashboardState {
-  return cloneState(state, { filters: cloneState(state.filters, { startDate: action.value }) });
+  return cloneState(state, { startDate: action.value });
 };
 const setEndDateHandler = function (state: DashboardState, action: SetEndDateAction): DashboardState {
-  return cloneState(state, { filters: cloneState(state.filters, { endDate: action.value }) });
+  return cloneState(state, { endDate: action.value });
 };
 const setDeviceHandler = function (state: DashboardState, action: SetDeviceAction): DashboardState {
-  return cloneState(state, { filters: cloneState(state.filters, { deviceId: action.deviceId }) });
+  return cloneState(state, { deviceId: action.deviceId });
 };
 const setSelectedLocationHandler = function (state: DashboardState, action: SetSelectedLocationAction): DashboardState {
   return cloneState(state, { selectedLocationId: action.locationId });
@@ -455,11 +463,9 @@ const getEndDate = function () {
 
 const initialState: DashboardState = {
   devices: [],
-  filters: {
-    deviceId: null,
-    startDate: getStartDate(),
-    endDate: getEndDate(),
-  },
+  deviceId: null,
+  startDate: getStartDate(),
+  endDate: getEndDate(),
   hasData: false,
   isLoading: false,
   locations: [],
@@ -468,7 +474,6 @@ const initialState: DashboardState = {
   showPolyline: true,
   selectedLocationId: null,
   currentLocation: null,
-  deviceId: null,
   isWatching: false,
 };
 
@@ -478,9 +483,9 @@ const initialState: DashboardState = {
 export default function spotsReducer (state: DashboardState = initialState, action: Action): DashboardState {
   switch (action.type) {
     case 'dashboard/SET_DEVICES':
-      return setDevicesActionHandler(state, action);
+      return setDevicesHandler(state, action);
     case 'dashboard/SET_LOCATIONS':
-      return setLocationsActionHandler(state, action);
+      return setLocationsHandler(state, action);
     case 'dashboard/SET_IS_LOADING':
       return setIsLoadingHandler(state, action);
     case 'dashboard/SET_HAS_DATA':

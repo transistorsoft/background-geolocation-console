@@ -72,11 +72,16 @@ class MapView extends Component {
 
   fitBounds = (payload: FitBoundsPayload) => {
     if (this.gmap) {
-      const bounds = new google.maps.LatLngBounds();
-      this.props.locations.forEach(function (location: Location) {
-        bounds.extend(new google.maps.LatLng(location.latitude, location.longitude));
-      });
-      this.gmap.fitBounds(bounds);
+      if (this.props.locations.length > 1) {
+        const bounds = new google.maps.LatLngBounds();
+        this.props.locations.forEach(function (location: Location) {
+          bounds.extend(new google.maps.LatLng(location.latitude, location.longitude));
+        });
+        this.gmap.fitBounds(bounds);
+      } else if (this.props.locations.length === 1) {
+        const location = this.props.locations[0];
+        this.gmap.setCenter(new google.maps.LatLng(location.latitude, location.longitude));
+      }
     } else {
       setTimeout(() => this.fitBounds(payload), 1000);
     }

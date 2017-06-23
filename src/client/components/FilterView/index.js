@@ -120,9 +120,9 @@ const FilterView = function ({
 
 const mapStateToProps = function (state: GlobalState): StateProps {
   return {
-    deviceId: state.dashboard.filters.deviceId,
-    startDate: state.dashboard.filters.startDate,
-    endDate: state.dashboard.filters.endDate,
+    deviceId: state.dashboard.deviceId,
+    startDate: state.dashboard.startDate,
+    endDate: state.dashboard.endDate,
     devices: state.dashboard.devices.map((device: Device) => ({ value: device.id, label: device.name })),
     hasData: state.dashboard.hasData,
     isWatching: state.dashboard.isWatching,
