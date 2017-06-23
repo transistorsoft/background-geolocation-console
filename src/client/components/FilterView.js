@@ -111,7 +111,7 @@ class FilterView extends Component {
                     onChange={this.onChange.bind(this, 'endDate')}
                     value={this.state.endDate} />
                 </div>
-                <Button icon="refresh" label="Refrescar" style={{width:'100%'}} raised primary onMouseUp={this.onClickReload.bind(this)} className={Styles.cabeceraTabla}/>
+                <Button icon="refresh" label="Refrescar" raised primary onMouseUp={this.onClickReload.bind(this)} className={Styles.botones}/>
                 
                 
                                 
