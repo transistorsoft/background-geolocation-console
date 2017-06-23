@@ -1,5 +1,6 @@
 // @flow
 import cloneState from '~/utils/cloneState';
+import _ from 'lodash';
 export type StoredSettings = {|
   startDate?: Date,
   endDate?: Date,
@@ -13,10 +14,13 @@ export function getSettings (): StoredSettings {
   const encodedSettings = localStorage.getItem('settings');
   if (encodedSettings) {
     const parsed = JSON.parse(encodedSettings);
-    return cloneState(parsed, {
-      startDate: parsed.startDate ? new Date(parsed.startDate) : undefined,
-      endDate: parsed.endDate ? new Date(parsed.endDate) : undefined,
-    });
+    return _.omitBy(
+      cloneState(parsed, {
+        startDate: parsed.startDate ? new Date(parsed.startDate) : undefined,
+        endDate: parsed.endDate ? new Date(parsed.endDate) : undefined,
+      }),
+      _.isUndefined
+    );
   } else {
     return JSON.parse('{}');
   }
@@ -24,9 +28,12 @@ export function getSettings (): StoredSettings {
 export function setSettings (settings: StoredSettings) {
   const existingSettings = getSettings();
   const newSettings = cloneState(existingSettings, settings);
-  const stringifiedNewSettings = Object.assign({}, newSettings, {
-    startDate: newSettings.startDate ? newSettings.startDate.toISOString() : undefined,
-    endDate: newSettings.endDate ? newSettings.endDate.toISOString() : undefined,
-  });
+  const stringifiedNewSettings = _.omitBy(
+    Object.assign({}, newSettings, {
+      startDate: newSettings.startDate ? newSettings.startDate.toISOString() : undefined,
+      endDate: newSettings.endDate ? newSettings.endDate.toISOString() : undefined,
+    }),
+    _.isUndefined
+  );
   localStorage.setItem('settings', JSON.stringify(stringifiedNewSettings));
 }
