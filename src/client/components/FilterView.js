@@ -73,7 +73,7 @@ class FilterView extends Component {
           <div className={Styles.content}>
             <Card style={{marginBottom:'10px'}}>
               <div className={Styles.content}>
-                <h3>Locations</h3>
+                <h3>Ubicaciones</h3>
                 <Dropdown
                   auto
                   label="Dispositivo"
@@ -113,16 +113,18 @@ class FilterView extends Component {
                 </div>
                 <Button icon="refresh" label="Refrescar" style={{width:'100%'}} raised primary onMouseUp={this.onClickReload.bind(this)}/>
                 
+                <!--
                 <div style={{display:"flex", flexDirection:"row", marginTop: 10}}>
                   <label style={{flex:1}}>Watch mode</label>
                   <Switch checked={this.state.watchMode} onChange={this.onToggleWatchMode.bind(this)} style={{flex:1}}/>                
                 </div>
+                -->
 
               </div>
             </Card>
             <Card>
               <div className={Styles.content}>
-                <h3>Map</h3>
+                <h3>Mapa</h3>
                 <Checkbox
                   checked={this.state.showMarkers}
                   label="Mostrar Marcadores"
