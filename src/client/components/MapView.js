@@ -73,7 +73,7 @@ class MapView extends Component {
     this.currentLocationMarker = new google.maps.Marker({
       zIndex: 10,
       map: this.gmap,
-      title: 'Current Location',
+      title: 'Ubicación actual',
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
         scale: 12,
