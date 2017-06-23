@@ -8,9 +8,9 @@ import { Table, TableHead, TableRow, TableCell } from 'react-toolbox';
 
 import Styles from '../assets/styles/app.css';
 
-import { type Location, type DashboardState, setSelectedLocation } from '~/reducer/dashboard';
+import { type Location, setSelectedLocation } from '~/reducer/dashboard';
 import { type GlobalState } from '~/reducer/state';
-
+import { createSelector } from 'reselect';
 type StateProps = {|
   locations: Object[],
   selectedLocationId: string,
@@ -45,60 +45,80 @@ const getRowData = (location: Location) => {
   };
 };
 
-const ListView = ({ locations, selectedLocationId, onRowSelect }: Props) => {
-  const selectRow = (indicies: number[]) => {
-    onRowSelect(locations[indicies[0]].uuid);
+class ListView extends React.PureComponent {
+  props: Props;
+  selectRow = (indicies: number[]) => {
+    this.props.onRowSelect(this.props.locations[indicies[0]].uuid);
   };
-  return (
-    <Table onRowSelect={selectRow}>
-      <TableHead>
-        <TableCell>UUID</TableCell>
-        <TableCell numeric>RECORDED AT</TableCell>
-        <TableCell numeric>COORDINATE</TableCell>
-        <TableCell numeric>ACCURACY</TableCell>
-        <TableCell numeric>SPEED</TableCell>
-        <TableCell numeric>ODOMETER</TableCell>
-        <TableCell numeric>EVENT</TableCell>
-        <TableCell numeric>IS MOVING</TableCell>
-        <TableCell numeric>ACTIVITY</TableCell>
-        <TableCell numeric>BATTERY</TableCell>
-      </TableHead>
-      {locations.map((item: Object, idx: number) =>
-        <TableRow key={idx} selected={item.uuid === selectedLocationId} onSelect={selectRow}>
-          <TableCell>{item.uuid}</TableCell>
-          <TableCell numeric>{item.recorded_at}</TableCell>
-          <TableCell numeric>{item.coordinate}</TableCell>
-          <TableCell numeric>{item.accuracy}</TableCell>
-          <TableCell numeric>{item.speed}</TableCell>
-          <TableCell numeric>{item.odometer}</TableCell>
-          <TableCell numeric><strong>{item.event}</strong></TableCell>
-          <TableCell numeric>{item.is_moving}</TableCell>
-          <TableCell numeric>{item.activity}</TableCell>
-          <TableCell numeric className={item.battery_is_charging ? Styles.tableCellGreen : Styles.tableCellRed}>
-            {item.battery_level * 100}%
-          </TableCell>
-        </TableRow>
-      )}
-    </Table>
-  );
-};
+  render () {
+    const { locations, selectedLocationId } = this.props;
+    return (
+      <Table onRowSelect={this.selectRow}>
+        <TableHead>
+          <TableCell>UUID</TableCell>
+          <TableCell numeric>RECORDED AT</TableCell>
+          <TableCell numeric>COORDINATE</TableCell>
+          <TableCell numeric>ACCURACY</TableCell>
+          <TableCell numeric>SPEED</TableCell>
+          <TableCell numeric>ODOMETER</TableCell>
+          <TableCell numeric>EVENT</TableCell>
+          <TableCell numeric>IS MOVING</TableCell>
+          <TableCell numeric>ACTIVITY</TableCell>
+          <TableCell numeric>BATTERY</TableCell>
+        </TableHead>
+        {locations.map((item: Object, idx: number) =>
+          <TableRow key={idx} selected={item.uuid === selectedLocationId} onSelect={this.selectRow}>
+            <TableCell>{item.uuid}</TableCell>
+            <TableCell numeric>{item.recorded_at}</TableCell>
+            <TableCell numeric>{item.coordinate}</TableCell>
+            <TableCell numeric>{item.accuracy}</TableCell>
+            <TableCell numeric>{item.speed}</TableCell>
+            <TableCell numeric>{item.odometer}</TableCell>
+            <TableCell numeric><strong>{item.event}</strong></TableCell>
+            <TableCell numeric>{item.is_moving}</TableCell>
+            <TableCell numeric>{item.activity}</TableCell>
+            <TableCell numeric className={item.battery_is_charging ? Styles.tableCellGreen : Styles.tableCellRed}>
+              {item.battery_level * 100}%
+            </TableCell>
+          </TableRow>
+        )}
+      </Table>
+    );
+  }
+}
 
-const getLocationsSource = function (dashboard: DashboardState) {
-  if (dashboard.isWatching) {
-    return dashboard.currentLocation ? [dashboard.currentLocation] : [];
+type LocationArgs = {
+  isWatching: boolean,
+  currentLocation: ?Location,
+  locations: Location[],
+};
+const getLocationsSource = function ({ locations, currentLocation, isWatching }: LocationArgs) {
+  if (isWatching) {
+    return currentLocation ? [currentLocation] : [];
   } else {
-    return dashboard.locations;
+    return locations;
   }
 };
 
-const getLocations = function (dashboard: DashboardState) {
-  const source = getLocationsSource(dashboard);
+const getLocations = function ({ locations, currentLocation, isWatching }: LocationArgs) {
+  const source = getLocationsSource({ locations, currentLocation, isWatching });
   return source.map(getRowData);
 };
 
+const getLocationsSelector = createSelector(
+  [
+    (state: GlobalState) => ({
+      locations: state.dashboard.locations,
+      currentLocation: state.dashboard.currentLocation,
+      isWatching: state.dashboard.isWatching,
+    }),
+  ],
+  ({ locations, currentLocation, isWatching }: LocationArgs) => getLocations({ locations, currentLocation, isWatching })
+);
+
 const mapStateToProps = function (state: GlobalState): StateProps {
   return {
-    locations: getLocations(state.dashboard),
+    locations: getLocationsSelector(state),
     selectedLocationId: state.dashboard.selectedLocationId,
   };
 };

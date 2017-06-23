@@ -4,12 +4,13 @@ import { type GlobalState } from '~/reducer/state';
 import cloneState from '~/utils/cloneState';
 import _ from 'lodash';
 import qs from 'querystring';
+import { fitBoundsBus } from '~/globalBus';
 
 // Types
 export type Filters = {
   deviceId: ?string,
-  startDate: string,
-  endDate: string,
+  startDate: Date,
+  endDate: Date,
 };
 
 export type Device = {
@@ -30,9 +31,17 @@ export type Location = {
   speed: number,
   battery_level: number,
   battery_is_charging: boolean,
+  heading: number,
   geofence: {
     action: string,
     identifier: string,
+    extras?: {
+      radius: number,
+      center?: {
+        latitude: number,
+        longitude: number,
+      },
+    },
   },
 };
 
@@ -73,12 +82,12 @@ type SetHasDataAction = {
 
 type SetStartDateAction = {
   type: 'dashboard/SET_START_DATE',
-  value: string,
+  value: Date,
 };
 
 type SetEndDateAction = {
   type: 'dashboard/SET_END_DATE',
-  value: string,
+  value: Date,
 };
 
 type AutoselectOrInvalidateSelectedDeviceAction = {
@@ -219,14 +228,14 @@ export function setCurrentLocation (location: ?Location): SetCurrentLocationActi
   };
 }
 
-export function setStartDate (value: string): SetStartDateAction {
+export function setStartDate (value: Date): SetStartDateAction {
   return {
     type: 'dashboard/SET_START_DATE',
     value: value,
   };
 }
 
-export function setEndDate (value: string): SetEndDateAction {
+export function setEndDate (value: Date): SetEndDateAction {
   return {
     type: 'dashboard/SET_END_DATE',
     value: value,
@@ -280,6 +289,7 @@ export function reload (): ThunkAction {
     await dispatch(loadCurrentLocation());
     await dispatch(invalidateSelectedLocation());
     await dispatch(setIsLoading(false));
+    fitBoundsBus.emit({});
   };
 }
 
@@ -297,8 +307,8 @@ export function loadLocations (): ThunkAction {
     const filters = getState().dashboard.filters;
     const params = qs.stringify({
       device_id: filters.deviceId,
-      start_date: filters.startDate,
-      end_date: filters.endDate,
+      start_date: filters.startDate.toISOString(),
+      end_date: filters.endDate.toISOString(),
     });
     const response = await fetch(`${API_URL}/locations?${params}`);
     const records = await response.json();
@@ -318,20 +328,13 @@ export function loadCurrentLocation (): ThunkAction {
   };
 }
 
-export function setIsWatchingAndReload (value: boolean) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    await dispatch(setIsWatching(value));
-    await dispatch(reload());
-  };
-}
-
-export function setStartDateAndReload (value: string) {
+export function setStartDateAndReload (value: Date) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setStartDate(value));
     await dispatch(reload());
   };
 }
-export function setEndDateAndReload (value: string) {
+export function setEndDateAndReload (value: Date) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setEndDate(value));
     await dispatch(reload());
@@ -412,7 +415,7 @@ const setShowPolylineHandler = function (state: DashboardState, action: SetShowP
   return cloneState(state, { showPolyline: action.value });
 };
 const setShowGeofenceHitsHandler = function (state: DashboardState, action: SetShowGeofenceHitsAction): DashboardState {
-  return cloneState(state, { showPolyline: action.value });
+  return cloneState(state, { showGeofenceHits: action.value });
 };
 const setIsWatchingHandler = function (state: DashboardState, action: SetIsWatchingAction): DashboardState {
   return cloneState(state, { isWatching: action.value });
@@ -440,14 +443,14 @@ const getStartDate = function () {
   var startDate = new Date();
   startDate.setHours(0);
   startDate.setMinutes(0);
-  return startDate.toISOString();
+  return startDate;
 };
 
 const getEndDate = function () {
   var endDate = new Date();
   endDate.setHours(23);
   endDate.setMinutes(59);
-  return endDate.toISOString();
+  return endDate;
 };
 
 const initialState: DashboardState = {

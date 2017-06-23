@@ -1,6 +1,8 @@
 // @flow
 
 import React, { Component } from 'react';
+import _ from 'lodash';
+import { createSelector } from 'reselect';
 
 import { connect } from 'react-redux';
 import { type Location, setSelectedLocation } from '~/reducer/dashboard';
@@ -10,6 +12,7 @@ import GoogleMap from 'google-map-react';
 
 import Styles from '../assets/styles/app.css';
 import { COLORS } from '../constants';
+import { fitBoundsBus, type FitBoundsPayload } from '~/globalBus';
 
 const API_KEY = process.env.GMAP_API_KEY || 'AIzaSyA9j72oZA5SmsA8ugu57pqXwpxh9Sn4xuM';
 
@@ -21,7 +24,7 @@ type StateProps = {|
   isWatching: boolean,
   currentLocation: ?Location,
   locations: Location[],
-  selectedLocationId: ?string,
+  selectedLocation: ?Location,
 |};
 
 type DispatchProps = {|
@@ -33,10 +36,15 @@ type Props = {| ...StateProps, ...DispatchProps |};
 type State = {|
   center: {| lat: number, lng: number |},
   zoom: number,
+  needsMarkersRedraw: boolean,
+  needsShowMarkersUpdate: boolean,
+  needsShowPolylineUpdate: boolean,
+  needsShowGeofenceHitsUpdate: boolean,
 |};
 
 class MapView extends Component {
   props: Props;
+  previousLocations: Location[] = [];
   motionChangePolylines: any = [];
   selectedMarker: any = null;
   geofenceMarkers: any = {};
@@ -49,6 +57,29 @@ class MapView extends Component {
   state: State = {
     center: { lat: -25.363882, lng: 131.044922 },
     zoom: 18,
+    needsMarkersRedraw: true,
+    needsShowMarkersUpdate: true,
+    needsShowPolylineUpdate: true,
+    needsShowGeofenceHitsUpdate: true,
+  };
+
+  componentWillMount () {
+    fitBoundsBus.subscribe(this.fitBounds);
+  }
+  componentWillUnmount () {
+    fitBoundsBus.unsubscribe(this.fitBounds);
+  }
+
+  fitBounds = (payload: FitBoundsPayload) => {
+    if (this.gmap) {
+      const bounds = new google.maps.LatLngBounds();
+      this.props.locations.forEach(function (location: Location) {
+        bounds.extend(new google.maps.LatLng(location.latitude, location.longitude));
+      });
+      this.gmap.fitBounds(bounds);
+    } else {
+      setTimeout(() => this.fitBounds(payload), 1000);
+    }
   };
 
   onMapLoaded = (event: any) => {
@@ -104,12 +135,13 @@ class MapView extends Component {
     this.renderMarkers();
   };
 
-  onSelectLocation (location: Location) {
+  updateSelectedLocation () {
+    const location = this.props.selectedLocation;
     if (this.selectedMarker) {
       this.selectedMarker.setIcon(this.buildLocationIcon(this.selectedMarker.location));
       this.selectedMarker.setZIndex(1);
     }
-    if (location === null) {
+    if (!location) {
       this.selectedMarker = null;
       return;
     }
@@ -136,47 +168,76 @@ class MapView extends Component {
   }
 
   onMarkerClick () {
+    console.info(this);
     // this.props.onSelectLocation(this.location.id);
   }
 
   renderMarkers () {
+    console.time('renderMarkers');
     const { locations, isWatching, currentLocation, showPolyline, showMarkers, showGeofenceHits } = this.props;
-    this.clearMarkers();
-    const length = locations.length;
+    // if locations have not changed - do not clear markers
+    // just update current location, selected location and handle visibility of markers
 
-    this.polyline.setMap(showPolyline ? this.gmap : null);
+    if (this.state.needsMarkersRedraw) {
+      this.clearMarkers();
+      const length = locations.length;
 
-    let motionChangePosition = null;
-    let searchingForMotionChange = false;
+      this.polyline.setMap(showPolyline ? this.gmap : null);
 
-    // Iterate in reverse order to create polyline points from oldest->latest.
-    // We DO NOT want this.props.locations.reverse()!!!
-    for (var n = length - 1; n > 0; n--) {
-      let location = locations[n];
-      let latLng = new google.maps.LatLng(location.latitude, location.longitude);
-      if (location.geofence) {
-        this.buildGeofenceMarker(location, {
-          map: showGeofenceHits ? this.gmap : null,
-        });
-      } else {
-        let marker = this.buildLocationMarker(location, {
-          map: showMarkers ? this.gmap : null,
-        });
-        this.markers.push(marker);
-      }
-      this.polyline.getPath().push(latLng);
+      let motionChangePosition = null;
+      let searchingForMotionChange = false;
 
-      if (location.event === 'motionchange') {
-        if (!location.is_moving) {
-          searchingForMotionChange = true;
-          motionChangePosition = latLng;
-        } else if (searchingForMotionChange) {
-          searchingForMotionChange = false;
-          this.motionChangePolylines.push(this.buildMotionChangePolyline(motionChangePosition, latLng));
+      // Iterate in reverse order to create polyline points from oldest->latest.
+      // We DO NOT want this.props.locations.reverse()!!!
+      for (var n = length - 1; n > 0; n--) {
+        let location = locations[n];
+        let latLng = new google.maps.LatLng(location.latitude, location.longitude);
+        if (location.geofence) {
+          this.buildGeofenceMarker(location, {
+            map: showGeofenceHits ? this.gmap : null,
+          });
+        } else {
+          let marker = this.buildLocationMarker(location, {
+            map: showMarkers ? this.gmap : null,
+          });
+          this.markers.push(marker);
+        }
+        this.polyline.getPath().push(latLng);
+
+        if (location.event === 'motionchange') {
+          if (!location.is_moving) {
+            searchingForMotionChange = true;
+            motionChangePosition = latLng;
+          } else if (searchingForMotionChange) {
+            searchingForMotionChange = false;
+            this.motionChangePolylines.push(this.buildMotionChangePolyline(motionChangePosition, latLng));
+          }
         }
       }
+    } else {
+      // keep existing markers - just update their visibility
+      console.time('renderMarkers: Visibility');
+      if (this.state.needsShowMarkersUpdate) {
+        this.markers.forEach((marker: any) => {
+          marker.setMap(showMarkers ? this.gmap : null);
+        });
+      }
+      if (this.state.needsShowPolylineUpdate) {
+        this.polyline.setMap(showPolyline ? this.gmap : null);
+        this.motionChangePolylines.forEach((polyline: any) => {
+          polyline.setMap(showPolyline ? this.gmap : null);
+        });
+      }
+      if (this.state.needsShowGeofenceHitsUpdate) {
+        this.geofenceHitMarkers.forEach((marker: any) => {
+          marker.setMap(showGeofenceHits ? this.gmap : null);
+        });
+      }
+      console.timeEnd('renderMarkers: Visibility');
     }
+    // handle current location
     if (isWatching && currentLocation) {
+      console.time('renderMarkers: Current Location');
       let latLng = new google.maps.LatLng(currentLocation.latitude, currentLocation.longitude);
       this.gmap.setCenter(latLng);
       this.currentLocationMarker.setMap(this.gmap);
@@ -184,10 +245,16 @@ class MapView extends Component {
       this.currentLocationMarker.setPosition(latLng);
       this.locationAccuracyCircle.setCenter(latLng);
       this.locationAccuracyCircle.setRadius(currentLocation.accuracy);
+      console.timeEnd('renderMarkers: Current Location');
     } else {
       this.currentLocationMarker.setMap(null);
       this.locationAccuracyCircle.setMap(null);
     }
+    // draw selectedMarker
+    console.time('renderMarkers: Selected Location');
+    this.updateSelectedLocation();
+    console.timeEnd('renderMarkers: Selected Location');
+    console.timeEnd('renderMarkers');
   }
 
   buildMotionChangePolyline (stationaryPosition: any, movingPosition: any) {
@@ -217,7 +284,7 @@ class MapView extends Component {
     });
   }
 
-  buildGeofenceMarker (location: any, options: any) {
+  buildGeofenceMarker (location: Location, options: any) {
     let geofence = location.geofence;
     let circle = this.geofenceMarkers[geofence.identifier];
     if (!circle) {
@@ -294,7 +361,8 @@ class MapView extends Component {
   }
 
   // Build a bread-crumb location marker.
-  buildLocationMarker (location: any, options: any) {
+  buildLocationMarker (location: Location, options: any) {
+    const { onSelectLocation } = this.props;
     options = options || {};
     let zIndex = options.zIndex || 1;
     let marker = new google.maps.Marker({
@@ -305,11 +373,11 @@ class MapView extends Component {
       position: new google.maps.LatLng(location.latitude, location.longitude),
     });
 
-    marker.addListener('click', this.onMarkerClick);
+    marker.addListener('click', () => onSelectLocation(location.uuid));
     return marker;
   }
 
-  buildLocationIcon (location: any, options: any) {
+  buildLocationIcon (location: Location, options: any) {
     options = options || {};
     let anchor;
     let fillColor = COLORS.polyline_color;
@@ -385,6 +453,15 @@ class MapView extends Component {
     this.motionChangePolylines = [];
   }
 
+  componentWillReceiveProps (nextProps: Props) {
+    this.setState({
+      needsMarkersRedraw: nextProps.locations !== this.props.locations,
+      needsShowMarkersUpdate: nextProps.showMarkers !== this.props.showMarkers,
+      needsShowPolylineUpdate: nextProps.showPolyline !== this.props.showPolyline,
+      needsShowGeofenceHitsUpdate: nextProps.showGeofenceHits !== this.props.showGeofenceHits,
+    });
+  }
+
   render () {
     if (this.gmap) {
       this.renderMarkers();
@@ -407,6 +484,20 @@ class MapView extends Component {
   }
 }
 
+type LocationArgs = {
+  locations: Location[],
+  selectedLocationId: ?string,
+};
+const selectedLocationSelector = createSelector(
+  [
+    (state: GlobalState) => ({
+      locations: state.dashboard.locations,
+      selectedLocationId: state.dashboard.selectedLocationId,
+    }),
+  ],
+  ({ locations, selectedLocationId }: LocationArgs) => _.find(locations, { uuid: selectedLocationId })
+);
+
 const mapStateToProps = function (state: GlobalState) {
   const { dashboard } = state;
   return {
@@ -416,7 +507,7 @@ const mapStateToProps = function (state: GlobalState) {
     showGeofenceHits: dashboard.showGeofenceHits,
     isWatching: dashboard.isWatching,
     currentLocation: dashboard.currentLocation,
-    selectedLocationId: dashboard.selectedLocationId,
+    selectedLocation: selectedLocationSelector(state),
   };
 };
 

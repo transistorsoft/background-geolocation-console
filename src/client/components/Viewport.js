@@ -9,6 +9,7 @@ import FilterView from './FilterView';
 import LocationView from './LocationView';
 import MapView from './MapView';
 import ListView from './ListView';
+import LoadingIndicator from './LoadingIndicator';
 import { connect } from 'react-redux';
 import { type GlobalState } from '~/reducer/state';
 
@@ -36,6 +37,7 @@ class Viewport extends Component {
     const { isLocationSelected } = this.props;
     return (
       <Layout className={Styles.viewport}>
+        <LoadingIndicator />
         <NavDrawer active={true} pinned={true} className={Styles.navDrawer}>
           <FilterView />
         </NavDrawer>

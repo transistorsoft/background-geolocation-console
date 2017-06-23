@@ -1,5 +1,6 @@
 // @flow
 import React from 'react';
+import { createSelector } from 'reselect';
 
 import { AppBar, Card } from 'react-toolbox';
 
@@ -31,10 +32,28 @@ const LocationView = ({ location, onClose }: Props) =>
     </div>
   </div>;
 
+type LocationArgs = {
+  isWatching: boolean,
+  currentLocation: ?Location,
+  locations: Location[],
+  selectedLocationId: ?string,
+};
+
+const getLocation = createSelector(
+  [
+    (state: GlobalState) => ({
+      isWatching: state.dashboard.isWatching,
+      currentLocation: state.dashboard.currentLocation,
+      locations: state.dashboard.locations,
+      selectedLocationId: state.dashboard.selectedLocationId,
+    }),
+  ],
+  ({ isWatching, currentLocation, locations, selectedLocationId }: LocationArgs) =>
+    isWatching ? currentLocation : _.find(locations, { uuid: selectedLocationId })
+);
+
 const mapStateToProps = (state: GlobalState): StateProps => ({
-  location: state.dashboard.isWatching
-    ? state.dashboard.currentLocation
-    : _.find(state.dashboard.locations, { uuid: state.dashboard.selectedLocationId }),
+  location: getLocation(state),
 });
 const mapDispatchToProps: DispatchProps = {
   onClose: unselectLocation,
