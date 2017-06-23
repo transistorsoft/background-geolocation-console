@@ -116,7 +116,7 @@ class ListView extends Component {
           <TableCell numeric>VELOCIDAD</TableCell>
           <TableCell numeric>ODOMETRO</TableCell>
           <TableCell numeric>EVENTO</TableCell>
-          <TableCell numeric>ESTA EN MOVIMIENTO</TableCell>
+          <TableCell numeric>EN MOVIMIENTO</TableCell>
           <TableCell numeric>ACTIVIDAD</TableCell>
           <TableCell numeric>BATERIA</TableCell>
         </TableHead>
