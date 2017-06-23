@@ -45,16 +45,24 @@ class Viewport extends Component {
         <Sidebar pinned={isLocationSelected} width={6}>
           <LocationView />
         </Sidebar>
-        <Panel className={Styles.workspace} bodyScroll={false} scrollY={false}>
+        <Panel className={Styles.workspace} bodyScroll={false}>
           <HeaderView />
           <Tabs index={activeTab} hideMode='display' onChange={this.handleTabChange} inverse>
             <Tab label='Map'>
               <MapView />
             </Tab>
             <Tab label='Data'>
-              <div style={{ position: 'relative' }}>
+              <div
+                style={{
+                  position: 'absolute',
+                  flex: 1,
+                  overflow: 'auto',
+                  height: 'calc(100% - 160px)',
+                  width: 'calc(100% - 20px)',
+                }}
+              >
                 <WatchModeWarning />
-                <ListView />
+                <ListView style={{ minWidth: 1400 }} />
               </div>
             </Tab>
           </Tabs>
