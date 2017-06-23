@@ -67,12 +67,12 @@ export default class Viewport extends Component {
             <LocationView location={this.state.location} onClose={this.onCloseLocationView.bind(this)} />
           </Sidebar>
           <Panel className={Styles.workspace} bodyScroll={false} scrollY={false}>
-            <HeaderView className={Styles.cabeceraTabla}/>
-            <Tabs index={this.state.activeTab} hideMode="display" onChange={this.handleTabChange.bind(this)} inverse>
-              <Tab label="Mapa">
+            <HeaderView />
+            <Tabs index={this.state.activeTab} hideMode="display" onChange={this.handleTabChange.bind(this)} inverse >
+              <Tab label="Mapa" className={Styles.cabeceraTabla}>
                 <MapView />
               </Tab>
-              <Tab label="Data">
+              <Tab label="Data" className={Styles.cabeceraTabla}>
                 <ListView selected={this.state.location} />
               </Tab>
             </Tabs>
