@@ -19,6 +19,9 @@
   top: 0;
   bottom: 0;
   right:0;
+  background-color: #2b4383;
+  
+
 }
 .map {
   flex: 1;
