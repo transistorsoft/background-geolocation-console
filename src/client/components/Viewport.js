@@ -69,7 +69,7 @@ export default class Viewport extends Component {
           <Panel className={Styles.workspace} bodyScroll={false} scrollY={false}>
             <HeaderView />
             <Tabs index={this.state.activeTab} hideMode="display" onChange={this.handleTabChange.bind(this)} inverse>
-              <Tab label="Map">
+              <Tab label="Mapa">
                 <MapView />
               </Tab>
               <Tab label="Data">
