@@ -5,6 +5,7 @@ import cloneState from '~/utils/cloneState';
 import _ from 'lodash';
 import qs from 'querystring';
 import { fitBoundsBus } from '~/globalBus';
+import { setSettings, getSettings, type StoredSettings } from '~/storage';
 
 // Types
 export type Device = {
@@ -124,6 +125,11 @@ type SetSelectedLocationAction = {
   type: 'dashboard/SET_SELECTED_LOCATION',
   locationId: ?string,
 };
+
+type ApplyExistingSettinsAction = {
+  type: 'dashboard/APPLY_EXISTING_SETTINGS',
+  settings: StoredSettings,
+};
 // Combining Actions
 
 type Action =
@@ -141,7 +147,8 @@ type Action =
   | SetStartDateAction
   | SetEndDateAction
   | SetDeviceAction
-  | SetSelectedLocationAction;
+  | SetSelectedLocationAction
+  | ApplyExistingSettinsAction;
 
 type GetState = () => GlobalState;
 type Dispatch = (action: Action | ThunkAction) => Promise<void>; // eslint-disable-line no-use-before-define
@@ -259,6 +266,13 @@ export function unselectLocation (): SetSelectedLocationAction {
   };
 }
 
+export function applyExistingSettings (settings: StoredSettings): ApplyExistingSettinsAction {
+  return {
+    type: 'dashboard/APPLY_EXISTING_SETTINGS',
+    settings: settings,
+  };
+}
+
 // ------------------------------------
 // Thunk Actions
 // ------------------------------------
@@ -268,6 +282,8 @@ export function loadInitialData (): ThunkAction {
       console.error('extra call after everything is set up!');
       return;
     }
+    const existingSettings = getSettings();
+    await dispatch(applyExistingSettings(existingSettings));
     await dispatch(setHasData(false));
     await dispatch(reload());
     await dispatch(setHasData(true));
@@ -324,26 +340,56 @@ export function loadCurrentLocation (): ThunkAction {
   };
 }
 
-export function setStartDateAndReload (value: Date) {
+export function changeStartDate (value: Date) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setStartDate(value));
+    setSettings({ startDate: value });
     await dispatch(reload());
   };
 }
-export function setEndDateAndReload (value: Date) {
+export function changeEndDate (value: Date) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setEndDate(value));
+    setSettings({ endDate: value });
     await dispatch(reload());
   };
 }
 
-export function setDeviceAndReload (value: string) {
+export function changeDeviceId (value: string) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setDevice(value));
+    setSettings({ deviceId: value });
     await dispatch(reload());
   };
 }
 
+export function changeIsWatching (value: boolean) {
+  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+    await dispatch(setIsWatching(value));
+    setSettings({ isWatching: value });
+  };
+}
+
+export function changeShowMarkers (value: boolean) {
+  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+    await dispatch(setShowMarkers(value));
+    setSettings({ showMarkers: value });
+  };
+}
+
+export function changeShowPolyline (value: boolean) {
+  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+    await dispatch(setShowPolyline(value));
+    setSettings({ showPolyline: value });
+  };
+}
+
+export function changeShowGeofenceHits (value: boolean) {
+  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+    await dispatch(setShowGeofenceHits(value));
+    setSettings({ showGeofenceHits: value });
+  };
+}
 // ------------------------------------
 // Action Handlers
 // ------------------------------------
@@ -443,6 +489,12 @@ const setDeviceHandler = function (state: DashboardState, action: SetDeviceActio
 const setSelectedLocationHandler = function (state: DashboardState, action: SetSelectedLocationAction): DashboardState {
   return cloneState(state, { selectedLocationId: action.locationId });
 };
+const applyExistingSettingsHandler = function (
+  state: DashboardState,
+  action: ApplyExistingSettinsAction
+): DashboardState {
+  return cloneState(state, action.settings);
+};
 
 // ------------------------------------
 // Initial State
@@ -512,6 +564,8 @@ export default function spotsReducer (state: DashboardState = initialState, acti
       return setDeviceHandler(state, action);
     case 'dashboard/SET_SELECTED_LOCATION':
       return setSelectedLocationHandler(state, action);
+    case 'dashboard/APPLY_EXISTING_SETTINGS':
+      return applyExistingSettingsHandler(state, action);
     default:
       (action: empty); // eslint-disable-line no-unused-expressions
       return state;

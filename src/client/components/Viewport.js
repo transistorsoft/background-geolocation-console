@@ -10,6 +10,7 @@ import LocationView from './LocationView';
 import MapView from './MapView';
 import ListView from './ListView';
 import LoadingIndicator from './LoadingIndicator';
+import WatchModeWarning from './WatchModeWarning';
 import { connect } from 'react-redux';
 import { type GlobalState } from '~/reducer/state';
 
@@ -51,7 +52,10 @@ class Viewport extends Component {
               <MapView />
             </Tab>
             <Tab label='Data'>
-              <ListView />
+              <div style={{ position: 'relative' }}>
+                <WatchModeWarning />
+                <ListView />
+              </div>
             </Tab>
           </Tabs>
         </Panel>
