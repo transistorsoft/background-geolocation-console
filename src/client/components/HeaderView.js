@@ -20,9 +20,9 @@ export default class HeaderView extends Component {
 
   render() {
     return (
-      <AppBar title="Background Geolocation Console" leftIcon="menu">
+      <AppBar title="Consola de Verificador ONP" leftIcon="menu">
         <Navigation type='horizontal'>                
-          <Link href="http://transistorsoft.com" label=""><img className={Styles.logo} src="assets/images/transistor-logo.svg" /></Link>
+          <Link href="https://www.onp.gob.pe/" label=""><img className={Styles.logo} src="assets/images/LogoONP.png" /></Link>
         </Navigation>
       </AppBar>
     );

@@ -69,21 +69,21 @@ class FilterView extends Component {
 
     return (        
         <div className="filterView">
-          <AppBar title="Filter" rightIcon="refresh" onRightIconClick={this.onClickReload.bind(this)}></AppBar>
+          <AppBar title="Filtro" rightIcon="refresh" onRightIconClick={this.onClickReload.bind(this)}></AppBar>
           <div className={Styles.content}>
             <Card style={{marginBottom:'10px'}}>
               <div className={Styles.content}>
                 <h3>Locations</h3>
                 <Dropdown
                   auto
-                  label="Device"
+                  label="Dispositivo"
                   onChange={this.onChange.bind(this, 'deviceId')}
                   source={devices}
                   value={this.state.deviceId}
                 />
                 <div style={{display:"flex", flexDirection:"row"}}>
                   <DatePicker 
-                    label="Start date" 
+                    label="Fecha Inicial" 
                     sundayFirstDayOfWeek
                     autoOk 
                     style={{flex:1}} 
@@ -91,14 +91,14 @@ class FilterView extends Component {
                     value={this.state.startDate} 
                     inputFormat={this.formatDate.bind(this)} />
                   <TimePicker
-                    label='Time'
+                    label='Hora'
                     style={{flex:1}}
                     onChange={this.onChange.bind(this, 'startDate')}
                     value={this.state.startDate} />
                 </div>
                 <div style={{display:"flex", flexDirection:"row"}}>
                   <DatePicker 
-                    label="End date" 
+                    label="Fecha Fin" 
                     sundayFirstDayOfWeek 
                     autoOk
                     style={{flex:1}} 
@@ -106,12 +106,12 @@ class FilterView extends Component {
                     value={this.state.endDate} 
                     inputFormat={this.formatDate.bind(this)} />
                   <TimePicker
-                    label='Time'
+                    label='Hora'
                     style={{flex:1}}
                     onChange={this.onChange.bind(this, 'endDate')}
                     value={this.state.endDate} />
                 </div>
-                <Button icon="refresh" label="reload" style={{width:'100%'}} raised primary onMouseUp={this.onClickReload.bind(this)}/>
+                <Button icon="refresh" label="Refrescar" style={{width:'100%'}} raised primary onMouseUp={this.onClickReload.bind(this)}/>
                 
                 <div style={{display:"flex", flexDirection:"row", marginTop: 10}}>
                   <label style={{flex:1}}>Watch mode</label>
@@ -125,17 +125,17 @@ class FilterView extends Component {
                 <h3>Map</h3>
                 <Checkbox
                   checked={this.state.showMarkers}
-                  label="Show Markers"
+                  label="Mostrar Marcadores"
                   onChange={this.onChange.bind(this, 'showMarkers')}
                 />
                 <Checkbox
                   checked={this.state.showPolyline}
-                  label="Show Polyline"
+                  label="Mostrar Lineas"
                   onChange={this.onChange.bind(this, 'showPolyline')}
                 />
                 <Checkbox
                   checked={this.state.showGeofenceHits}
-                  label="Show Geofences"
+                  label="Mostrar Geocercas"
                   onChange={this.onChange.bind(this, 'showGeofenceHits')}
                 />
 

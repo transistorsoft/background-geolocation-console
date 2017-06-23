@@ -110,15 +110,15 @@ class ListView extends Component {
       <Table onRowSelect={this.handleRowSelect.bind(this)}>
         <TableHead>
           <TableCell>UUID</TableCell>
-          <TableCell numeric>RECORDED AT</TableCell>
-          <TableCell numeric>COORDINATE</TableCell>
-          <TableCell numeric>ACCURACY</TableCell>
-          <TableCell numeric>SPEED</TableCell>
-          <TableCell numeric>ODOMETER</TableCell>
-          <TableCell numeric>EVENT</TableCell>
-          <TableCell numeric>IS MOVING</TableCell>
-          <TableCell numeric>ACTIVITY</TableCell>
-          <TableCell numeric>BATTERY</TableCell>
+          <TableCell numeric>Registrado</TableCell>
+          <TableCell numeric>CORDENADAS</TableCell>
+          <TableCell numeric>PRECISION</TableCell>
+          <TableCell numeric>VELOCIDAD</TableCell>
+          <TableCell numeric>ODOMETRO</TableCell>
+          <TableCell numeric>EVENTO</TableCell>
+          <TableCell numeric>ESTA EN MOVIMIENTO</TableCell>
+          <TableCell numeric>ACTIVIDAD</TableCell>
+          <TableCell numeric>BATERIA</TableCell>
         </TableHead>
         {this.data.map((item, idx) => (
           <TableRow key={idx} selected={this.state.selected.indexOf(idx) !== -1} onSelect={this.handleRowSelect.bind(this)}>
