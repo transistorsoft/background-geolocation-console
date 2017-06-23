@@ -131,7 +131,7 @@ class ListView extends Component {
             <TableCell numeric><strong>{item.event}</strong></TableCell>
             <TableCell numeric>{item.is_moving}</TableCell>
             <TableCell numeric>{item.activity}</TableCell>
-            <TableCell numeric className={(item.battery_is_charging) ? Styles.tableCellGreen : Styles.tableCellRed}>{item.battery_level*100}%</TableCell>
+            <TableCell numeric className={(item.battery_level*100 > 50) ? Styles.tableCellGreen : Styles.tableCellRed}>{item.battery_level*100}%</TableCell>
           </TableRow>
         ))}
       </Table>
