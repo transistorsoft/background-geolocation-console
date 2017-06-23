@@ -36,10 +36,6 @@ type Props = {| ...StateProps, ...DispatchProps |};
 type State = {|
   center: {| lat: number, lng: number |},
   zoom: number,
-  needsMarkersRedraw: boolean,
-  needsShowMarkersUpdate: boolean,
-  needsShowPolylineUpdate: boolean,
-  needsShowGeofenceHitsUpdate: boolean,
 |};
 
 class MapView extends Component {
@@ -57,6 +53,8 @@ class MapView extends Component {
   state: State = {
     center: { lat: -25.363882, lng: 131.044922 },
     zoom: 18,
+  };
+  updateFlags = {
     needsMarkersRedraw: true,
     needsShowMarkersUpdate: true,
     needsShowPolylineUpdate: true,
@@ -183,7 +181,7 @@ class MapView extends Component {
     // if locations have not changed - do not clear markers
     // just update current location, selected location and handle visibility of markers
 
-    if (this.state.needsMarkersRedraw) {
+    if (this.updateFlags.needsMarkersRedraw) {
       this.clearMarkers();
       const length = locations.length;
       console.info('draw markers: ' + length);
@@ -223,18 +221,18 @@ class MapView extends Component {
     } else {
       // keep existing markers - just update their visibility
       console.time('renderMarkers: Visibility');
-      if (this.state.needsShowMarkersUpdate) {
+      if (this.updateFlags.needsShowMarkersUpdate) {
         this.markers.forEach((marker: any) => {
           marker.setMap(showMarkers ? this.gmap : null);
         });
       }
-      if (this.state.needsShowPolylineUpdate) {
+      if (this.updateFlags.needsShowPolylineUpdate) {
         this.polyline.setMap(showPolyline ? this.gmap : null);
         this.motionChangePolylines.forEach((polyline: any) => {
           polyline.setMap(showPolyline ? this.gmap : null);
         });
       }
-      if (this.state.needsShowGeofenceHitsUpdate) {
+      if (this.updateFlags.needsShowGeofenceHitsUpdate) {
         this.geofenceHitMarkers.forEach((marker: any) => {
           marker.setMap(showGeofenceHits ? this.gmap : null);
         });
@@ -459,13 +457,13 @@ class MapView extends Component {
     this.motionChangePolylines = [];
   }
 
-  componentWillReceiveProps (nextProps: Props) {
-    this.setState({
+  componentWillUpdate (nextProps: Props) {
+    this.updateFlags = {
       needsMarkersRedraw: nextProps.locations !== this.props.locations,
       needsShowMarkersUpdate: nextProps.showMarkers !== this.props.showMarkers,
       needsShowPolylineUpdate: nextProps.showPolyline !== this.props.showPolyline,
       needsShowGeofenceHitsUpdate: nextProps.showGeofenceHits !== this.props.showGeofenceHits,
-    });
+    };
   }
 
   render () {
