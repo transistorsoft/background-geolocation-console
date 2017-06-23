@@ -69,10 +69,10 @@ export default class Viewport extends Component {
           <Panel className={Styles.workspace} bodyScroll={false} scrollY={false}>
             <HeaderView />
             <Tabs index={this.state.activeTab} hideMode="display" onChange={this.handleTabChange.bind(this)} inverse >
-              <Tab label="Mapa" className={Styles.cabeceraTabla}>
-                <MapView />
-              </Tab>
               
+              <Tab label="Data" className={Styles.cabeceraTabla}>
+                <ListView selected={this.state.location} />
+              </Tab>
             </Tabs>
           </Panel>
         </Layout>
