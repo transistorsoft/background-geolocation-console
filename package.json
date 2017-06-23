@@ -5,15 +5,17 @@
   "main": "index.js",
   "scripts": {
     "build": "webpack",
-    "start": "node server.js",
-    "server": "node server.js",
-    "heroku-postbuild": "webpack -p --config ./webpack.config.js --progress",
-    "migrate": "node ./src/server/database/migrate.js"
+    "start": "babel-node server.js",
+    "server": "babel-node server.js",
+    "heroku-postbuild": "webpack -p --progress",
+    "migrate": "babel-node ./src/server/database/migrate.js"
   },
   "author": "Chris Scott, Transistor Software",
   "license": "MIT",
   "repository": "https://github.com/transistorsoft/background-geolocation-console",
   "dependencies": {
+    "babel-cli": "^6.24.1",
+    "babel-preset-node6": "^11.0.0",
     "google-map-react": "^0.23.0",
     "lodash": "^4.17.4",
     "moment": "^2.18.1",

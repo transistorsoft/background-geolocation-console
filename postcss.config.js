@@ -5,6 +5,6 @@ module.exports = {
     },
     'postcss-mixins': {},
     'postcss-each': {},
-    'postcss-cssnext': {}
+    'postcss-cssnext': {},
   },
 };
