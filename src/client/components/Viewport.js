@@ -62,7 +62,7 @@ class Viewport extends Component {
                 }}
               >
                 <WatchModeWarning />
-                <ListView style={{ minWidth: 1400 }} />
+                <ListView style={{ width: 1200 }} />
               </div>
             </Tab>
           </Tabs>

@@ -3,7 +3,8 @@ import React from 'react';
 
 import { connect } from 'react-redux';
 import moment from 'moment';
-import { List } from 'react-virtualized';
+import { List, AutoSizer } from 'react-virtualized';
+import classNames from 'classnames';
 
 import Styles from '../assets/styles/app.css';
 
@@ -55,48 +56,57 @@ class ListView extends React.PureComponent {
     return (
       <div
         key={key}
-        className={Styles.listRow}
+        className={classNames(Styles.listRow, { [Styles.selectedRow]: item.uuid === this.props.selectedLocationId })}
         style={style}
-        selected={item.uuid === this.props.selectedLocationId}
-        onSelect={this.selectRow}
+        onClick={() => this.props.onRowSelect(item.uuid)}
       >
-        <span style={{ width: 140 }}>{item.uuid}</span>
-        <span style={{ width: 100 }}>{item.recorded_at}</span>
-        <span style={{ width: 80 }}>{item.coordinate}</span>
-        <span style={{ width: 80 }}>{item.accuracy}</span>
-        <span style={{ width: 80 }}>{item.speed}</span>
-        <span style={{ width: 80 }}>{item.odometer}</span>
-        <span style={{ width: 200 }}><strong>{item.event}</strong></span>
-        <span style={{ width: 80 }}>{item.is_moving}</span>
-        <span style={{ width: 140 }}>{item.activity}</span>
-        <span style={{ width: 60 }} className={item.battery_is_charging ? Styles.tableCellGreen : Styles.tableCellRed}>
-          {item.battery_level * 100}%
+        <span style={{ width: 180 }}><span>{item.uuid}</span></span>
+        <span style={{ width: 120 }}><span>{item.recorded_at}</span></span>
+        <span style={{ width: 90 }}><span>{item.coordinate}</span></span>
+        <span style={{ width: 80 }}><span>{item.accuracy}</span></span>
+        <span style={{ width: 80 }}><span>{item.speed}</span></span>
+        <span style={{ width: 80 }}><span>{item.odometer}</span></span>
+        <span style={{ width: 180 }}><span><strong>{item.event}</strong></span></span>
+        <span style={{ width: 80 }}><span>{item.is_moving}</span></span>
+        <span style={{ width: 140 }}><span>{item.activity}</span></span>
+        <span style={{ width: 80 }} className={item.battery_is_charging ? Styles.tableCellGreen : Styles.tableCellRed}>
+          <span>
+            {item.battery_level * 100}%
+          </span>
         </span>
       </div>
     );
   };
   render () {
+    this.list && this.list.forceUpdateGrid();
     return (
-      <div>
-        <div className={Styles.listRow}>
-          <span style={{ width: 140 }}>UUID</span>
-          <span style={{ width: 100 }}>RECORDED AT</span>
-          <span style={{ width: 80 }}>COORDINATE</span>
+      <div className={Styles.list} style={{ width: '100%', height: '100%' }}>
+        <div className={Styles.listHeaderRow}>
+          <span style={{ width: 180 }}>UUID</span>
+          <span style={{ width: 120 }}>RECORDED AT</span>
+          <span style={{ width: 90 }}>COORDINATE</span>
           <span style={{ width: 80 }}>ACCURACY</span>
           <span style={{ width: 80 }}>SPEED</span>
           <span style={{ width: 80 }}>ODOMETER</span>
-          <span style={{ width: 200 }}>EVENT</span>
+          <span style={{ width: 180 }}>EVENT</span>
           <span style={{ width: 80 }}>IS MOVING</span>
           <span style={{ width: 140 }}>ACTIVITY</span>
-          <span style={{ width: 60 }}>BATTERY</span>
+          <span style={{ width: 80 }}>BATTERY</span>
         </div>
-        <List
-          width={1200}
-          height={800}
-          rowCount={this.props.locations.length}
-          rowHeight={48}
-          rowRenderer={this.rowRenderer}
-        />
+        <div style={{ width: '100%', height: 'calc(100% - 55px)' }}>
+          <AutoSizer>
+            {({ width, height }: { width: number, height: number }) =>
+              <List
+                style={{ outline: 0 }}
+                ref={(list: React$Element<any>) => (this.list = list)}
+                width={1200}
+                height={height}
+                rowCount={this.props.locations.length}
+                rowHeight={48}
+                rowRenderer={this.rowRenderer}
+              />}
+          </AutoSizer>
+        </div>
       </div>
     );
   }
