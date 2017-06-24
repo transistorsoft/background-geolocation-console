@@ -21,6 +21,7 @@
     "google-map-react": "^0.23.0",
     "lodash": "^4.17.4",
     "moment": "^2.18.1",
+    "opn": "^5.1.0",
     "pg": "6.1.0",
     "pg-hstore": "2.3.2",
     "postcss": "^5.2.16",
