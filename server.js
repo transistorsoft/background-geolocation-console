@@ -51,10 +51,7 @@ var server = app.listen(process.env.PORT || 9000, function () {
 
   // Spawning dedicated process on opened port.. only if not deployed on heroku
   if (!process.env.DYNO) {
-    const spawn = require('child_process').spawn;
-    var child = spawn('open', ['http://localhost:' + port]);
-    child.on('error', function (err) {
-      console.error('Error during spawned child process : ', err);
-    });
+    var opn = require('opn');
+    opn(`http://localhost:${port}`);
   }
 });
