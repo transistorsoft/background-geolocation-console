@@ -376,7 +376,6 @@ class MapView extends Component {
     var polyline = new google.maps.Polyline({
       map: options.map,
       zIndex: 2000,
-      geodesic: true,
       strokeColor: COLORS.black,
       strokeOpacity: 1,
       strokeWeight: 1,
