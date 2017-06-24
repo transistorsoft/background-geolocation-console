@@ -11,9 +11,28 @@ import Styles from '../assets/styles/app.css';
 import { type Location, setSelectedLocation } from '~/reducer/dashboard';
 import { type GlobalState } from '~/reducer/state';
 import { createSelector } from 'reselect';
+
+import { changeTabBus, type ChangeTabPayload, scrollToRowBus, type ScrollToRowPayload } from '~/globalBus';
+import _ from 'lodash';
+
+type LocationRow = {|
+  uuid: string,
+  device_id: string,
+  coordinate: string,
+  recorded_at: string,
+  is_moving: string,
+  accuracy: number,
+  speed: number,
+  odometer: number,
+  activity: string,
+  battery_level: string,
+  battery_is_charging: boolean,
+  event: string,
+|};
 type StateProps = {|
-  locations: Object[],
+  locations: LocationRow[],
   selectedLocationId: string,
+  isActiveTab: boolean,
 |};
 
 type DispatchProps = {|
@@ -21,7 +40,8 @@ type DispatchProps = {|
 |};
 
 type Props = {| ...StateProps, ...DispatchProps |};
-const getRowData = (location: Location) => {
+
+const getRowData = (location: Location): LocationRow => {
   let event = location.event || '';
   switch (location.event) {
     case 'geofence':
@@ -29,7 +49,6 @@ const getRowData = (location: Location) => {
       break;
   }
   return {
-    data: location,
     uuid: location.uuid,
     device_id: location.device_id,
     coordinate: location.latitude.toFixed(6) + ', ' + location.longitude.toFixed(6),
@@ -39,8 +58,8 @@ const getRowData = (location: Location) => {
     speed: location.speed,
     odometer: location.odometer,
     event: event,
-    activity: location.activity_type + ' (' + location.activity_confidence + '%)',
-    battery_level: location.battery_level,
+    activity: `${location.activity_type} (${location.activity_confidence}%)`,
+    battery_level: `${location.battery_level * 100}%`,
     battery_is_charging: location.battery_is_charging,
   };
 };
@@ -48,9 +67,44 @@ const getRowData = (location: Location) => {
 class ListView extends React.PureComponent {
   props: Props;
   list: any;
-  selectRow = (indicies: number[]) => {
-    this.props.onRowSelect(this.props.locations[indicies[0]].uuid);
+  postponedScrollToRowPayload: ?ScrollToRowPayload = null;
+
+  componentWillMount () {
+    scrollToRowBus.subscribe(this.scrollToRow);
+    changeTabBus.subscribe(this.changeTab);
+  }
+
+  componentWillUnmount () {
+    scrollToRowBus.unsubscribe(this.scrollToRow);
+    changeTabBus.unsubscribe(this.changeTab);
+  }
+
+  changeTab = (payload: ChangeTabPayload) => {
+    if (this.props.isActiveTab) {
+      setTimeout(() => this.scrollToRowIfPostponed(), 1);
+    }
   };
+
+  scrollToRowIfPostponed () {
+    if (this.postponedScrollToRowPayload) {
+      this.scrollToRow(this.postponedScrollToRowPayload);
+      this.postponedScrollToRowPayload = null;
+    }
+  }
+
+  // scrolling to the specified location
+  // if the tab is not active - postpone till tab becomes active
+  scrollToRow = ({ locationId }: ScrollToRowPayload) => {
+    if (!this.props.isActiveTab) {
+      this.postponedScrollToRowPayload = { locationId };
+      return;
+    }
+    if (this.list) {
+      const index = _.findIndex(this.props.locations, { uuid: locationId });
+      this.list.scrollToRow(index);
+    }
+  };
+
   rowRenderer = ({ index, isScrolling, isVisible, key, parent, style }: any) => {
     const item = this.props.locations[index];
     return (
@@ -70,15 +124,13 @@ class ListView extends React.PureComponent {
         <span style={{ width: 80 }}><span>{item.is_moving}</span></span>
         <span style={{ width: 140 }}><span>{item.activity}</span></span>
         <span style={{ width: 80 }} className={item.battery_is_charging ? Styles.tableCellGreen : Styles.tableCellRed}>
-          <span>
-            {item.battery_level * 100}%
-          </span>
+          <span>{item.battery_level}</span>
         </span>
       </div>
     );
   };
   render () {
-    this.list && this.list.forceUpdateGrid();
+    setTimeout(() => this.list && this.list.forceUpdateGrid(), 1);
     return (
       <div className={Styles.list} style={{ width: '100%', height: '100%' }}>
         <div className={Styles.listHeaderRow}>
@@ -97,9 +149,10 @@ class ListView extends React.PureComponent {
           <AutoSizer>
             {({ width, height }: { width: number, height: number }) =>
               <List
+                scrollToAlignment='start'
                 style={{ outline: 0 }}
                 ref={(list: React$Element<any>) => (this.list = list)}
-                width={1200}
+                width={1140}
                 height={height}
                 rowCount={this.props.locations.length}
                 rowHeight={48}
@@ -145,6 +198,7 @@ const mapStateToProps = function (state: GlobalState): StateProps {
   return {
     locations: getLocationsSelector(state),
     selectedLocationId: state.dashboard.selectedLocationId,
+    isActiveTab: state.dashboard.activeTab === 'list',
   };
 };
 
