@@ -13,29 +13,30 @@ import LoadingIndicator from './LoadingIndicator';
 import WatchModeWarning from './WatchModeWarning';
 import { connect } from 'react-redux';
 import { type GlobalState } from '~/reducer/state';
-
-type State = {|
-  activeTab: 0 | 1,
-|};
+import { changeActiveTab, type Tab as TabType } from '~/reducer/dashboard';
 
 type StateProps = {|
   isLocationSelected: boolean,
+  activeTabIndex: 0 | 1,
+|};
+type DispatchProps = {|
+  onChangeActiveTab: (tab: TabType) => any,
 |};
 
-type Props = StateProps;
+type Props = {| ...StateProps, ...DispatchProps |};
 class Viewport extends Component {
   props: Props;
-  state: State = {
-    activeTab: 0,
-  };
-
-  handleTabChange = (index: 0 | 1) => {
-    this.setState({ activeTab: index });
+  changeActiveTabIndex = (index: 0 | 1) => {
+    if (index === 0) {
+      this.props.onChangeActiveTab('map');
+    }
+    if (index === 1) {
+      this.props.onChangeActiveTab('list');
+    }
   };
 
   render () {
-    const { activeTab } = this.state;
-    const { isLocationSelected } = this.props;
+    const { isLocationSelected, activeTabIndex } = this.props;
     return (
       <Layout className={Styles.viewport}>
         <LoadingIndicator />
@@ -47,7 +48,7 @@ class Viewport extends Component {
         </Sidebar>
         <Panel className={Styles.workspace} bodyScroll={false}>
           <HeaderView />
-          <Tabs index={activeTab} hideMode='display' onChange={this.handleTabChange} inverse>
+          <Tabs index={activeTabIndex} hideMode='display' onChange={this.changeActiveTabIndex} inverse>
             <Tab label='Map'>
               <MapView />
             </Tab>
@@ -58,11 +59,11 @@ class Viewport extends Component {
                   flex: 1,
                   overflow: 'auto',
                   height: 'calc(100% - 160px)',
-                  width: 'calc(100% - 20px)',
+                  width: 'calc(100% - 40px)',
                 }}
               >
                 <WatchModeWarning />
-                <ListView style={{ width: 1200 }} />
+                <ListView style={{ width: 1180 }} />
               </div>
             </Tab>
           </Tabs>
@@ -72,10 +73,13 @@ class Viewport extends Component {
   }
 }
 
-const mapStateToProps = function (state: GlobalState) {
+const mapStateToProps = function (state: GlobalState): StateProps {
   return {
     isLocationSelected: !!state.dashboard.selectedLocationId,
+    activeTabIndex: state.dashboard.activeTab === 'map' ? 0 : 1,
   };
 };
-const mapDispatchToProps = {};
+const mapDispatchToProps: DispatchProps = {
+  onChangeActiveTab: changeActiveTab,
+};
 export default connect(mapStateToProps, mapDispatchToProps)(Viewport);

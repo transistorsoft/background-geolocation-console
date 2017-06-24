@@ -12,7 +12,7 @@ const WatchModeWarning = ({ isWatching }: Props) =>
       zIndex: 10000,
       display: isWatching ? '' : 'none',
       position: 'absolute',
-      top: -10,
+      top: 22,
       left: '50%',
       transform: 'translateX(-50%)',
       borderRadius: 3,

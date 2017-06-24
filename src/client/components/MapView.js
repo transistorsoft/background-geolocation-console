@@ -5,14 +5,14 @@ import _ from 'lodash';
 import { createSelector } from 'reselect';
 
 import { connect } from 'react-redux';
-import { type Location, setSelectedLocation } from '~/reducer/dashboard';
+import { type Location, clickMarker } from '~/reducer/dashboard';
 import { type GlobalState } from '~/reducer/state';
 
 import GoogleMap from 'google-map-react';
 
 import Styles from '../assets/styles/app.css';
 import { COLORS } from '../constants';
-import { fitBoundsBus, type FitBoundsPayload } from '~/globalBus';
+import { changeTabBus, type ChangeTabPayload, fitBoundsBus, type FitBoundsPayload } from '~/globalBus';
 
 const API_KEY = process.env.GMAP_API_KEY || 'AIzaSyA9j72oZA5SmsA8ugu57pqXwpxh9Sn4xuM';
 
@@ -25,6 +25,7 @@ type StateProps = {|
   currentLocation: ?Location,
   locations: Location[],
   selectedLocation: ?Location,
+  isActiveTab: boolean,
 |};
 
 type DispatchProps = {|
@@ -60,15 +61,37 @@ class MapView extends Component {
     needsShowPolylineUpdate: true,
     needsShowGeofenceHitsUpdate: true,
   };
+  postponedFitBoundsPayload: ?FitBoundsPayload = null;
 
   componentWillMount () {
     fitBoundsBus.subscribe(this.fitBounds);
-  }
-  componentWillUnmount () {
-    fitBoundsBus.unsubscribe(this.fitBounds);
+    changeTabBus.subscribe(this.changeTab);
   }
 
+  componentWillUnmount () {
+    fitBoundsBus.unsubscribe(this.fitBounds);
+    changeTabBus.unsubscribe(this.changeTab);
+  }
+
+  changeTab = (payload: ChangeTabPayload) => {
+    if (this.props.isActiveTab) {
+      setTimeout(() => this.fitBoundsIfPostponed(), 1);
+    }
+  };
+
+  fitBoundsIfPostponed () {
+    if (this.postponedFitBoundsPayload) {
+      this.fitBounds(this.postponedFitBoundsPayload);
+      this.postponedFitBoundsPayload = null;
+    }
+  }
+
+  // Fit Bounds, postpone if gmap is not ready, also postpone if tab is not active
   fitBounds = (payload: FitBoundsPayload) => {
+    if (!this.props.isActiveTab) {
+      this.postponedFitBoundsPayload = payload;
+      return;
+    }
     if (this.gmap) {
       if (this.props.locations.length > 1) {
         const bounds = new google.maps.LatLngBounds();
@@ -138,6 +161,9 @@ class MapView extends Component {
     this.renderMarkers();
   };
 
+  // ensures that selected location is properly displayed
+  // previous marker is set to default icon, new marker or nothing is set to
+  // selected icon
   updateSelectedLocation () {
     const location = this.props.selectedLocation;
     if (this.selectedMarker) {
@@ -170,17 +196,12 @@ class MapView extends Component {
     }
   }
 
-  onMarkerClick () {
-    console.info(this);
-    // this.props.onSelectLocation(this.location.id);
-  }
-
   renderMarkers () {
     console.time('renderMarkers');
     const { locations, isWatching, currentLocation, showPolyline, showMarkers, showGeofenceHits } = this.props;
+
     // if locations have not changed - do not clear markers
     // just update current location, selected location and handle visibility of markers
-
     if (this.updateFlags.needsMarkersRedraw) {
       this.clearMarkers();
       const length = locations.length;
@@ -355,7 +376,6 @@ class MapView extends Component {
     var polyline = new google.maps.Polyline({
       map: options.map,
       zIndex: 2000,
-      geodesic: true,
       strokeColor: COLORS.black,
       strokeOpacity: 1,
       strokeWeight: 1,
@@ -458,6 +478,8 @@ class MapView extends Component {
   }
 
   componentWillUpdate (nextProps: Props) {
+    // If the map was rendered - decide how we can only partially update markers
+    // to significantly speed up the update
     if (this.gmap) {
       this.updateFlags = {
         needsMarkersRedraw: nextProps.locations !== this.props.locations,
@@ -471,6 +493,12 @@ class MapView extends Component {
   render () {
     if (this.gmap) {
       this.renderMarkers();
+    }
+    // protects us from rendering the google map while the tab is not active
+    // because of display: none this leads to improper size calculations, so
+    // later FitToBounds or setMapCenter do not work
+    if (!this.props.isActiveTab && !this.gmap) {
+      return null;
     }
 
     return (
@@ -514,11 +542,12 @@ const mapStateToProps = function (state: GlobalState) {
     isWatching: dashboard.isWatching,
     currentLocation: dashboard.currentLocation,
     selectedLocation: selectedLocationSelector(state),
+    isActiveTab: state.dashboard.activeTab === 'map',
   };
 };
 
 const mapDispatchToProps = {
-  onSelectLocation: setSelectedLocation,
+  onSelectLocation: clickMarker,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MapView);
