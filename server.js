@@ -8,6 +8,7 @@ const webpack = require('webpack');
 const historyFallback = require('connect-history-api-fallback');
 const webpackDevMiddleware = require('webpack-dev-middleware');
 const webpackHotMiddleware = require('webpack-hot-middleware');
+require('colors');
 
 process.on('uncaughtException', function (error) {
   console.error('Uncaught error : ', error);

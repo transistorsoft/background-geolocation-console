@@ -8,12 +8,12 @@ import { fitBoundsBus, scrollToRowBus, changeTabBus } from '~/globalBus';
 import { setSettings, getSettings, type StoredSettings } from '~/storage';
 
 // Types
-export type Device = {
+export type Device = {|
   id: string,
   name: string,
-};
+|};
 export type Tab = 'map' | 'list';
-export type Location = {
+export type Location = {|
   device_id: string,
   activity_type: string,
   activity_confidence: number,
@@ -39,9 +39,9 @@ export type Location = {
       },
     },
   },
-};
+|};
 
-export type DashboardState = {
+export type DashboardState = {|
   activeTab: Tab,
   isLoading: boolean,
   hasData: boolean,
@@ -56,87 +56,87 @@ export type DashboardState = {
   selectedLocationId: ?string,
   currentLocation: ?Location,
   isWatching: boolean,
-};
+|};
 
 // Action Types
 
-type SetDevicesAction = {
+type SetDevicesAction = {|
   type: 'dashboard/SET_DEVICES',
   devices: Device[],
-};
+|};
 
-type SetLocationsAction = {
+type SetLocationsAction = {|
   type: 'dashboard/SET_LOCATIONS',
   locations: Location[],
-};
+|};
 
-type SetIsLoadingAction = {
+type SetIsLoadingAction = {|
   type: 'dashboard/SET_IS_LOADING',
   status: boolean,
-};
-type SetHasDataAction = {
+|};
+type SetHasDataAction = {|
   type: 'dashboard/SET_HAS_DATA',
   status: boolean,
-};
+|};
 
-type SetStartDateAction = {
+type SetStartDateAction = {|
   type: 'dashboard/SET_START_DATE',
   value: Date,
-};
+|};
 
-type SetEndDateAction = {
+type SetEndDateAction = {|
   type: 'dashboard/SET_END_DATE',
   value: Date,
-};
+|};
 
-type AutoselectOrInvalidateSelectedDeviceAction = {
+type AutoselectOrInvalidateSelectedDeviceAction = {|
   type: 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_DEVICE',
-};
+|};
 
-type InvalidateSelectedLocationAction = {
+type InvalidateSelectedLocationAction = {|
   type: 'dashboard/INVALIDATE_SELECTED_LOCATION',
-};
+|};
 
-type SetShowMarkersAction = {
+type SetShowMarkersAction = {|
   type: 'dashboard/SET_SHOW_MARKERS',
   value: boolean,
-};
-type SetShowPolylineAction = {
+|};
+type SetShowPolylineAction = {|
   type: 'dashboard/SET_SHOW_POLYLINE',
   value: boolean,
-};
-type SetShowGeofenceHitsAction = {
+|};
+type SetShowGeofenceHitsAction = {|
   type: 'dashboard/SET_SHOW_GEOFENCE_HITS',
   value: boolean,
-};
-type SetIsWatchingAction = {
+|};
+type SetIsWatchingAction = {|
   type: 'dashboard/SET_IS_WATCHING',
   value: boolean,
-};
-type SetCurrentLocationAction = {
+|};
+type SetCurrentLocationAction = {|
   type: 'dashboard/SET_CURRENT_LOCATION',
   location: ?Location,
-};
+|};
 
-type SetDeviceAction = {
+type SetDeviceAction = {|
   type: 'dashboard/SET_DEVICE',
   deviceId: string,
-};
+|};
 
-type SetSelectedLocationAction = {
+type SetSelectedLocationAction = {|
   type: 'dashboard/SET_SELECTED_LOCATION',
   locationId: ?string,
-};
+|};
 
-type ApplyExistingSettinsAction = {
+type ApplyExistingSettinsAction = {|
   type: 'dashboard/APPLY_EXISTING_SETTINGS',
   settings: StoredSettings,
-};
+|};
 
-type SetActiveTabAction = {
+type SetActiveTabAction = {|
   type: 'dashboard/SET_ACTIVE_TAB',
   tab: Tab,
-};
+|};
 // Combining Actions
 
 type Action =

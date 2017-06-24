@@ -16,6 +16,7 @@ export function getSettings (): StoredSettings {
   const encodedSettings = localStorage.getItem('settings');
   if (encodedSettings) {
     const parsed = JSON.parse(encodedSettings);
+    // convert start/endDate to Date if they are present
     return _.omitBy(
       cloneState(parsed, {
         startDate: parsed.startDate ? new Date(parsed.startDate) : undefined,
@@ -30,6 +31,7 @@ export function getSettings (): StoredSettings {
 export function setSettings (settings: $Shape<StoredSettings>) {
   const existingSettings = getSettings();
   const newSettings = cloneState(existingSettings, settings);
+  // convert start/endDate to string if they are present
   const stringifiedNewSettings = _.omitBy(
     Object.assign({}, newSettings, {
       startDate: newSettings.startDate ? newSettings.startDate.toISOString() : undefined,
