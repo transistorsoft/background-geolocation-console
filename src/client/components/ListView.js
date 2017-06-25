@@ -59,7 +59,7 @@ const getRowData = (location: Location): LocationRow => {
     odometer: location.odometer,
     event: event,
     activity: `${location.activity_type} (${location.activity_confidence}%)`,
-    battery_level: `${location.battery_level * 100}%`,
+    battery_level: `${(location.battery_level * 100).toFixed(0)}%`,
     battery_is_charging: location.battery_is_charging,
   };
 };
