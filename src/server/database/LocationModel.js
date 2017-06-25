@@ -1,7 +1,7 @@
-var Sequelize = require('sequelize');
-var definedSequelizeDb = require('./define-sequelize-db');
+import Sequelize from 'sequelize';
+import definedSequelizeDb from './define-sequelize-db';
 
-var LocationModel = definedSequelizeDb.define(
+const LocationModel = definedSequelizeDb.define(
   'locations',
   {
     id: { type: Sequelize.INTEGER, autoIncrement: true, primaryKey: true },
@@ -32,22 +32,4 @@ var LocationModel = definedSequelizeDb.define(
   }
 );
 
-/**
- * Init / create location table
- */
-definedSequelizeDb
-  .authenticate()
-  .then(
-    function () {
-      console.log('DB Connection has been established successfully.');
-      return LocationModel.sync();
-    },
-    function (err) {
-      console.log('Unable to connect to the database:', err);
-    }
-  )
-  .catch(function (err) {
-    console.log('Unable to sync database:', err);
-  });
-
-module.exports = LocationModel;
+export default LocationModel;
