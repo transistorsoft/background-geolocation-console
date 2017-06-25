@@ -1,57 +1,60 @@
-const express = require('express');
-const bodyParser = require('body-parser');
+import initializeDatabase from './src/server/database/initializeDatabase';
+import express from 'express';
+import bodyParser from 'body-parser';
+import path from 'path';
+import webpackConfig from './webpack.config.babel';
+import webpack from 'webpack';
+import historyFallback from 'connect-history-api-fallback';
+import webpackDevMiddleware from 'webpack-dev-middleware';
+import webpackHotMiddleware from 'webpack-hot-middleware';
+import 'colors';
+import opn from 'opn';
 const app = express();
-const path = require('path');
-
-const webpackConfig = require('./webpack.config.babel');
-const webpack = require('webpack');
-const historyFallback = require('connect-history-api-fallback');
-const webpackDevMiddleware = require('webpack-dev-middleware');
-const webpackHotMiddleware = require('webpack-hot-middleware');
-require('colors');
 
 process.on('uncaughtException', function (error) {
   console.error('Uncaught error : ', error);
 });
 
-app.disable('etag');
-app.use(express.static('./src/client'));
-app.use(bodyParser.json());
+(async function () {
+  app.disable('etag');
+  app.use(express.static('./src/client'));
+  app.use(bodyParser.json());
 
-require('./src/server/routes.js')(app);
+  await initializeDatabase();
+  require('./src/server/routes.js')(app);
 
-var compiler = webpack(webpackConfig);
+  const compiler = webpack(webpackConfig);
 
-const middleware = [
-  webpackDevMiddleware(compiler, {
-    publicPath: '/', // Same as `output.publicPath` in most cases.
-    index: 'index.html',
-    hot: true,
-    contentBase: path.join(__dirname, 'src', 'client'),
-    stats: {
-      colors: true,
-    },
-  }),
-  webpackHotMiddleware(compiler, {
-    log: console.log, // eslint-disable-line no-console
-    heartbeat: 2000,
-    path: '/__webpack_hmr',
-  }),
-  historyFallback(),
-];
+  const middleware = [
+    webpackDevMiddleware(compiler, {
+      publicPath: '/', // Same as `output.publicPath` in most cases.
+      index: 'index.html',
+      hot: true,
+      contentBase: path.join(__dirname, 'src', 'client'),
+      stats: {
+        colors: true,
+      },
+    }),
+    webpackHotMiddleware(compiler, {
+      log: console.log, // eslint-disable-line no-console
+      heartbeat: 2000,
+      path: '/__webpack_hmr',
+    }),
+    historyFallback(),
+  ];
 
-app.use(middleware);
+  app.use(middleware);
 
-var server = app.listen(process.env.PORT || 9000, function () {
-  var port = server.address().port;
+  const server = app.listen(process.env.PORT || 9000, function () {
+    const port = server.address().port;
 
-  console.log('╔═══════════════════════════════════════════════════════════'.green.bold);
-  console.log('║ Background Geolocation Server | port: %s'.green.bold, port);
-  console.log('╚═══════════════════════════════════════════════════════════'.green.bold);
+    console.log('╔═══════════════════════════════════════════════════════════'.green.bold);
+    console.log('║ Background Geolocation Server | port: %s'.green.bold, port);
+    console.log('╚═══════════════════════════════════════════════════════════'.green.bold);
 
-  // Spawning dedicated process on opened port.. only if not deployed on heroku
-  if (!process.env.DYNO) {
-    var opn = require('opn');
-    opn(`http://localhost:${port}`);
-  }
-});
+    // Spawning dedicated process on opened port.. only if not deployed on heroku
+    if (!process.env.DYNO) {
+      opn(`http://localhost:${port}`);
+    }
+  });
+})();

@@ -566,6 +566,7 @@ const initialState: DashboardState = {
 // Reducer
 // ------------------------------------
 export default function spotsReducer (state: DashboardState = initialState, action: Action): DashboardState {
+  console.info('v2');
   switch (action.type) {
     case 'dashboard/SET_DEVICES':
       return setDevicesHandler(state, action);

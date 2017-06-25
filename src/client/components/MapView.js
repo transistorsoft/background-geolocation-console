@@ -338,7 +338,7 @@ class MapView extends Component {
       this.geofenceMarkers[geofence.identifier] = circle;
       this.geofenceHitMarkers.push(circle);
     }
-    var color, heading;
+    var color;
     if (geofence.action === 'ENTER') {
       color = COLORS.green;
     } else if (geofence.action === 'DWELL') {
@@ -347,6 +347,9 @@ class MapView extends Component {
       color = COLORS.red;
     }
     let circleLatLng = circle.getCenter();
+    let locationLatLng = new google.maps.LatLng(location.latitude, location.longitude);
+
+    const heading = google.maps.geometry.spherical.computeHeading(circleLatLng, locationLatLng);
     let circleEdgeLatLng = google.maps.geometry.spherical.computeOffset(circleLatLng, circle.getRadius(), heading);
 
     var geofenceEdgeMarker = new google.maps.Marker({

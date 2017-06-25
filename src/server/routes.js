@@ -1,62 +1,52 @@
-var fs = require('fs');
-var Device = require('./models/Device.js');
-var Location = require('./models/Location.js');
+import fs from 'fs';
+import { getDevices } from './models/Device.js';
+import { getLocations, getLatestLocation, createLocation, deleteLocations } from './models/Location.js';
 
 var Routes = function (app) {
   /**
   * GET /devices
   */
-  app.get('/devices', function (req, res) {
-    console.log('GET /devices\n'.green);
-    Device.all(
-      req.query,
-      function (rs) {
-        res.send(rs);
-      },
-      function () {
-        res.status(500).send({ error: 'Something failed!' });
-      }
-    );
+  app.get('/devices', async function (req, res) {
+    try {
+      console.log('GET /devices\n'.green);
+      const devices = await getDevices(req.query);
+      res.send(devices);
+    } catch (err) {
+      console.info('err: ', err);
+      res.status(500).send({ error: 'Something failed!' });
+    }
   });
 
-  /**
-  * GET /locations/latest
-  */
-  app.get('/locations/latest', function (req, res) {
+  app.get('/locations/latest', async function (req, res) {
     console.log('GET /locations %s'.green, JSON.stringify(req.query));
-
-    Location.latest(
-      req.query,
-      function (rs) {
-        res.send(rs);
-      },
-      function () {
-        res.status(500).send({ error: 'Something failed!' });
-      }
-    );
+    try {
+      const latest = await getLatestLocation(req.query);
+      res.send(latest);
+    } catch (err) {
+      console.info('err: ', err);
+      res.status(500).send({ error: 'Something failed!' });
+    }
   });
 
   /**
   * GET /locations
   */
-  app.get('/locations', function (req, res) {
+  app.get('/locations', async function (req, res) {
     console.log('GET /locations %s'.green, JSON.stringify(req.query));
 
-    Location.all(
-      req.query,
-      function (rs) {
-        res.send(rs);
-      },
-      function () {
-        res.status(500).send({ error: 'Something failed!' });
-      }
-    );
+    try {
+      const locations = await getLocations(req.query);
+      res.send(locations);
+    } catch (err) {
+      console.info('err: ', err);
+      res.status(500).send({ error: 'Something failed!' });
+    }
   });
 
   /**
   * POST /locations
   */
-  app.post('/locations', function (req, res) {
+  app.post('/locations', async function (req, res) {
     var auth = req.get('Authorization');
 
     console.log('POST /locations\n%s'.green, JSON.stringify(req.headers, null, 2));
@@ -64,43 +54,34 @@ var Routes = function (app) {
     console.log('%s\n'.yellow, JSON.stringify(req.body, null, 2));
 
     try {
-      Location.create(req.body);
-    } catch (e) {
-      console.log(e.message);
+      await createLocation(req.body);
+      res.send({ success: true });
+    } catch (err) {
+      console.info('err: ', err);
+      res.status(500).send({ error: 'Something failed!' });
     }
-    res.send({ success: true });
-    // res.status(401).send("Unauthorized");
-    // res.status(403).send("Forbidden");
-    // res.status(201).send({success: true});
-    // res.status(201).send({success: true});
-    // res.status(427).send("Too many requests");
-    // res.status(500).send("Internal Server Error");
-    // res.status(404).send("Not Found");
-    // res.status(408).send("Timeout");
   });
 
-  app.delete('/locations', function (req, res) {
+  app.delete('/locations', async function (req, res) {
     console.log('---------------------------------------------------------------------');
     console.log('- DELETE /locations', JSON.stringify(req.query));
-    Location.deleteLocations(
-      req.query,
-      function () {
-        res.send({ success: true });
-      },
-      function () {
-        res.status(500).send({ error: 'Something failed!' });
-      }
-    );
+    try {
+      await deleteLocations(req.query);
+      res.send({ success: true });
+      res.status(500).send({ error: 'Something failed!' });
+    } catch (err) {
+      console.info('err: ', err);
+      res.status(500).send({ error: 'Something failed!' });
+    }
   });
 
-  app.post('/locations_template', function (req, res) {
+  app.post('/locations_template', async function (req, res) {
     console.log('POST /locations_template\n%s\n'.green, JSON.stringify(req.body, null, 2));
     res.set('Retry-After', 5);
     res.send({ success: true });
-    // res.status(401).send("Unauthorized");
   });
 
-  app.post('/configure', function (req, res) {
+  app.post('/configure', async function (req, res) {
     console.log('/configure');
 
     var response = {
@@ -110,14 +91,13 @@ var Routes = function (app) {
       refresh_token: '2a69e1cd-d7db-44f6-87fc-3d66c4505ee4',
       scope: 'openid+email+profile+phone+address+group',
     };
-
     res.send(response);
   });
 
   /**
   * Fetch iOS simulator city_drive route
   */
-  app.get('/data/city_drive', function (req, res) {
+  app.get('/data/city_drive', async function (req, res) {
     console.log('GET /data/city_drive.json'.green);
     fs.readFile('./data/city_drive.json', 'utf8', function (_err, data) {
       res.send(data);
