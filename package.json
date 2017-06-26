@@ -6,10 +6,10 @@
   "scripts": {
     "lint": "eslint src/ && flow",
     "build": "webpack",
-    "start": "babel-node server.js",
-    "server": "babel-node server.js",
+    "start": "babel-node --presets='node6' server.js",
+    "server": "babel-node --presets='node6' server.js",
     "heroku-postbuild": "webpack -p --progress",
-    "migrate": "babel-node ./src/server/database/migrate.js"
+    "migrate": "babel-node --presets='node6' ./src/server/database/migrate.js"
   },
   "author": "Chris Scott, Transistor Software",
   "license": "MIT",
