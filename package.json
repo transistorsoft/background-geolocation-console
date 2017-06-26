@@ -11,6 +11,7 @@
     "heroku-postbuild": "webpack -p --progress",
     "migrate": "babel-node --presets='node6' ./src/server/database/migrate.js"
   },
+  "engines" : { "node" : ">=6.11" },
   "author": "Chris Scott, Transistor Software",
   "license": "MIT",
   "repository": "https://github.com/transistorsoft/background-geolocation-console",
