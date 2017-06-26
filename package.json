@@ -11,7 +11,9 @@
     "heroku-postbuild": "webpack -p --progress",
     "migrate": "babel-node --presets='node6' ./src/server/database/migrate.js"
   },
-  "engines" : { "node" : ">=6.11" },
+  "engines": {
+    "node": ">=6.11"
+  },
   "author": "Chris Scott, Transistor Software",
   "license": "MIT",
   "repository": "https://github.com/transistorsoft/background-geolocation-console",
@@ -19,6 +21,7 @@
     "babel-cli": "^6.24.1",
     "babel-preset-node6": "^11.0.0",
     "classnames": "^2.2.5",
+    "compression": "^1.6.2",
     "google-map-react": "^0.23.0",
     "lodash": "^4.17.4",
     "moment": "^2.18.1",
