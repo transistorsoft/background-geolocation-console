@@ -28,6 +28,9 @@ render();
 
 if (module.hot) {
   module.hot.accept('./components/Viewport', () => {
-    render(Viewport);
+    setImmediate(() => {
+      ReactDOM.unmountComponentAtNode(container);
+      render();
+    });
   });
 }
