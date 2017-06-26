@@ -345,12 +345,16 @@ export function loadLocations (): ThunkAction {
 export function loadCurrentLocation (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     const { deviceId } = getState().dashboard;
-    const params = qs.stringify({
-      device_id: deviceId,
-    });
-    const response = await fetch(`${API_URL}/locations/latest?${params}`);
-    const currentLocation = await response.json();
-    await dispatch(setCurrentLocation(currentLocation));
+    if (deviceId) {
+      const params = qs.stringify({
+        device_id: deviceId,
+      });
+      const response = await fetch(`${API_URL}/locations/latest?${params}`);
+      const currentLocation = await response.json();
+      await dispatch(setCurrentLocation(currentLocation));
+    } else {
+      await dispatch(setCurrentLocation(null));
+    }
   };
 }
 
