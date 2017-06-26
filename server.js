@@ -7,6 +7,7 @@ import webpack from 'webpack';
 import historyFallback from 'connect-history-api-fallback';
 import webpackDevMiddleware from 'webpack-dev-middleware';
 import webpackHotMiddleware from 'webpack-hot-middleware';
+import compress from 'compression';
 import 'colors';
 import opn from 'opn';
 const app = express();
@@ -17,6 +18,7 @@ process.on('uncaughtException', function (error) {
 
 (async function () {
   app.disable('etag');
+  app.use(compress());
   app.use(express.static('./src/client'));
   app.use(bodyParser.json());
 
