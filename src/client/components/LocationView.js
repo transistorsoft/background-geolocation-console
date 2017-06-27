@@ -1,51 +1,62 @@
-import React, {
-  Component
-} from 'react';
-import PropTypes from 'prop-types';
-import { connect } from 'react-redux';
+// @flow
+import React from 'react';
+import { createSelector } from 'reselect';
 
-import * as moment from 'moment';
+import { AppBar, Card } from 'react-toolbox';
 
-import {
-  AppBar,
-  Card, CardTitle,
-  Navigation, Link
-} from 'react-toolbox';
-
-import App from './App';
 import Styles from '../assets/styles/app.css';
+import _ from 'lodash';
 
-class LocationView extends Component {  
+import { connect } from 'react-redux';
+import { type Location, unselectLocation } from '~/reducer/dashboard';
+import { type GlobalState } from '~/reducer/state';
 
-  constructor(props) {
-    super(props);
+type StateProps = {|
+  location: ?Location,
+|};
+type DispatchProps = {|
+  onClose: () => any,
+|};
 
-    this.state = {};
-  }
+type Props = {| ...StateProps, ...DispatchProps |};
 
-  onClickClose() {
-    App.getInstance().setLocation(null);
-  }
-
-  render() {
-    return (        
-        <div className="filterView">
-          <AppBar title="Location" rightIcon="close" onRightIconClick={this.onClickClose.bind(this)}></AppBar>
-          <div className={Styles.content}>
-            <Card style={{marginBottom:'10px'}}>
-              <div className={Styles.content}>
-                <pre style={{fontSize: '12px'}}>{JSON.stringify(this.props.location, null, 2)}</pre>
-              </div>
-            </Card>
-          </div>
+const LocationView = ({ location, onClose }: Props) =>
+  <div className='filterView'>
+    <AppBar title='Location' rightIcon='close' onRightIconClick={onClose} />
+    <div className={Styles.content}>
+      <Card style={{ marginBottom: '10px' }}>
+        <div className={Styles.content}>
+          <pre style={{ fontSize: '12px' }}>{JSON.stringify(location, null, 2)}</pre>
         </div>
-    );
-  }
-}
+      </Card>
+    </div>
+  </div>;
 
-LocationView.propTypes = {
-  location: PropTypes.object,
-  onClose: PropTypes.func
+type LocationArgs = {
+  isWatching: boolean,
+  currentLocation: ?Location,
+  locations: Location[],
+  selectedLocationId: ?string,
 };
 
-export default LocationView;
+const getLocation = createSelector(
+  [
+    (state: GlobalState) => ({
+      isWatching: state.dashboard.isWatching,
+      currentLocation: state.dashboard.currentLocation,
+      locations: state.dashboard.locations,
+      selectedLocationId: state.dashboard.selectedLocationId,
+    }),
+  ],
+  ({ isWatching, currentLocation, locations, selectedLocationId }: LocationArgs) =>
+    isWatching ? currentLocation : _.find(locations, { uuid: selectedLocationId })
+);
+
+const mapStateToProps = (state: GlobalState): StateProps => ({
+  location: getLocation(state),
+});
+const mapDispatchToProps: DispatchProps = {
+  onClose: unselectLocation,
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(LocationView);

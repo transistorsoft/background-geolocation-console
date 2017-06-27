@@ -1,152 +1,209 @@
-import React, {
-  Component  
-} from 'react';
+// @flow
+import React from 'react';
 
-import PropTypes from "prop-types"
+import { connect } from 'react-redux';
+import moment from 'moment';
+import { List, AutoSizer } from 'react-virtualized';
+import classNames from 'classnames';
 
-import {connect} from 'react-redux';
-import * as moment from 'moment';
+import Styles from '../assets/styles/app.css';
 
-import {
-  Table, TableHead, TableRow, TableCell
-} from 'react-toolbox';
+import { type Location, setSelectedLocation } from '~/reducer/dashboard';
+import { type GlobalState } from '~/reducer/state';
+import { createSelector } from 'reselect';
 
-import Styles from "../assets/styles/app.css";
+import { changeTabBus, type ChangeTabPayload, scrollToRowBus, type ScrollToRowPayload } from '~/globalBus';
+import _ from 'lodash';
 
-import App from "./App";
+type LocationRow = {|
+  uuid: string,
+  device_id: string,
+  coordinate: string,
+  recorded_at: string,
+  is_moving: string,
+  accuracy: number,
+  speed: number,
+  odometer: number,
+  activity: string,
+  battery_level: string,
+  battery_is_charging: boolean,
+  event: string,
+|};
+type StateProps = {|
+  locations: LocationRow[],
+  selectedLocationId: string,
+  isActiveTab: boolean,
+|};
 
-/*
-const sortByCaloriesAsc = (a, b) => {
-  if (a.calories < b.calories) return -1;
-  if (a.calories > b.calories) return 1;
-  return 0;
+type DispatchProps = {|
+  onRowSelect: (id: string) => any,
+|};
+
+type Props = {| ...StateProps, ...DispatchProps |};
+
+const getRowData = (location: Location): LocationRow => {
+  let event = location.event || '';
+  switch (location.event) {
+    case 'geofence':
+      event = location.event + ': ' + location.geofence.action + ' ' + location.geofence.identifier;
+      break;
+  }
+  return {
+    uuid: location.uuid,
+    device_id: location.device_id,
+    coordinate: location.latitude.toFixed(6) + ', ' + location.longitude.toFixed(6),
+    recorded_at: moment(new Date(location.recorded_at)).format('MM-DD HH:mm:ss:SSS'),
+    is_moving: location.is_moving ? 'true' : 'false',
+    accuracy: location.accuracy,
+    speed: location.speed,
+    odometer: location.odometer,
+    event: event,
+    activity: `${location.activity_type} (${location.activity_confidence}%)`,
+    battery_level: `${(location.battery_level * 100).toFixed(0)}%`,
+    battery_is_charging: location.battery_is_charging,
+  };
 };
 
-const sortByCaloriesDesc = (a, b) => {
-  if (a.calories > b.calories) return -1;
-  if (a.calories < b.calories) return 1;
-  return 0;
-};
-*/
+class ListView extends React.PureComponent {
+  props: Props;
+  list: any;
+  postponedScrollToRowPayload: ?ScrollToRowPayload = null;
 
-class ListView extends Component {  
-
-  constructor(props) {
-    super(props);    
-    this.state = {
-      selected: [],
-      sorted: 'asc'
-    }
-    this.data = [];
-
-    App.getInstance().on('selectlocation', this.onSelectLocation.bind(this));
+  componentWillMount () {
+    scrollToRowBus.subscribe(this.scrollToRow);
+    changeTabBus.subscribe(this.changeTab);
   }
 
-  onSelectLocation(location) {
-    if (!location) {
-      this.setState({selected: []});
-      return;
-    }
-    let record = this.data.find((rec) => {
-      return rec.uuid === location.uuid;
-    });
-    if (record) {
-      this.setState({
-        selected: [this.data.indexOf(record)]
-      });
-    }
+  componentWillUnmount () {
+    scrollToRowBus.unsubscribe(this.scrollToRow);
+    changeTabBus.unsubscribe(this.changeTab);
   }
 
-  getSortedData() {
-    const compare = this.state.sorted === 'asc' ? sortByCaloriesAsc : sortByCaloriesDesc;
-    return data.sort(compare);
-  }
-
-  handleRowSelect(selected) {
-    let record = this.data[selected[0]];
-    App.getInstance().setLocation(record.data);
-    //const sortedData = this.getSortedData();
-    this.setState({ selected: selected });
-
+  changeTab = (payload: ChangeTabPayload) => {
+    if (this.props.isActiveTab) {
+      setTimeout(() => this.scrollToRowIfPostponed(), 1);
+    }
   };
 
-  handleSortClick() {
-    const { sorted } = this.state;
-    const nextSorting = sorted === 'asc' ? 'desc' : 'asc';
-    this.setState({ sorted: nextSorting });
+  scrollToRowIfPostponed () {
+    if (this.postponedScrollToRowPayload) {
+      this.scrollToRow(this.postponedScrollToRowPayload);
+      this.postponedScrollToRowPayload = null;
+    }
   }
 
-  prepareData() {
-    return (this.props.locations) ? this.props.locations.map((location) => {
-      let event = location.event || '';
-      switch(location.event) {
-        case 'geofence':
-          event = location.event + ': ' + location.geofence.action + ' ' + location.geofence.identifier;
-          break;        
-      }
-      return {
-        data: location,
-        uuid: location.uuid,
-        device_id: location.device_id,
-        coordinate: location.latitude + ', ' + location.longitude,
-        recorded_at: moment(new Date(location.recorded_at)).format("MM-DD HH:mm:ss:SSS"),
-        is_moving: (location.is_moving) ? 'true' : 'false',
-        accuracy: location.accuracy,
-        speed: location.speed,
-        odometer: location.odometer,
-        event: event,
-        activity: location.activity_type + ' (' + location.activity_confidence + '%)',
-        battery_level: location.battery_level,
-        battery_is_charging: location.battery_is_charging
-      };
-    }) : [];
-  }
+  // scrolling to the specified location
+  // if the tab is not active - postpone till tab becomes active
+  scrollToRow = ({ locationId }: ScrollToRowPayload) => {
+    if (!this.props.isActiveTab) {
+      this.postponedScrollToRowPayload = { locationId };
+      return;
+    }
+    if (this.list) {
+      const index = _.findIndex(this.props.locations, { uuid: locationId });
+      this.list.scrollToRow(index);
+    }
+  };
 
-  render() {
-    
-    this.data = this.prepareData();
-
+  rowRenderer = ({ index, isScrolling, isVisible, key, parent, style }: any) => {
+    const item = this.props.locations[index];
     return (
-      <Table onRowSelect={this.handleRowSelect.bind(this)}>
-        <TableHead>
-          <TableCell>UUID</TableCell>
-          <TableCell numeric>RECORDED AT</TableCell>
-          <TableCell numeric>COORDINATE</TableCell>
-          <TableCell numeric>ACCURACY</TableCell>
-          <TableCell numeric>SPEED</TableCell>
-          <TableCell numeric>ODOMETER</TableCell>
-          <TableCell numeric>EVENT</TableCell>
-          <TableCell numeric>IS MOVING</TableCell>
-          <TableCell numeric>ACTIVITY</TableCell>
-          <TableCell numeric>BATTERY</TableCell>
-        </TableHead>
-        {this.data.map((item, idx) => (
-          <TableRow key={idx} selected={this.state.selected.indexOf(idx) !== -1} onSelect={this.handleRowSelect.bind(this)}>
-            <TableCell>{item.uuid}</TableCell>
-            <TableCell numeric>{item.recorded_at}</TableCell>
-            <TableCell numeric>{item.coordinate}</TableCell>
-            <TableCell numeric>{item.accuracy}</TableCell>
-            <TableCell numeric>{item.speed}</TableCell>
-            <TableCell numeric>{item.odometer}</TableCell>
-            <TableCell numeric><strong>{item.event}</strong></TableCell>
-            <TableCell numeric>{item.is_moving}</TableCell>
-            <TableCell numeric>{item.activity}</TableCell>
-            <TableCell numeric className={(item.battery_is_charging) ? Styles.tableCellGreen : Styles.tableCellRed}>{item.battery_level*100}%</TableCell>
-          </TableRow>
-        ))}
-      </Table>
+      <div
+        key={key}
+        className={classNames(Styles.listRow, { [Styles.selectedRow]: item.uuid === this.props.selectedLocationId })}
+        style={style}
+        onClick={() => this.props.onRowSelect(item.uuid)}
+      >
+        <span style={{ width: 180 }}><span>{item.uuid}</span></span>
+        <span style={{ width: 120 }}><span>{item.recorded_at}</span></span>
+        <span style={{ width: 90 }}><span>{item.coordinate}</span></span>
+        <span style={{ width: 80 }}><span>{item.accuracy}</span></span>
+        <span style={{ width: 80 }}><span>{item.speed}</span></span>
+        <span style={{ width: 80 }}><span>{item.odometer}</span></span>
+        <span style={{ width: 180 }}><span><strong>{item.event}</strong></span></span>
+        <span style={{ width: 80 }}><span>{item.is_moving}</span></span>
+        <span style={{ width: 140 }}><span>{item.activity}</span></span>
+        <span style={{ width: 80 }} className={item.battery_is_charging ? Styles.tableCellGreen : Styles.tableCellRed}>
+          <span>{item.battery_level}</span>
+        </span>
+      </div>
+    );
+  };
+  render () {
+    setTimeout(() => this.list && this.list.forceUpdateGrid(), 1);
+    return (
+      <div className={Styles.list} style={{ width: '100%', height: '100%' }}>
+        <div className={Styles.listHeaderRow}>
+          <span style={{ width: 180 }}>UUID</span>
+          <span style={{ width: 120 }}>RECORDED AT</span>
+          <span style={{ width: 90 }}>COORDINATE</span>
+          <span style={{ width: 80 }}>ACCURACY</span>
+          <span style={{ width: 80 }}>SPEED</span>
+          <span style={{ width: 80 }}>ODOMETER</span>
+          <span style={{ width: 180 }}>EVENT</span>
+          <span style={{ width: 80 }}>IS MOVING</span>
+          <span style={{ width: 140 }}>ACTIVITY</span>
+          <span style={{ width: 80 }}>BATTERY</span>
+        </div>
+        <div style={{ width: '100%', height: 'calc(100% - 55px)' }}>
+          <AutoSizer>
+            {({ width, height }: { width: number, height: number }) =>
+              <List
+                scrollToAlignment='start'
+                style={{ outline: 0 }}
+                ref={(list: React$Element<any>) => (this.list = list)}
+                width={1140}
+                height={height}
+                rowCount={this.props.locations.length}
+                rowHeight={48}
+                rowRenderer={this.rowRenderer}
+              />}
+          </AutoSizer>
+        </div>
+      </div>
     );
   }
 }
 
-ListView.propTypes = {
-  selected: PropTypes.object
+type LocationArgs = {
+  isWatching: boolean,
+  currentLocation: ?Location,
+  locations: Location[],
+};
+const getLocationsSource = function ({ locations, currentLocation, isWatching }: LocationArgs) {
+  if (isWatching) {
+    return currentLocation ? [currentLocation] : [];
+  } else {
+    return locations;
+  }
 };
 
-const mapStateToProps = function(store) {
+const getLocations = function ({ locations, currentLocation, isWatching }: LocationArgs) {
+  const source = getLocationsSource({ locations, currentLocation, isWatching });
+  return source.map(getRowData);
+};
+
+const getLocationsSelector = createSelector(
+  [
+    (state: GlobalState) => ({
+      locations: state.dashboard.locations,
+      currentLocation: state.dashboard.currentLocation,
+      isWatching: state.dashboard.isWatching,
+    }),
+  ],
+  ({ locations, currentLocation, isWatching }: LocationArgs) => getLocations({ locations, currentLocation, isWatching })
+);
+
+const mapStateToProps = function (state: GlobalState): StateProps {
   return {
-    locations: store.locations
+    locations: getLocationsSelector(state),
+    selectedLocationId: state.dashboard.selectedLocationId,
+    isActiveTab: state.dashboard.activeTab === 'list',
   };
 };
 
-export default connect(mapStateToProps)(ListView);
+const mapDispatchToProps: DispatchProps = {
+  onRowSelect: setSelectedLocation,
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(ListView);

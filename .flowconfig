@@ -1,0 +1,11 @@
+[ignore]
+.*/compiled
+[include]
+
+[libs]
+
+[options]
+module.name_mapper='^~/\(.*\)$' -> '<PROJECT_ROOT>/src/client/\1'
+module.name_mapper='^.*\.css$' -> 'css-module-flow'
+module.name_mapper='^.*\.scss$' -> 'css-module-flow'
+esproposal.decorators=ignore

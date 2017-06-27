@@ -1,34 +1,36 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Viewport from './components/Viewport';
-import {AppContainer} from 'react-hot-loader';
+import { AppContainer } from 'react-hot-loader';
 
-import {Provider} from 'react-redux';
+import { Provider } from 'react-redux';
+import { loadInitialData } from '~/reducer/dashboard';
 
-import App from './components/App';
-
-let store = App.getInstance().getStore();
+import store from './store';
 
 require('./index.html');
 
 const container = document.querySelector('#app-container');
 
-const render = Component => {
+const render = () => {
   ReactDOM.render(
     <AppContainer>
       <Provider store={store}>
         <Viewport />
       </Provider>
-    </AppContainer>
-    , container
-  );  
-}
+    </AppContainer>,
+    container
+  );
+};
 
-render(Viewport);
+store.dispatch(loadInitialData());
+render();
 
 if (module.hot) {
   module.hot.accept('./components/Viewport', () => {
-    render(Viewport);
+    setImmediate(() => {
+      ReactDOM.unmountComponentAtNode(container);
+      render();
+    });
   });
 }
-

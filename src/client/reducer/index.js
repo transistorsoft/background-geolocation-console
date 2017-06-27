@@ -1,8 +1,6 @@
-import {combineReducers} from 'redux';
-import locations from './locations';
-import devices from './devices';
+import { combineReducers } from 'redux';
+import dashboard from './dashboard';
 
 export default combineReducers({
-  locations,
-  devices,
+  dashboard,
 });
