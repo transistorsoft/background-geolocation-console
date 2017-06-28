@@ -43,5 +43,11 @@ module.exports = {
       },
     ],
   },
-  plugins: [new webpack.NamedModulesPlugin(), new webpack.HotModuleReplacementPlugin()],
+  plugins: [
+    new webpack.NamedModulesPlugin(),
+    new webpack.HotModuleReplacementPlugin(),
+    new webpack.DefinePlugin({
+      'process.env.SHARED_DASHBOARD': !!process.env.SHARED_DASHBOARD || '',
+    }),
+  ],
 };

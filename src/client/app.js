@@ -10,6 +10,9 @@ import store from './store';
 
 require('./index.html');
 
+// just reload the app on hash change for now
+addEventListener('hashchange', () => location.reload());
+
 const container = document.querySelector('#app-container');
 
 const render = () => {

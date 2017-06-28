@@ -40,7 +40,7 @@
     "redux": "^3.6.0",
     "redux-thunk": "^2.2.0",
     "reselect": "^3.0.1",
-    "sequelize": "3.24.1"
+    "sequelize": "github:sequelize/sequelize#38e8bd1"
   },
   "devDependencies": {
     "babel-core": "^6.24.0",
