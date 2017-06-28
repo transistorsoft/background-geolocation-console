@@ -337,7 +337,11 @@ export function reload (): ThunkAction {
 
 export function loadDevices (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const response = await fetch(`${API_URL}/devices`);
+    const { companyToken } = getState().dashboard;
+    const params = qs.stringify({
+      company_token: companyToken,
+    });
+    const response = await fetch(`${API_URL}/devices?${params}`);
     const records = await response.json();
     const devices: Device[] = records.map((record: Object) => ({ id: record.device_id, name: record.device_model }));
     dispatch(setDevices(devices));
