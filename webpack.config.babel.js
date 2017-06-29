@@ -31,7 +31,7 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, './build'),
     publicPath: '/',
-    filename: isProduction ? '[name].js' : 'app.bundle.js',
+    filename: isProduction ? '[name]-[hash].js' : 'app.bundle.js',
     chunkFilename: '[id].[chunkhash].js',
   },
   resolve: {
