@@ -12,6 +12,8 @@ import 'colors';
 import opn from 'opn';
 const app = express();
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 process.on('uncaughtException', function (error) {
   console.error('Uncaught error : ', error);
 });
@@ -19,33 +21,39 @@ process.on('uncaughtException', function (error) {
 (async function () {
   app.disable('etag');
   app.use(compress());
-  app.use(express.static('./src/client'));
+  if (isProduction) {
+    app.use(express.static('./build'));
+  } else {
+    app.use(express.static('./src/client'));
+  }
   app.use(bodyParser.json());
 
   await initializeDatabase();
   require('./src/server/routes.js')(app);
 
-  const compiler = webpack(webpackConfig);
+  if (!isProduction) {
+    console.info('adding webpack');
+    const compiler = webpack(webpackConfig);
 
-  const middleware = [
-    webpackDevMiddleware(compiler, {
-      publicPath: '/', // Same as `output.publicPath` in most cases.
-      index: 'index.html',
-      hot: true,
-      contentBase: path.join(__dirname, 'src', 'client'),
-      stats: {
-        colors: true,
-      },
-    }),
-    webpackHotMiddleware(compiler, {
-      log: console.log, // eslint-disable-line no-console
-      heartbeat: 2000,
-      path: '/__webpack_hmr',
-    }),
-    historyFallback(),
-  ];
+    const middleware = [
+      webpackDevMiddleware(compiler, {
+        publicPath: '/', // Same as `output.publicPath` in most cases.
+        contentBase: path.join(__dirname, 'src', 'client'),
+        hot: true,
+        stats: {
+          colors: true,
+        },
+      }),
+      webpackHotMiddleware(compiler, {
+        log: console.log, // eslint-disable-line no-console
+        heartbeat: 2000,
+        path: '/__webpack_hmr',
+      }),
+      historyFallback(),
+    ];
 
-  app.use(middleware);
+    app.use(middleware);
+  }
 
   const server = app.listen(process.env.PORT || 9000, function () {
     const port = server.address().port;

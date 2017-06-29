@@ -8,7 +8,7 @@
     "build": "webpack",
     "start": "babel-node --presets='node6' server.js",
     "server": "babel-node --presets='node6' server.js",
-    "heroku-postbuild": "webpack -p --progress",
+    "heroku-postbuild": "rm -rf build/ && webpack -p --progress",
     "migrate": "babel-node --presets='node6' ./src/server/database/migrate.js"
   },
   "engines": {
@@ -73,6 +73,7 @@
     "file-loader": "^0.11.1",
     "flow-bin": "^0.48.0",
     "flow-typed": "^2.1.2",
+    "html-webpack-plugin": "^2.29.0",
     "postcss-cssnext": "^2.9.0",
     "postcss-each": "^0.9.3",
     "postcss-import": "^9.1.0",
