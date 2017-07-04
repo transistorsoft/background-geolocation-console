@@ -10,7 +10,7 @@ export default async function initializeDatabase () {
     console.log('Unable to connect to the database:', err);
   }
   try {
-    await LocationModel.sync({ alter: true });
+    // await LocationModel.sync({ alter: false });
   } catch (err) {
     console.log('Unable to sync database:', err);
   }
