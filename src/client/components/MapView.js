@@ -537,7 +537,7 @@ const selectedLocationSelector = createSelector(
 
 const nthItem = function (n: number) {
   return function (candidate: Location, index: number) {
-    return candidate.geofence || index % n === 0;
+    return candidate.event || index % n === 0;
   };
 };
 const filteredLocationSelector = createSelector(
