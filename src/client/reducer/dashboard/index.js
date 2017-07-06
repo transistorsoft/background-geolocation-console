@@ -42,6 +42,7 @@ export type Location = {|
 |};
 
 export type DashboardState = {|
+  companyToken: string,
   activeTab: Tab,
   isLoading: boolean,
   hasData: boolean,
@@ -137,6 +138,11 @@ type SetActiveTabAction = {|
   type: 'dashboard/SET_ACTIVE_TAB',
   tab: Tab,
 |};
+
+type SetCompanyTokenAction = {|
+  type: 'dashboard/SET_COMPANY_TOKEN',
+  value: string,
+|};
 // Combining Actions
 
 type Action =
@@ -156,7 +162,8 @@ type Action =
   | SetDeviceAction
   | SetSelectedLocationAction
   | ApplyExistingSettinsAction
-  | SetActiveTabAction;
+  | SetActiveTabAction
+  | SetCompanyTokenAction;
 
 type GetState = () => GlobalState;
 type Dispatch = (action: Action | ThunkAction) => Promise<void>; // eslint-disable-line no-use-before-define
@@ -287,6 +294,13 @@ export function setActiveTab (tab: Tab): SetActiveTabAction {
     tab: tab,
   };
 }
+
+export function setCompanyToken (value: string): SetCompanyTokenAction {
+  return {
+    type: 'dashboard/SET_COMPANY_TOKEN',
+    value: value,
+  };
+}
 // ------------------------------------
 // Thunk Actions
 // ------------------------------------
@@ -296,7 +310,9 @@ export function loadInitialData (): ThunkAction {
       console.error('extra call after everything is set up!');
       return;
     }
-    const existingSettings = getSettings();
+    const locationHash = (location.hash || '').substring(1);
+    await dispatch(setCompanyToken(locationHash));
+    const existingSettings = getSettings(getState().dashboard.companyToken);
     await dispatch(applyExistingSettings(existingSettings));
     await dispatch(setHasData(false));
     await dispatch(reload());
@@ -321,7 +337,11 @@ export function reload (): ThunkAction {
 
 export function loadDevices (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const response = await fetch(`${API_URL}/devices`);
+    const { companyToken } = getState().dashboard;
+    const params = qs.stringify({
+      company_token: companyToken,
+    });
+    const response = await fetch(`${API_URL}/devices?${params}`);
     const records = await response.json();
     const devices: Device[] = records.map((record: Object) => ({ id: record.device_id, name: record.device_model }));
     dispatch(setDevices(devices));
@@ -330,8 +350,9 @@ export function loadDevices (): ThunkAction {
 
 export function loadLocations (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const { deviceId, startDate, endDate } = getState().dashboard;
+    const { deviceId, companyToken, startDate, endDate } = getState().dashboard;
     const params = qs.stringify({
+      company_token: companyToken,
       device_id: deviceId,
       start_date: startDate.toISOString(),
       end_date: endDate.toISOString(),
@@ -344,10 +365,11 @@ export function loadLocations (): ThunkAction {
 
 export function loadCurrentLocation (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const { deviceId } = getState().dashboard;
+    const { deviceId, companyToken } = getState().dashboard;
     if (deviceId) {
       const params = qs.stringify({
         device_id: deviceId,
+        company_token: companyToken,
       });
       const response = await fetch(`${API_URL}/locations/latest?${params}`);
       const currentLocation = await response.json();
@@ -361,14 +383,14 @@ export function loadCurrentLocation (): ThunkAction {
 export function changeStartDate (value: Date) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setStartDate(value));
-    setSettings({ startDate: value });
+    setSettings(getState().dashboard.companyToken, { startDate: value });
     await dispatch(reload());
   };
 }
 export function changeEndDate (value: Date) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setEndDate(value));
-    setSettings({ endDate: value });
+    setSettings(getState().dashboard.companyToken, { endDate: value });
     await dispatch(reload());
   };
 }
@@ -376,7 +398,7 @@ export function changeEndDate (value: Date) {
 export function changeDeviceId (value: string) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setDevice(value));
-    setSettings({ deviceId: value });
+    setSettings(getState().dashboard.companyToken, { deviceId: value });
     await dispatch(reload());
   };
 }
@@ -384,28 +406,28 @@ export function changeDeviceId (value: string) {
 export function changeIsWatching (value: boolean) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setIsWatching(value));
-    setSettings({ isWatching: value });
+    setSettings(getState().dashboard.companyToken, { isWatching: value });
   };
 }
 
 export function changeShowMarkers (value: boolean) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setShowMarkers(value));
-    setSettings({ showMarkers: value });
+    setSettings(getState().dashboard.companyToken, { showMarkers: value });
   };
 }
 
 export function changeShowPolyline (value: boolean) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setShowPolyline(value));
-    setSettings({ showPolyline: value });
+    setSettings(getState().dashboard.companyToken, { showPolyline: value });
   };
 }
 
 export function changeShowGeofenceHits (value: boolean) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setShowGeofenceHits(value));
-    setSettings({ showGeofenceHits: value });
+    setSettings(getState().dashboard.companyToken, { showGeofenceHits: value });
   };
 }
 
@@ -419,7 +441,7 @@ export function clickMarker (locationId: string) {
 export function changeActiveTab (tab: Tab) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setActiveTab(tab));
-    setSettings({ activeTab: tab });
+    setSettings(getState().dashboard.companyToken, { activeTab: tab });
     changeTabBus.emit({ tab });
   };
 }
@@ -531,6 +553,9 @@ const applyExistingSettingsHandler = function (
 const setActiveTabHandler = function (state: DashboardState, action: SetActiveTabAction) {
   return cloneState(state, { activeTab: action.tab });
 };
+const setCompanyTokenHandler = function (state: DashboardState, action: SetCompanyTokenAction) {
+  return cloneState(state, { companyToken: action.value });
+};
 
 // ------------------------------------
 // Initial State
@@ -550,6 +575,7 @@ const getEndDate = function () {
 };
 
 const initialState: DashboardState = {
+  companyToken: '',
   activeTab: 'map',
   devices: [],
   deviceId: null,
@@ -606,6 +632,8 @@ export default function spotsReducer (state: DashboardState = initialState, acti
       return applyExistingSettingsHandler(state, action);
     case 'dashboard/SET_ACTIVE_TAB':
       return setActiveTabHandler(state, action);
+    case 'dashboard/SET_COMPANY_TOKEN':
+      return setCompanyTokenHandler(state, action);
     default:
       (action: empty); // eslint-disable-line no-unused-expressions
       return state;

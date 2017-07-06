@@ -5,6 +5,7 @@ const LocationModel = definedSequelizeDb.define(
   'locations',
   {
     id: { type: Sequelize.INTEGER, autoIncrement: true, primaryKey: true },
+    company_token: { type: Sequelize.TEXT },
     uuid: { type: Sequelize.TEXT },
     device_id: { type: Sequelize.TEXT },
     device_model: { type: Sequelize.TEXT },
@@ -29,6 +30,20 @@ const LocationModel = definedSequelizeDb.define(
   },
   {
     timestamps: false,
+    indexes: [
+      {
+        fields: ['recorded_at'],
+      },
+      {
+        fields: ['company_token'],
+      },
+      {
+        fields: ['device_id'],
+      },
+      {
+        fields: ['company_token', 'device_id', 'recorded_at'],
+      },
+    ],
   }
 );
 

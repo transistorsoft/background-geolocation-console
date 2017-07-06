@@ -1,4 +1,7 @@
 import LocationModel from '../database/LocationModel';
+import { literal } from 'sequelize';
+
+const filterByCompany = !!process.env.SHARED_DASHBOARD;
 
 function hydrate (record) {
   if (record.geofence) {
@@ -18,13 +21,14 @@ export async function getLocations (params) {
   if (params.start_date && params.end_date) {
     whereConditions.recorded_at = { $between: [new Date(params.start_date), new Date(params.end_date)] };
   }
-  if (params.device_id && params.device_id !== '') {
-    whereConditions.device_id = params.device_id;
+  whereConditions.device_id = params.device_id || '';
+  if (filterByCompany) {
+    whereConditions.company_token = params.company_token;
   }
 
   const rows = await LocationModel.findAll({
     where: whereConditions,
-    order: 'recorded_at DESC',
+    order: literal('recorded_at DESC'),
   });
   const locations = rows.map(hydrate);
   return locations;
@@ -34,9 +38,12 @@ export async function getLatestLocation (params) {
   var whereConditions = {
     device_id: params.device_id,
   };
+  if (filterByCompany) {
+    whereConditions.company_token = params.company_token;
+  }
   const row = await LocationModel.findOne({
     where: whereConditions,
-    order: 'recorded_at DESC',
+    order: literal('recorded_at DESC'),
   });
   const result = row ? hydrate(row) : null;
   return result;
@@ -61,6 +68,7 @@ export async function createLocation (params) {
 
     await LocationModel.create({
       uuid: location.uuid,
+      company_token: params.company_token || null,
       device_id: uuid,
       device_model: model,
       latitude: coords.latitude,
@@ -92,6 +100,9 @@ export async function deleteLocations (params) {
   }
   if (params && params.start_date && params.end_date) {
     whereConditions.recorded_at = { $between: [params.start_date, params.end_date] };
+  }
+  if (filterByCompany) {
+    whereConditions.company_token = params.company_token;
   }
 
   if (!Object.keys(whereConditions).length) {

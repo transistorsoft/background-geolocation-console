@@ -12,8 +12,9 @@ export type StoredSettings = {|
   showPolyline: boolean,
   showMarkers: boolean,
 |};
-export function getSettings (): StoredSettings {
-  const encodedSettings = localStorage.getItem('settings');
+const getLocalStorageKey = (key: string) => (key ? `settings#${key}` : 'settings');
+export function getSettings (key: string): StoredSettings {
+  const encodedSettings = localStorage.getItem(getLocalStorageKey(key));
   if (encodedSettings) {
     const parsed = JSON.parse(encodedSettings);
     // convert start/endDate to Date if they are present
@@ -28,8 +29,8 @@ export function getSettings (): StoredSettings {
     return JSON.parse('{}');
   }
 }
-export function setSettings (settings: $Shape<StoredSettings>) {
-  const existingSettings = getSettings();
+export function setSettings (key: string, settings: $Shape<StoredSettings>) {
+  const existingSettings = getSettings(key);
   const newSettings = cloneState(existingSettings, settings);
   // convert start/endDate to string if they are present
   const stringifiedNewSettings = _.omitBy(
@@ -39,5 +40,5 @@ export function setSettings (settings: $Shape<StoredSettings>) {
     }),
     _.isUndefined
   );
-  localStorage.setItem('settings', JSON.stringify(stringifiedNewSettings));
+  localStorage.setItem(getLocalStorageKey(key), JSON.stringify(stringifiedNewSettings));
 }

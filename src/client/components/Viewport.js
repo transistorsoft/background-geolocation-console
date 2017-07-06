@@ -11,6 +11,7 @@ import MapView from './MapView';
 import ListView from './ListView';
 import LoadingIndicator from './LoadingIndicator';
 import WatchModeWarning from './WatchModeWarning';
+import TooManyPointsWarning from './TooManyPointsWarning';
 import { connect } from 'react-redux';
 import { type GlobalState } from '~/reducer/state';
 import { changeActiveTab, type Tab as TabType } from '~/reducer/dashboard';
@@ -48,6 +49,7 @@ class Viewport extends Component {
         </Sidebar>
         <Panel className={Styles.workspace} bodyScroll={false}>
           <HeaderView />
+          <TooManyPointsWarning />
           <Tabs index={activeTabIndex} hideMode='display' onChange={this.changeActiveTabIndex} inverse>
             <Tab label='Map'>
               <MapView />

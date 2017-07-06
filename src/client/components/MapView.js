@@ -11,7 +11,7 @@ import { type GlobalState } from '~/reducer/state';
 import GoogleMap from 'google-map-react';
 
 import Styles from '../assets/styles/app.css';
-import { COLORS } from '../constants';
+import { COLORS, MAX_POINTS } from '~/constants';
 import { changeTabBus, type ChangeTabPayload, fitBoundsBus, type FitBoundsPayload } from '~/globalBus';
 
 const API_KEY = process.env.GMAP_API_KEY || 'AIzaSyA9j72oZA5SmsA8ugu57pqXwpxh9Sn4xuM';
@@ -535,10 +535,26 @@ const selectedLocationSelector = createSelector(
   ({ locations, selectedLocationId }: LocationArgs) => _.find(locations, { uuid: selectedLocationId })
 );
 
+const nthItem = function (n: number) {
+  return function (candidate: Location, index: number) {
+    return candidate.event || index % n === 0;
+  };
+};
+const filteredLocationSelector = createSelector(
+  [
+    (state: GlobalState) => ({
+      locations: state.dashboard.locations,
+      length: state.dashboard.locations.length,
+    }),
+  ],
+  ({ locations, length }: { locations: Location[], length: number }) =>
+    length < MAX_POINTS ? locations : locations.filter(nthItem(Math.floor(length / MAX_POINTS) + 1))
+);
+
 const mapStateToProps = function (state: GlobalState) {
   const { dashboard } = state;
   return {
-    locations: dashboard.locations,
+    locations: filteredLocationSelector(state),
     showMarkers: dashboard.showMarkers,
     showPolyline: dashboard.showPolyline,
     showGeofenceHits: dashboard.showGeofenceHits,
