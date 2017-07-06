@@ -8,5 +8,5 @@ import path from 'path';
 //    Sample pattern for postgresql connection url : postgres://<username>:<password>@<hostname>:<port>/<dbname>
 
 export default new Sequelize(
-  process.env.DB_CONNECTION_URL || { dialect: 'sqlite', storage: path.resolve(__dirname, 'background-geolocation.db') }
+  process.env.DATABASE_URL || { dialect: 'sqlite', storage: path.resolve(__dirname, 'background-geolocation.db') }
 );
