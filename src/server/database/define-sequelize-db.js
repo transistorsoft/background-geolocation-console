@@ -7,6 +7,7 @@ import path from 'path';
 //    Currently, only postgresql & sqlite dialect are supported
 //    Sample pattern for postgresql connection url : postgres://<username>:<password>@<hostname>:<port>/<dbname>
 
+console.info('db: ', process.env.DATABASE_URL);
 export default new Sequelize(
   process.env.DATABASE_URL || { dialect: 'sqlite', storage: path.resolve(__dirname, 'background-geolocation.db') }
 );
