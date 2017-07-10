@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { getDevices } from './models/Device.js';
-import { getLocations, getLatestLocation, createLocation, deleteLocations } from './models/Location.js';
+import { getLocations, getLatestLocation, createLocation, deleteLocations, getStats } from './models/Location.js';
 
 var Routes = function (app) {
   /**
@@ -11,6 +11,17 @@ var Routes = function (app) {
       console.log('GET /devices\n'.green);
       const devices = await getDevices(req.query);
       res.send(devices);
+    } catch (err) {
+      console.info('err: ', err);
+      res.status(500).send({ error: 'Something failed!' });
+    }
+  });
+
+  app.get('/stats', async function (req, res) {
+    try {
+      console.log('GET /stats\n'.green);
+      const stats = await getStats();
+      res.send(stats);
     } catch (err) {
       console.info('err: ', err);
       res.status(500).send({ error: 'Something failed!' });

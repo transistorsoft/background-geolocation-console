@@ -16,6 +16,17 @@ function hydrate (record) {
   return record;
 }
 
+export async function getStats () {
+  const minDate = await LocationModel.min('created_at');
+  const maxDate = await LocationModel.max('created_at');
+  const total = await LocationModel.count();
+  return {
+    minDate,
+    maxDate,
+    total,
+  };
+}
+
 export async function getLocations (params) {
   var whereConditions = {};
   if (params.start_date && params.end_date) {
