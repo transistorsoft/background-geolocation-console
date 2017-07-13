@@ -60,6 +60,12 @@ export async function getLatestLocation (params) {
   return result;
 }
 export async function createLocation (params) {
+  if (Array.isArray(params)) {
+    for (let location of params) {
+      await createLocation(location);
+    }
+    return;
+  }
   const location = params.location;
   const device = params.device || { model: 'UNKNOWN' };
 
