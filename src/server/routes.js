@@ -1,8 +1,23 @@
 import fs from 'fs';
-import { getDevices } from './models/Device.js';
-import { getLocations, getLatestLocation, createLocation, deleteLocations, getStats } from './models/Location.js';
+import { getDevices } from './models/Device';
+import { getCompanyTokens } from './models/CompanyToken';
+import { getLocations, getLatestLocation, createLocation, deleteLocations, getStats } from './models/Location';
 
 var Routes = function (app) {
+  /**
+  * GET /company_tokens
+  */
+  app.get('/company_tokens', async function (req, res) {
+    try {
+      console.log('GET /company_tokens\n'.green);
+      const companyTokens = await getCompanyTokens(req.query);
+      res.send(companyTokens);
+    } catch (err) {
+      console.info('err: ', err);
+      res.status(500).send({ error: 'Something failed!' });
+    }
+  });
+
   /**
   * GET /devices
   */

@@ -8,6 +8,7 @@ export type StoredSettings = {|
   endDate: Date,
   isWatching: boolean,
   deviceId: ?string,
+  companyToken: string,
   showGeofenceHits: boolean,
   showPolyline: boolean,
   showMarkers: boolean,

@@ -12,6 +12,10 @@ export type Device = {|
   id: string,
   name: string,
 |};
+export type CompanyToken = {|
+  id: string,
+  name: string,
+|};
 export type Tab = 'map' | 'list';
 export type Location = {|
   device_id: string,
@@ -42,6 +46,7 @@ export type Location = {|
 |};
 
 export type DashboardState = {|
+  companyTokenFromSearch: string,
   companyToken: string,
   activeTab: Tab,
   isLoading: boolean,
@@ -53,6 +58,7 @@ export type DashboardState = {|
   showPolyline: boolean,
   showGeofenceHits: boolean,
   devices: Device[],
+  companyTokens: CompanyToken[],
   locations: Location[],
   selectedLocationId: ?string,
   currentLocation: ?Location,
@@ -60,7 +66,10 @@ export type DashboardState = {|
 |};
 
 // Action Types
-
+type SetCompanyTokensAction = {|
+  type: 'dashboard/SET_COMPANY_TOKENS',
+  companyTokens: CompanyToken[],
+|};
 type SetDevicesAction = {|
   type: 'dashboard/SET_DEVICES',
   devices: Device[],
@@ -92,6 +101,10 @@ type SetEndDateAction = {|
 
 type AutoselectOrInvalidateSelectedDeviceAction = {|
   type: 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_DEVICE',
+|};
+
+type AutoselectOrInvalidateSelectedCompanyTokenAction = {|
+  type: 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_COMPANY_TOKEN',
 |};
 
 type InvalidateSelectedLocationAction = {|
@@ -143,14 +156,21 @@ type SetCompanyTokenAction = {|
   type: 'dashboard/SET_COMPANY_TOKEN',
   value: string,
 |};
+
+type SetCompanyTokenFromSearchAction = {|
+  type: 'dashboard/SET_COMPANY_TOKEN_FROM_SEARCH',
+  value: string,
+|};
 // Combining Actions
 
 type Action =
+  | SetCompanyTokensAction
   | SetDevicesAction
   | SetLocationsAction
   | SetIsLoadingAction
   | SetHasDataAction
   | AutoselectOrInvalidateSelectedDeviceAction
+  | AutoselectOrInvalidateSelectedCompanyTokenAction
   | InvalidateSelectedLocationAction
   | SetShowMarkersAction
   | SetShowPolylineAction
@@ -163,7 +183,8 @@ type Action =
   | SetSelectedLocationAction
   | ApplyExistingSettinsAction
   | SetActiveTabAction
-  | SetCompanyTokenAction;
+  | SetCompanyTokenAction
+  | SetCompanyTokenFromSearchAction;
 
 type GetState = () => GlobalState;
 type Dispatch = (action: Action | ThunkAction) => Promise<void>; // eslint-disable-line no-use-before-define
@@ -173,6 +194,12 @@ type ThunkAction = (dispatch: Dispatch, getState: GetState) => Promise<void>;
 // Action Creators
 // ------------------------------------
 
+export function setCompanyTokens (companyTokens: CompanyToken[]): SetCompanyTokensAction {
+  return {
+    type: 'dashboard/SET_COMPANY_TOKENS',
+    companyTokens: companyTokens,
+  };
+}
 export function setDevices (devices: Device[]): SetDevicesAction {
   return {
     type: 'dashboard/SET_DEVICES',
@@ -198,6 +225,12 @@ export function setIsLoading (status: boolean): SetIsLoadingAction {
   return {
     type: 'dashboard/SET_IS_LOADING',
     status: status,
+  };
+}
+
+export function autoselectOrInvalidateSelectedCompanyToken (): AutoselectOrInvalidateSelectedCompanyTokenAction {
+  return {
+    type: 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_COMPANY_TOKEN',
   };
 }
 
@@ -301,6 +334,13 @@ export function setCompanyToken (value: string): SetCompanyTokenAction {
     value: value,
   };
 }
+
+export function setCompanyTokenFromSearch (value: string): SetCompanyTokenFromSearchAction {
+  return {
+    type: 'dashboard/SET_COMPANY_TOKEN_FROM_SEARCH',
+    value: value,
+  };
+}
 // ------------------------------------
 // Thunk Actions
 // ------------------------------------
@@ -311,8 +351,8 @@ export function loadInitialData (): ThunkAction {
       return;
     }
     const locationHash = (location.hash || '').substring(1);
-    await dispatch(setCompanyToken(locationHash));
-    const existingSettings = getSettings(getState().dashboard.companyToken);
+    await dispatch(setCompanyTokenFromSearch(locationHash));
+    const existingSettings = getSettings(getState().dashboard.companyTokenFromSearch);
     await dispatch(applyExistingSettings(existingSettings));
     await dispatch(setHasData(false));
     await dispatch(reload());
@@ -325,6 +365,8 @@ export function loadInitialData (): ThunkAction {
 export function reload (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setIsLoading(true));
+    await dispatch(loadCompanyTokens());
+    await dispatch(autoselectOrInvalidateSelectedCompanyToken());
     await dispatch(loadDevices());
     await dispatch(autoselectOrInvalidateSelectedDevice());
     await dispatch(loadLocations());
@@ -332,6 +374,22 @@ export function reload (): ThunkAction {
     await dispatch(invalidateSelectedLocation());
     await dispatch(setIsLoading(false));
     fitBoundsBus.emit({});
+  };
+}
+
+export function loadCompanyTokens (): ThunkAction {
+  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+    const { companyTokenFromSearch } = getState().dashboard;
+    const params = qs.stringify({
+      company_token: companyTokenFromSearch,
+    });
+    const response = await fetch(`${API_URL}/company_tokens?${params}`);
+    const records = await response.json();
+    const companyTokens: CompanyToken[] = records.map((companyToken: { company_token: string }) => ({
+      id: companyToken.company_token,
+      name: companyToken.company_token,
+    }));
+    dispatch(setCompanyTokens(companyTokens));
   };
 }
 
@@ -383,22 +441,29 @@ export function loadCurrentLocation (): ThunkAction {
 export function changeStartDate (value: Date) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setStartDate(value));
-    setSettings(getState().dashboard.companyToken, { startDate: value });
+    setSettings(getState().dashboard.companyTokenFromSearch, { startDate: value });
     await dispatch(reload());
   };
 }
 export function changeEndDate (value: Date) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setEndDate(value));
-    setSettings(getState().dashboard.companyToken, { endDate: value });
+    setSettings(getState().dashboard.companyTokenFromSearch, { endDate: value });
     await dispatch(reload());
   };
 }
 
+export function changeCompanyToken (value: string) {
+  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+    await dispatch(setCompanyToken(value));
+    setSettings(getState().dashboard.companyTokenFromSearch, { companyToken: value });
+    await dispatch(reload());
+  };
+}
 export function changeDeviceId (value: string) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setDevice(value));
-    setSettings(getState().dashboard.companyToken, { deviceId: value });
+    setSettings(getState().dashboard.companyTokenFromSearch, { deviceId: value });
     await dispatch(reload());
   };
 }
@@ -406,28 +471,28 @@ export function changeDeviceId (value: string) {
 export function changeIsWatching (value: boolean) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setIsWatching(value));
-    setSettings(getState().dashboard.companyToken, { isWatching: value });
+    setSettings(getState().dashboard.companyTokenFromSearch, { isWatching: value });
   };
 }
 
 export function changeShowMarkers (value: boolean) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setShowMarkers(value));
-    setSettings(getState().dashboard.companyToken, { showMarkers: value });
+    setSettings(getState().dashboard.companyTokenFromSearch, { showMarkers: value });
   };
 }
 
 export function changeShowPolyline (value: boolean) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setShowPolyline(value));
-    setSettings(getState().dashboard.companyToken, { showPolyline: value });
+    setSettings(getState().dashboard.companyTokenFromSearch, { showPolyline: value });
   };
 }
 
 export function changeShowGeofenceHits (value: boolean) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setShowGeofenceHits(value));
-    setSettings(getState().dashboard.companyToken, { showGeofenceHits: value });
+    setSettings(getState().dashboard.companyTokenFromSearch, { showGeofenceHits: value });
   };
 }
 
@@ -441,13 +506,17 @@ export function clickMarker (locationId: string) {
 export function changeActiveTab (tab: Tab) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setActiveTab(tab));
-    setSettings(getState().dashboard.companyToken, { activeTab: tab });
+    setSettings(getState().dashboard.companyTokenFromSearch, { activeTab: tab });
     changeTabBus.emit({ tab });
   };
 }
 // ------------------------------------
 // Action Handlers
 // ------------------------------------
+
+const setCompanyTokensHandler = function (state: DashboardState, action: SetCompanyTokensAction): DashboardState {
+  return cloneState(state, { companyTokens: action.companyTokens });
+};
 
 const setDevicesHandler = function (state: DashboardState, action: SetDevicesAction): DashboardState {
   return cloneState(state, { devices: action.devices });
@@ -467,6 +536,27 @@ const setLocationsHandler = function (state: DashboardState, action: SetLocation
   } else {
     return cloneState(state, { locations: action.locations });
   }
+};
+
+const autoselectOrInvalidateSelectedCompanyTokenHandler = function (
+  state: DashboardState,
+  action: AutoselectOrInvalidateSelectedCompanyTokenAction
+): DashboardState {
+  if (state.companyTokens.length === 0) {
+    return cloneState(state, { companyToken: 'bogus' });
+  }
+  if (state.companyTokens.length === 1) {
+    return cloneState(state, { companyToken: state.companyTokens[0].id });
+  }
+  if (state.companyTokens.length > 1) {
+    const existingCompanyToken = _.find(state.companyTokens, { id: state.companyToken });
+    if (!existingCompanyToken) {
+      return cloneState(state, { companyToken: state.companyTokens[0].id });
+    } else {
+      return state;
+    }
+  }
+  return state;
 };
 
 const autoselectOrInvalidateSelectedDeviceHandler = function (
@@ -556,6 +646,9 @@ const setActiveTabHandler = function (state: DashboardState, action: SetActiveTa
 const setCompanyTokenHandler = function (state: DashboardState, action: SetCompanyTokenAction) {
   return cloneState(state, { companyToken: action.value });
 };
+const setCompanyTokenFromSearchHandler = function (state: DashboardState, action: SetCompanyTokenFromSearchAction) {
+  return cloneState(state, { companyTokenFromSearch: action.value });
+};
 
 // ------------------------------------
 // Initial State
@@ -575,7 +668,9 @@ const getEndDate = function () {
 };
 
 const initialState: DashboardState = {
+  companyTokenFromSearch: '',
   companyToken: '',
+  companyTokens: [],
   activeTab: 'map',
   devices: [],
   deviceId: null,
@@ -598,6 +693,8 @@ const initialState: DashboardState = {
 export default function spotsReducer (state: DashboardState = initialState, action: Action): DashboardState {
   console.info('v2');
   switch (action.type) {
+    case 'dashboard/SET_COMPANY_TOKENS':
+      return setCompanyTokensHandler(state, action);
     case 'dashboard/SET_DEVICES':
       return setDevicesHandler(state, action);
     case 'dashboard/SET_LOCATIONS':
@@ -608,6 +705,8 @@ export default function spotsReducer (state: DashboardState = initialState, acti
       return setHasDataHandler(state, action);
     case 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_DEVICE':
       return autoselectOrInvalidateSelectedDeviceHandler(state, action);
+    case 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_COMPANY_TOKEN':
+      return autoselectOrInvalidateSelectedCompanyTokenHandler(state, action);
     case 'dashboard/INVALIDATE_SELECTED_LOCATION':
       return invalidateSelectedLocationHandler(state, action);
     case 'dashboard/SET_SHOW_MARKERS':
@@ -634,6 +733,8 @@ export default function spotsReducer (state: DashboardState = initialState, acti
       return setActiveTabHandler(state, action);
     case 'dashboard/SET_COMPANY_TOKEN':
       return setCompanyTokenHandler(state, action);
+    case 'dashboard/SET_COMPANY_TOKEN_FROM_SEARCH':
+      return setCompanyTokenFromSearchHandler(state, action);
     default:
       (action: empty); // eslint-disable-line no-unused-expressions
       return state;

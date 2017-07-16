@@ -3,13 +3,16 @@ import React from 'react';
 import formatDate from '~/utils/formatDate';
 
 import DeviceField from './DeviceField';
+import CompanyTokenField from './CompanyTokenField';
 
 import { connect } from 'react-redux';
 import { type GlobalState } from '~/reducer/state';
 import {
   type Device,
+  type CompanyToken,
   reload,
   changeDeviceId,
+  changeCompanyToken,
   changeStartDate,
   changeEndDate,
   changeIsWatching,
@@ -26,6 +29,8 @@ type StateProps = {|
   hasData: boolean,
   devices: { value: string, label: string }[],
   deviceId: string,
+  companyTokens: { value: string, label: string }[],
+  companyToken: string,
   startDate: Date,
   endDate: Date,
   isWatching: boolean,
@@ -36,6 +41,7 @@ type StateProps = {|
 type DispatchProps = {|
   onReload: () => any,
   onChangeDeviceId: (deviceId: string) => any,
+  onChangeCompanyToken: (companyToken: string) => any,
   onChangeStartDate: (date: Date) => any,
   onChangeEndDate: (date: Date) => any,
   onChangeIsWatching: (value: boolean) => any,
@@ -48,6 +54,8 @@ const FilterView = function ({
   hasData,
   devices,
   deviceId,
+  companyTokens,
+  companyToken,
   startDate,
   endDate,
   isWatching,
@@ -56,6 +64,7 @@ const FilterView = function ({
   showMarkers,
   onReload,
   onChangeDeviceId,
+  onChangeCompanyToken,
   onChangeStartDate,
   onChangeEndDate,
   onChangeIsWatching,
@@ -70,6 +79,7 @@ const FilterView = function ({
         <Card style={{ marginBottom: '10px' }}>
           <div className={Styles.content}>
             <h3>Locations</h3>
+            <CompanyTokenField onChange={onChangeCompanyToken} source={companyTokens} value={companyToken} />
             <DeviceField onChange={onChangeDeviceId} source={devices} hasData={hasData} value={deviceId} />
             <div style={{ display: 'flex', flexDirection: 'row' }}>
               <DatePicker
@@ -101,7 +111,6 @@ const FilterView = function ({
               <label style={{ flex: 1 }}>Watch mode</label>
               <Switch checked={isWatching} onChange={onChangeIsWatching} style={{ flex: 1 }} />
             </div>
-
           </div>
         </Card>
         <Card>
@@ -110,7 +119,6 @@ const FilterView = function ({
             <Checkbox checked={showMarkers} label='Show Markers' onChange={onChangeShowMarkers} />
             <Checkbox checked={showPolyline} label='Show Polyline' onChange={onChangeShowPolyline} />
             <Checkbox checked={showGeofenceHits} label='Show Geofences' onChange={onChangeShowGeofenceHits} />
-
           </div>
         </Card>
       </div>
@@ -121,9 +129,14 @@ const FilterView = function ({
 const mapStateToProps = function (state: GlobalState): StateProps {
   return {
     deviceId: state.dashboard.deviceId,
+    companyToken: state.dashboard.companyToken,
     startDate: state.dashboard.startDate,
     endDate: state.dashboard.endDate,
     devices: state.dashboard.devices.map((device: Device) => ({ value: device.id, label: device.name })),
+    companyTokens: state.dashboard.companyTokens.map((companyToken: CompanyToken) => ({
+      value: companyToken.id,
+      label: companyToken.name,
+    })),
     hasData: state.dashboard.hasData,
     isWatching: state.dashboard.isWatching,
     showGeofenceHits: state.dashboard.showGeofenceHits,
@@ -135,6 +148,7 @@ const mapStateToProps = function (state: GlobalState): StateProps {
 const mapDispatchToProps: DispatchProps = {
   onReload: reload,
   onChangeDeviceId: changeDeviceId,
+  onChangeCompanyToken: changeCompanyToken,
   onChangeStartDate: changeStartDate,
   onChangeEndDate: changeEndDate,
   onChangeIsWatching: changeIsWatching,
