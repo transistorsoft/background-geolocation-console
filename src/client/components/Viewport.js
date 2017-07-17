@@ -69,6 +69,9 @@ export default class Viewport extends Component {
           <Panel className={Styles.workspace} bodyScroll={false} scrollY={false}>
             <HeaderView />
             <Tabs index={this.state.activeTab} hideMode="display" onChange={this.handleTabChange.bind(this)} className={Styles.cabeceraTabla}>
+              <Tab label="Verificadores" className={Styles.cabeceraTabla}>
+                <h1>Prueba</h1>
+              </Tab>
               <Tab label="Mapa" className={Styles.cabeceraTabla}>
                 <MapView />
               </Tab>
