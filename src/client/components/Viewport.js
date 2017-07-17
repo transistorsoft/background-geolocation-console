@@ -25,6 +25,7 @@ import HeaderView from './HeaderView';
 import FilterView from './FilterView';
 import LocationView from './LocationView';
 import MapView from "./MapView";
+import MapView2 from "./MapView2";
 import ListView from "./ListView";
 import App from "./App";
 
@@ -70,20 +71,7 @@ export default class Viewport extends Component {
             <HeaderView />
             <Tabs index={this.state.activeTab} hideMode="display" onChange={this.handleTabChange.bind(this)}>
               <Tab label="Verificadores">
-                  <div id="map-canvas-verificador" class="map" data-bind="visible: isGoogleMapsInitialized"></div>
-
-                  <div id="no-map" data-bind="invisible: isGoogleMapsInitialized">
-                      <h3>Se require activar la ubicación y conexión a internet para mostrar el mapa.</h3>
-                  </div>
-                  <div id="map-search-wrap" class="map-tools" data-bind="visible: isGoogleMapsInitialized, invisible: hideSearch">
-                      <div data-bind="events: { keyup: checkEnter }">
-                          
-                          <button id="map-navigate-home" class="map-tools-button home" data-bind="click: onNavigateHome"></button>
-                          <input id="map-address" type="search" class="map-tools-input" data-bind="value: address" placeholder="Buscar dirección..." />
-                          <button id="map-search" class="map-tools-button search" data-bind="click: onSearchAddress"></button>
-                          
-                      </div>
-                  </div>
+                <MapView2 />  
               </Tab>
               <Tab label="Mapa" className={Styles.cabeceraTabla}>
                 <MapView />
