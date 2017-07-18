@@ -4,7 +4,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const isProduction = process.env.NODE_ENV === 'production';
 const htmlWebpackPlugin = new HtmlWebpackPlugin({
-  template: 'index.html',
+  template: 'index.ejs',
   inject: true,
   production: isProduction,
   minify: isProduction && {
@@ -19,6 +19,7 @@ const htmlWebpackPlugin = new HtmlWebpackPlugin({
     minifyCSS: true,
     minifyURLs: true,
   },
+  GOOGLE_ANALYTICS_ID: process.env.GOOGLE_ANALYTICS_ID,
 });
 
 module.exports = {
@@ -26,12 +27,12 @@ module.exports = {
   devtool: 'source-map',
   target: 'web',
   entry: isProduction
-    ? ['./app.production.js']
-    : ['webpack-hot-middleware/client?path=/__webpack_hmr&timeout=20000', 'react-hot-loader/patch', './app.js'],
+    ? ['./main.js']
+    : ['webpack-hot-middleware/client?path=/__webpack_hmr&timeout=20000', 'react-hot-loader/patch', './main.js'],
   output: {
     path: path.resolve(__dirname, './build'),
     publicPath: '/',
-    filename: isProduction ? '[name]-[hash].js' : 'app.bundle.js',
+    filename: '[name]-[hash].js',
     chunkFilename: '[id].[chunkhash].js',
   },
   resolve: {
@@ -44,15 +45,13 @@ module.exports = {
         exclude: /node_modules/,
         loader: 'babel-loader',
       },
-      isProduction
-        ? null
-        : {
-          test: /\.html$/,
-          loader: 'file-loader?name=[name].[ext]',
-        },
       {
         test: /\.(jpg|png|svg)$/,
         loader: 'file-loader', // or 'url'
+      },
+      {
+        test: /\.ejs$/,
+        loader: 'ejs-loader', // or 'url'
       },
       {
         test: /\.css$/,
@@ -97,5 +96,6 @@ module.exports = {
         'process.env.SHARED_DASHBOARD': !!process.env.SHARED_DASHBOARD || '',
       }),
       new webpack.HotModuleReplacementPlugin(),
+      htmlWebpackPlugin,
     ],
 };
