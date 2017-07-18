@@ -21,17 +21,14 @@ process.on('uncaughtException', function (error) {
 (async function () {
   app.disable('etag');
   app.use(compress());
-  if (isProduction) {
-    app.use(express.static('./build'));
-  } else {
-    app.use(express.static('./src/client'));
-  }
   app.use(bodyParser.json());
 
   await initializeDatabase();
   require('./src/server/routes.js')(app);
 
-  if (!isProduction) {
+  if (isProduction) {
+    app.use(express.static('./build'));
+  } else {
     console.info('adding webpack');
     const compiler = webpack(webpackConfig);
 
