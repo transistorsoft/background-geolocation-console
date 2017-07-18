@@ -19,6 +19,7 @@ const htmlWebpackPlugin = new HtmlWebpackPlugin({
     minifyCSS: true,
     minifyURLs: true,
   },
+  GOOGLE_ANALYTICS_ID: process.env.GOOGLE_ANALYTICS_ID,
 });
 
 module.exports = {
@@ -47,6 +48,10 @@ module.exports = {
       {
         test: /\.(jpg|png|svg)$/,
         loader: 'file-loader', // or 'url'
+      },
+      {
+        test: /\.ejs$/,
+        loader: 'ejs-loader', // or 'url'
       },
       {
         test: /\.css$/,
