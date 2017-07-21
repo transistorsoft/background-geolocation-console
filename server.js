@@ -2,7 +2,6 @@ import initializeDatabase from './src/server/database/initializeDatabase';
 import express from 'express';
 import bodyParser from 'body-parser';
 import path from 'path';
-import webpackConfig from './webpack.config.babel';
 import webpack from 'webpack';
 import historyFallback from 'connect-history-api-fallback';
 import webpackDevMiddleware from 'webpack-dev-middleware';
@@ -30,6 +29,7 @@ process.on('uncaughtException', function (error) {
     app.use(express.static('./build'));
   } else {
     console.info('adding webpack');
+    const webpackConfig = require('./webpack.config.babel');
     const compiler = webpack(webpackConfig);
 
     const middleware = [
