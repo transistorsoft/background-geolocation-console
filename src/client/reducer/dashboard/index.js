@@ -6,6 +6,7 @@ import _ from 'lodash';
 import qs from 'querystring';
 import { fitBoundsBus, scrollToRowBus, changeTabBus } from '~/globalBus';
 import { setSettings, getSettings, type StoredSettings } from '~/storage';
+import GA from '~/utils/GA';
 
 // Types
 export type Device = {|
@@ -409,6 +410,8 @@ export function loadDevices (): ThunkAction {
 export function loadLocations (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     const { deviceId, companyToken, startDate, endDate } = getState().dashboard;
+    GA.sendEvent('tracker', 'loadLocations', companyToken);
+
     const params = qs.stringify({
       company_token: companyToken,
       device_id: deviceId,
