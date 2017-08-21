@@ -351,9 +351,6 @@ export function loadInitialData (): ThunkAction {
       console.error('extra call after everything is set up!');
       return;
     }
-    const { companyToken } = getState().dashboard;
-    GA.sendEvent('tracker', 'load:' + companyToken);
-
     const locationHash = (location.hash || '').substring(1);
     await dispatch(setCompanyTokenFromSearch(locationHash));
     const existingSettings = getSettings(getState().dashboard.companyTokenFromSearch);
@@ -363,6 +360,7 @@ export function loadInitialData (): ThunkAction {
     await dispatch(setHasData(true));
     // set a timer as a side effect
     setTimeout(() => dispatch(reload()), 60 * 1000);
+    GA.sendEvent('tracker', 'load:' + locationHash);
   };
 }
 
