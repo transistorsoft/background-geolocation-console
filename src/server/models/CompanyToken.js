@@ -18,7 +18,7 @@ export async function getCompanyTokens (params) {
     where: whereConditions,
     attributes: ['company_token'],
     group: ['company_token'],
-    order: literal('company_token asc'),
+    order: literal('min(created_at) desc'),
   });
   return result;
 }
