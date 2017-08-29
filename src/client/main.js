@@ -7,24 +7,38 @@ import { Provider } from 'react-redux';
 import { loadInitialData } from '~/reducer/dashboard';
 
 import store from './store';
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 
-// just reload the app on hash change for now
-addEventListener('hashchange', () => location.reload());
+const locationHash = (location.hash || '').substring(1);
+if (locationHash) {
+  window.location = '/' + locationHash;
+}
 
 const container = document.querySelector('#app-container');
+
+const WrappedViewport = ({ match }) => {
+  store.dispatch(loadInitialData(match.params.token));
+  return <Viewport />;
+};
 
 const render = () => {
   ReactDOM.render(
     <AppContainer>
       <Provider store={store}>
-        <Viewport />
+        <Router>
+          <div>
+            <Switch>
+              <Route path='/:token' component={WrappedViewport} />
+              <Route path='/' component={WrappedViewport} />
+            </Switch>
+          </div>
+        </Router>
       </Provider>
     </AppContainer>,
     container
   );
 };
 
-store.dispatch(loadInitialData());
 render();
 
 if (module.hot) {

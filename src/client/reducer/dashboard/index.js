@@ -5,7 +5,7 @@ import cloneState from '~/utils/cloneState';
 import _ from 'lodash';
 import qs from 'querystring';
 import { fitBoundsBus, scrollToRowBus, changeTabBus } from '~/globalBus';
-import { setSettings, getSettings, type StoredSettings } from '~/storage';
+import { setSettings, getSettings, getUrlSettings, setUrlSettings, type StoredSettings } from '~/storage';
 import GA from '~/utils/GA';
 
 // Types
@@ -345,22 +345,23 @@ export function setCompanyTokenFromSearch (value: string): SetCompanyTokenFromSe
 // ------------------------------------
 // Thunk Actions
 // ------------------------------------
-export function loadInitialData (): ThunkAction {
+export function loadInitialData (id: string): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     if (getState().dashboard.hasData) {
       console.error('extra call after everything is set up!');
       return;
     }
-    const locationHash = (location.hash || '').substring(1);
-    await dispatch(setCompanyTokenFromSearch(locationHash));
+    await dispatch(setCompanyTokenFromSearch(id));
     const existingSettings = getSettings(getState().dashboard.companyTokenFromSearch);
+    const urlSettings = getUrlSettings();
     await dispatch(applyExistingSettings(existingSettings));
+    await dispatch(applyExistingSettings(urlSettings));
     await dispatch(setHasData(false));
     await dispatch(reload());
     await dispatch(setHasData(true));
     // set a timer as a side effect
     setTimeout(() => dispatch(reload()), 60 * 1000);
-    GA.sendEvent('tracker', 'load:' + locationHash);
+    GA.sendEvent('tracker', 'load:' + id);
   };
 }
 
@@ -446,6 +447,13 @@ export function changeStartDate (value: Date) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setStartDate(value));
     setSettings(getState().dashboard.companyTokenFromSearch, { startDate: value });
+    const dashboard = getState().dashboard;
+    setUrlSettings({
+      startDate: dashboard.startDate,
+      endDate: dashboard.endDate,
+      deviceId: dashboard.deviceId,
+      companyTokenFromSearch: dashboard.companyTokenFromSearch,
+    });
     await dispatch(reload());
   };
 }
@@ -453,6 +461,13 @@ export function changeEndDate (value: Date) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setEndDate(value));
     setSettings(getState().dashboard.companyTokenFromSearch, { endDate: value });
+    const dashboard = getState().dashboard;
+    setUrlSettings({
+      startDate: dashboard.startDate,
+      endDate: dashboard.endDate,
+      deviceId: dashboard.deviceId,
+      companyTokenFromSearch: dashboard.companyTokenFromSearch,
+    });
     await dispatch(reload());
   };
 }
@@ -468,6 +483,13 @@ export function changeDeviceId (value: string) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setDevice(value));
     setSettings(getState().dashboard.companyTokenFromSearch, { deviceId: value });
+    const dashboard = getState().dashboard;
+    setUrlSettings({
+      startDate: dashboard.startDate,
+      endDate: dashboard.endDate,
+      deviceId: dashboard.deviceId,
+      companyTokenFromSearch: dashboard.companyTokenFromSearch,
+    });
     await dispatch(reload());
   };
 }
