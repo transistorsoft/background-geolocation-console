@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { getDevices } from './models/Device';
+import { getDevices, deleteDevice } from './models/Device';
 import { getCompanyTokens } from './models/CompanyToken';
 import { getLocations, getLatestLocation, createLocation, deleteLocations, getStats } from './models/Location';
 
@@ -26,6 +26,17 @@ var Routes = function (app) {
       console.log('GET /devices\n'.green);
       const devices = await getDevices(req.query);
       res.send(devices);
+    } catch (err) {
+      console.info('err: ', err);
+      res.status(500).send({ error: 'Something failed!' });
+    }
+  });
+
+  app.delete('/devices/:id', async function (req, res) {
+    try {
+      console.log(`DELETE /devices/${req.params.id}\n`.green);
+      await deleteDevice(req.params.id);
+      res.send({ success: true });
     } catch (err) {
       console.info('err: ', err);
       res.status(500).send({ error: 'Something failed!' });

@@ -17,3 +17,7 @@ export async function getDevices (params) {
   });
   return result;
 }
+
+export async function deleteDevice (deviceId) {
+  await LocationModel.destroy({ where: { device_id: deviceId || 'blank' } });
+}

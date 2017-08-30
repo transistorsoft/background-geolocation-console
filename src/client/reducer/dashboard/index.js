@@ -380,6 +380,18 @@ export function reload (): ThunkAction {
   };
 }
 
+export function deleteActiveDevice (): ThunkAction {
+  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+    const deviceId = getState().dashboard.deviceId;
+    if (!deviceId) {
+      return;
+    }
+    await fetch(`${API_URL}/devices/${deviceId}`, { method: 'delete' });
+    await dispatch(reload());
+    GA.sendEvent('tracker', 'delete device:' + deviceId);
+  };
+}
+
 export function loadCompanyTokens (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     const { companyTokenFromSearch } = getState().dashboard;
