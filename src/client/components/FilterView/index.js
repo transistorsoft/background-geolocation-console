@@ -3,6 +3,7 @@ import React from 'react';
 import formatDate from '~/utils/formatDate';
 
 import DeviceField from './DeviceField';
+import DeleteDeviceLink from './DeleteDeviceLink';
 import CompanyTokenField from './CompanyTokenField';
 
 import { connect } from 'react-redux';
@@ -71,7 +72,7 @@ const FilterView = function ({
   onChangeShowMarkers,
   onChangeShowPolyline,
   onChangeShowGeofenceHits,
-  }: Props): React$Element<any> {
+}: Props): React$Element<any> {
   return (
     <div className='filterView'>
       <AppBar title='Filter' rightIcon='refresh' onRightIconClick={onReload} />
@@ -81,6 +82,7 @@ const FilterView = function ({
             <h3>Locations</h3>
             <CompanyTokenField onChange={onChangeCompanyToken} source={companyTokens} value={companyToken} />
             <DeviceField onChange={onChangeDeviceId} source={devices} hasData={hasData} value={deviceId} />
+            <DeleteDeviceLink />
             <div style={{ display: 'flex', flexDirection: 'row' }}>
               <DatePicker
                 label='Start date'
