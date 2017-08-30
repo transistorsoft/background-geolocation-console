@@ -32,7 +32,7 @@ const DeleteDeviceLink = ({ isVisible, onClick }: Props) => {
           onClick();
         }
       }}
-      label='Delete Device'
+      label='Delete'
       active
     />
   );
