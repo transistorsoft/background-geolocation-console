@@ -99,6 +99,28 @@ var Routes = function (app) {
     }
   });
 
+  /**
+  * POST /locations
+  */
+  app.post('/locations/:company_token', async function (req, res) {
+    var auth = req.get('Authorization');
+
+    req.body.params = req.body.params || {};
+    req.body.params.company_token = req.params.company_token;
+
+    console.log('POST /locations/:company_token\n%s'.green, JSON.stringify(req.headers, null, 2));
+    console.log('Authorization: %s'.green, auth);
+    console.log('%s\n'.yellow, JSON.stringify(req.body, null, 2));
+
+    try {
+      await createLocation(req.body);
+      res.send({ success: true });
+    } catch (err) {
+      console.info('err: ', err);
+      res.status(500).send({ error: 'Something failed!' });
+    }
+  });
+
   app.delete('/locations', async function (req, res) {
     console.log('---------------------------------------------------------------------');
     console.log('- DELETE /locations', JSON.stringify(req.query));
