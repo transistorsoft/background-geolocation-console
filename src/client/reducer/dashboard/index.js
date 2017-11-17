@@ -25,6 +25,7 @@ export type Location = {|
   uuid: string,
   event: string,
   recorded_at: string,
+  created_at: string,
   latitude: number,
   longitude: number,
   accuracy: number,

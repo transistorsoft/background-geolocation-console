@@ -20,6 +20,7 @@ type LocationRow = {|
   device_id: string,
   coordinate: string,
   recorded_at: string,
+  created_at: string,
   is_moving: string,
   accuracy: number,
   speed: number,
@@ -53,6 +54,7 @@ const getRowData = (location: Location): LocationRow => {
     device_id: location.device_id,
     coordinate: location.latitude.toFixed(6) + ', ' + location.longitude.toFixed(6),
     recorded_at: moment(new Date(location.recorded_at)).format('MM-DD HH:mm:ss:SSS'),
+    created_at: moment(new Date(location.created_at)).format('MM-DD HH:mm:ss:SSS'),
     is_moving: location.is_moving ? 'true' : 'false',
     accuracy: location.accuracy,
     speed: location.speed,
@@ -114,17 +116,62 @@ class ListView extends React.PureComponent {
         style={style}
         onClick={() => this.props.onRowSelect(item.uuid)}
       >
-        <span style={{ width: 180 }}><span>{item.uuid}</span></span>
-        <span style={{ width: 120 }}><span>{item.recorded_at}</span></span>
-        <span style={{ width: 90 }}><span>{item.coordinate}</span></span>
-        <span style={{ width: 80 }}><span>{item.accuracy}</span></span>
-        <span style={{ width: 80 }}><span>{item.speed}</span></span>
-        <span style={{ width: 80 }}><span>{item.odometer}</span></span>
-        <span style={{ width: 180 }}><span><strong>{item.event}</strong></span></span>
-        <span style={{ width: 80 }}><span>{item.is_moving}</span></span>
-        <span style={{ width: 140 }}><span>{item.activity}</span></span>
+        <span style={{ width: 180 }}>
+          <span>
+            {item.uuid}
+          </span>
+        </span>
+        <span style={{ width: 120 }}>
+          <span>
+            {item.recorded_at}
+          </span>
+        </span>
+        <span style={{ width: 120 }}>
+          <span>
+            {item.created_at}
+          </span>
+        </span>
+        <span style={{ width: 90 }}>
+          <span>
+            {item.coordinate}
+          </span>
+        </span>
+        <span style={{ width: 80 }}>
+          <span>
+            {item.accuracy}
+          </span>
+        </span>
+        <span style={{ width: 80 }}>
+          <span>
+            {item.speed}
+          </span>
+        </span>
+        <span style={{ width: 80 }}>
+          <span>
+            {item.odometer}
+          </span>
+        </span>
+        <span style={{ width: 180 }}>
+          <span>
+            <strong>
+              {item.event}
+            </strong>
+          </span>
+        </span>
+        <span style={{ width: 80 }}>
+          <span>
+            {item.is_moving}
+          </span>
+        </span>
+        <span style={{ width: 140 }}>
+          <span>
+            {item.activity}
+          </span>
+        </span>
         <span style={{ width: 80 }} className={item.battery_is_charging ? Styles.tableCellGreen : Styles.tableCellRed}>
-          <span>{item.battery_level}</span>
+          <span>
+            {item.battery_level}
+          </span>
         </span>
       </div>
     );
@@ -136,6 +183,7 @@ class ListView extends React.PureComponent {
         <div className={Styles.listHeaderRow}>
           <span style={{ width: 180 }}>UUID</span>
           <span style={{ width: 120 }}>RECORDED AT</span>
+          <span style={{ width: 120 }}>CREATED AT</span>
           <span style={{ width: 90 }}>COORDINATE</span>
           <span style={{ width: 80 }}>ACCURACY</span>
           <span style={{ width: 80 }}>SPEED</span>
@@ -152,7 +200,7 @@ class ListView extends React.PureComponent {
                 scrollToAlignment='start'
                 style={{ outline: 0 }}
                 ref={(list: React$Element<any>) => (this.list = list)}
-                width={1140}
+                width={1260}
                 height={height}
                 rowCount={this.props.locations.length}
                 rowHeight={48}
