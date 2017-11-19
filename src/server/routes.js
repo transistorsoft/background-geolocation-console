@@ -5,8 +5,8 @@ import { getLocations, getLatestLocation, createLocation, deleteLocations, getSt
 
 var Routes = function (app) {
   /**
-  * GET /company_tokens
-  */
+   * GET /company_tokens
+   */
   app.get('/company_tokens', async function (req, res) {
     try {
       console.log('GET /company_tokens\n'.green);
@@ -19,8 +19,8 @@ var Routes = function (app) {
   });
 
   /**
-  * GET /devices
-  */
+   * GET /devices
+   */
   app.get('/devices', async function (req, res) {
     try {
       console.log('GET /devices\n'.green);
@@ -66,8 +66,8 @@ var Routes = function (app) {
   });
 
   /**
-  * GET /locations
-  */
+   * GET /locations
+   */
   app.get('/locations', async function (req, res) {
     console.log('GET /locations %s'.green, JSON.stringify(req.query));
 
@@ -81,8 +81,8 @@ var Routes = function (app) {
   });
 
   /**
-  * POST /locations
-  */
+   * POST /locations
+   */
   app.post('/locations', async function (req, res) {
     var auth = req.get('Authorization');
 
@@ -100,17 +100,16 @@ var Routes = function (app) {
   });
 
   /**
-  * POST /locations
-  */
+   * POST /locations
+   */
   app.post('/locations/:company_token', async function (req, res) {
     var auth = req.get('Authorization');
 
-    req.body.params = req.body.params || {};
-    req.body.params.company_token = req.params.company_token;
-
-    console.log('POST /locations/:company_token\n%s'.green, JSON.stringify(req.headers, null, 2));
+    console.log(`POST /locations/${req.params.company_token}\n%s`.green, JSON.stringify(req.headers, null, 2));
     console.log('Authorization: %s'.green, auth);
     console.log('%s\n'.yellow, JSON.stringify(req.body, null, 2));
+
+    req.body.company_token = req.params.company_token;
 
     try {
       await createLocation(req.body);
@@ -154,8 +153,8 @@ var Routes = function (app) {
   });
 
   /**
-  * Fetch iOS simulator city_drive route
-  */
+   * Fetch iOS simulator city_drive route
+   */
   app.get('/data/city_drive', async function (req, res) {
     console.log('GET /data/city_drive.json'.green);
     fs.readFile('./data/city_drive.json', 'utf8', function (_err, data) {
