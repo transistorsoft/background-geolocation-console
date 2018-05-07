@@ -43,7 +43,6 @@ var Routes = function (app) {
     }
   });
 
-
   app.get('/stats', async function (req, res) {
     try {
       console.log('GET /stats\n'.green);
@@ -69,7 +68,7 @@ var Routes = function (app) {
   /**
    * GET /locations
    */
-  app.get('/', async function (req, res) {
+  app.get('/locations', async function (req, res) {
     console.log('GET /locations %s'.green, JSON.stringify(req.query));
 
     try {
@@ -80,26 +79,6 @@ var Routes = function (app) {
       res.status(500).send({ error: 'Something failed!' });
     }
   });
-
-  /**
-   * GET /locations redirect
-   */
-  app.get('/locations', async function (req, res) {
-    //var auth = req.get('Authorization');
-
-    console.log('GET /locations redirect\n%s'.green, JSON.stringify(req.headers, null, 2));
-    //console.log('Authorization: %s'.green, auth);
-    console.log('%s\n'.yellow, JSON.stringify(req.body, null, 2));
-
-    try {
-      await createLocation(req.body);
-      res.send({ success: true });
-    } catch (err) {
-      console.info('err: ', err);
-      res.status(500).send({ error: 'Something failed in the redirect! -> ' + err });
-    }
-  });
-
 
   /**
    * POST /locations
