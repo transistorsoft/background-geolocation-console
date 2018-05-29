@@ -17,8 +17,8 @@ const DeviceField = ({ onChange, source, hasData, value }: Props) => {
   return source.length > 1
     ? <Dropdown auto label='Device' onChange={onChange} source={source} value={value} />
     : hasData
-      ? <Input auto label='Device' readOnly value={text} />
-      : <Input auto label='Device' readOnly value='Loading devices ...' />;
+      ? <Input label='Device' readOnly value={text} />
+      : <Input label='Device' readOnly value='Loading devices ...' />;
 };
 
 export default DeviceField;

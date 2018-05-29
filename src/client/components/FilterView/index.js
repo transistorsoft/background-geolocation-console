@@ -5,6 +5,7 @@ import formatDate from '~/utils/formatDate';
 import DeviceField from './DeviceField';
 import DeleteDeviceLink from './DeleteDeviceLink';
 import CompanyTokenField from './CompanyTokenField';
+import CustomMarkers from './CustomMarkers';
 
 import { connect } from 'react-redux';
 import { type GlobalState } from '~/reducer/state';
@@ -115,7 +116,7 @@ const FilterView = function ({
             </div>
           </div>
         </Card>
-        <Card>
+        <Card style={{marginBottom: '10px'}}>
           <div className={Styles.content}>
             <h3>Map</h3>
             <Checkbox checked={showMarkers} label='Show Markers' onChange={onChangeShowMarkers} />
@@ -123,10 +124,14 @@ const FilterView = function ({
             <Checkbox checked={showGeofenceHits} label='Show Geofences' onChange={onChangeShowGeofenceHits} />
           </div>
         </Card>
+        <Card>
+          <CustomMarkers />
+        </Card>
       </div>
     </div>
   );
 };
+
 
 const mapStateToProps = function (state: GlobalState): StateProps {
   return {

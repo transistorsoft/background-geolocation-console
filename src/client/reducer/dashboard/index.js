@@ -62,6 +62,7 @@ export type DashboardState = {|
   devices: Device[],
   companyTokens: CompanyToken[],
   locations: Location[],
+  testMarkers: Object,
   selectedLocationId: ?string,
   currentLocation: ?Location,
   isWatching: boolean,
@@ -165,6 +166,11 @@ type SetCompanyTokenFromSearchAction = {|
 |};
 // Combining Actions
 
+type AddTestMarkerAction = {|
+  type: 'dashboard/ADD_TEST_MARKER',
+  value: Object
+|};
+
 type Action =
   | SetCompanyTokensAction
   | SetDevicesAction
@@ -186,6 +192,7 @@ type Action =
   | ApplyExistingSettinsAction
   | SetActiveTabAction
   | SetCompanyTokenAction
+  | AddTestMarkerAction
   | SetCompanyTokenFromSearchAction;
 
 type GetState = () => GlobalState;
@@ -343,6 +350,14 @@ export function setCompanyTokenFromSearch (value: string): SetCompanyTokenFromSe
     value: value,
   };
 }
+
+export function doAddTestMarker(value: Object): AddTestMarkerAction {
+  return {
+    type: 'dashboard/ADD_TEST_MARKER',
+    value: value
+  }
+}
+
 // ------------------------------------
 // Thunk Actions
 // ------------------------------------
@@ -549,6 +564,12 @@ export function changeActiveTab (tab: Tab) {
     changeTabBus.emit({ tab });
   };
 }
+
+export function addTestMarker (value: Object): ThunkAction {
+  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+    dispatch(doAddTestMarker(value));
+  };
+}
 // ------------------------------------
 // Action Handlers
 // ------------------------------------
@@ -689,6 +710,11 @@ const setCompanyTokenFromSearchHandler = function (state: DashboardState, action
   return cloneState(state, { companyTokenFromSearch: action.value });
 };
 
+const addTestMarkerHandler = function(state: DashboardState, action: AddTestMarkerAction) {
+  let markers = [].concat(state.testMarkers);
+  markers.push(action.data);
+  return cloneState(state, {testMarkers: markers});
+}
 // ------------------------------------
 // Initial State
 // ------------------------------------
@@ -718,6 +744,7 @@ const initialState: DashboardState = {
   hasData: false,
   isLoading: false,
   locations: [],
+  testMarkers: [],
   showGeofenceHits: true,
   showMarkers: true,
   showPolyline: true,
@@ -730,7 +757,6 @@ const initialState: DashboardState = {
 // Reducer
 // ------------------------------------
 export default function spotsReducer (state: DashboardState = initialState, action: Action): DashboardState {
-  console.info('v2');
   switch (action.type) {
     case 'dashboard/SET_COMPANY_TOKENS':
       return setCompanyTokensHandler(state, action);
@@ -774,6 +800,8 @@ export default function spotsReducer (state: DashboardState = initialState, acti
       return setCompanyTokenHandler(state, action);
     case 'dashboard/SET_COMPANY_TOKEN_FROM_SEARCH':
       return setCompanyTokenFromSearchHandler(state, action);
+    case 'ADD_TEST_MARKER':
+      return addTestMarkerHandler(state, action);
     default:
       (action: empty); // eslint-disable-line no-unused-expressions
       return state;

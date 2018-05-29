@@ -22,6 +22,7 @@ type StateProps = {|
   showPolyline: boolean,
   showGeofenceHits: boolean,
   isWatching: boolean,
+  testMarkers: Object,
   currentLocation: ?Location,
   locations: Location[],
   selectedLocation: ?Location,
@@ -57,6 +58,7 @@ class MapView extends Component {
   };
   updateFlags = {
     needsMarkersRedraw: true,
+    needsTestMarkersRedraw: true,
     needsShowMarkersUpdate: true,
     needsShowPolylineUpdate: true,
     needsShowGeofenceHitsUpdate: true,
@@ -110,7 +112,6 @@ class MapView extends Component {
 
   onMapLoaded = (event: any) => {
     this.gmap = event.map;
-
     // Route polyline
     let seq = {
       repeat: '50px',
@@ -198,12 +199,16 @@ class MapView extends Component {
 
   renderMarkers () {
     console.time('renderMarkers');
-    const { locations, isWatching, currentLocation, showPolyline, showMarkers, showGeofenceHits } = this.props;
+    const { locations, isWatching, currentLocation, showPolyline, showMarkers, showGeofenceHits, testMarkers } = this.props;
 
     // if locations have not changed - do not clear markers
     // just update current location, selected location and handle visibility of markers
+    if (this.updateFlags.needsTestMarkersRedraw && testMarkers.length) {
+      this.renderTestMarkers(testMarkers);
+    }
     if (this.updateFlags.needsMarkersRedraw) {
       this.clearMarkers();
+
       const length = locations.length;
       console.info('draw markers: ' + length);
 
@@ -280,6 +285,45 @@ class MapView extends Component {
     this.updateSelectedLocation();
     console.timeEnd('renderMarkers: Selected Location');
     console.timeEnd('renderMarkers');
+  }
+
+  /**
+  * Render manually added test markers
+  {
+    type: 'location|geofence'
+    position: {
+      lat: Float,
+      lng: Float
+    },
+    radius: Number (present only when type: "geofence")
+  }
+  */
+  renderTestMarkers(testMarkers) {
+    // 37.33313411,-122.05283635
+    for (let n=0,len=testMarkers.length;n<len;n++) {
+      let record = testMarkers[n];
+      if (record.type === 'location') {
+        new google.maps.Marker({
+          position: record.position,
+          map: this.gmap,
+          label: record.label
+        });
+      } else if (record.type === 'geofence') {
+        new google.maps.Circle({
+          zIndex: 2000,
+          fillOpacity: 0,
+          strokeColor: '#ff0000',
+          strokeWeight: 1,
+          strokeOpacity: 1,
+          radius: record.radius,
+          center: record.position,
+          map: this.gmap
+        });
+      }
+    }
+    // arbitrarily center on first marker.
+    let first = testMarkers[0];
+    this.gmap.setCenter(first.position);
   }
 
   buildMotionChangePolyline (stationaryPosition: any, movingPosition: any) {
@@ -486,6 +530,7 @@ class MapView extends Component {
     if (this.gmap) {
       this.updateFlags = {
         needsMarkersRedraw: nextProps.locations !== this.props.locations,
+        needsTestMarkersRedraw: nextProps.testMarkers !== this.props.testMarkers,
         needsShowMarkersUpdate: nextProps.showMarkers !== this.props.showMarkers,
         needsShowPolylineUpdate: nextProps.showPolyline !== this.props.showPolyline,
         needsShowGeofenceHitsUpdate: nextProps.showGeofenceHits !== this.props.showGeofenceHits,
@@ -507,6 +552,7 @@ class MapView extends Component {
     return (
       <div className={Styles.map}>
         <GoogleMap
+          yesIWantToUseGoogleMapApiInternals={true}
           bootstrapURLKeys={{
             key: API_KEY,
             libraries: 'geometry',
@@ -562,6 +608,7 @@ const mapStateToProps = function (state: GlobalState) {
     currentLocation: dashboard.currentLocation,
     selectedLocation: selectedLocationSelector(state),
     isActiveTab: state.dashboard.activeTab === 'map',
+    testMarkers: dashboard.testMarkers,
   };
 };
 
