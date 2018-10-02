@@ -14,7 +14,7 @@ import Styles from '../assets/styles/app.css';
 import { COLORS, MAX_POINTS } from '~/constants';
 import { changeTabBus, type ChangeTabPayload, fitBoundsBus, type FitBoundsPayload } from '~/globalBus';
 
-const API_KEY = process.env.GMAP_API_KEY || 'AIzaSyA9j72oZA5SmsA8ugu57pqXwpxh9Sn4xuM';
+const API_KEY = process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyA9j72oZA5SmsA8ugu57pqXwpxh9Sn4xuM';
 
 declare var google: any;
 type StateProps = {|
