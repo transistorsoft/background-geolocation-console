@@ -20,7 +20,8 @@ const htmlWebpackPlugin = new HtmlWebpackPlugin({
     minifyURLs: true,
   },
   GOOGLE_ANALYTICS_ID: process.env.GOOGLE_ANALYTICS_ID,
-  PURE_CHAT_ID: process.env.PURE_CHAT_ID
+  PURE_CHAT_ID: process.env.PURE_CHAT_ID,
+  GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY
 });
 
 module.exports = {
