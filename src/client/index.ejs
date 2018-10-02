@@ -31,7 +31,7 @@
 	<!-- GOOGLE_MAPS_API_KEY -->
 	<% if (htmlWebpackPlugin.options.GOOGLE_MAPS_API_KEY) { %>
 		<script type='text/javascript'>
-			window.GOOGLE_MAPS_API_KEY = '<%= htmlWebpackPlugin.GOOGLE_MAPS_API_KEY %>';
+			window.GOOGLE_MAPS_API_KEY = '<%= htmlWebpackPlugin.options.GOOGLE_MAPS_API_KEY %>';
 		</script>
 	<% } %>
 	</head>

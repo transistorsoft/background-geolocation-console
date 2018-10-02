@@ -16,8 +16,6 @@ import { changeTabBus, type ChangeTabPayload, fitBoundsBus, type FitBoundsPayloa
 
 const API_KEY = window.GOOGLE_MAPS_API_KEY || 'AIzaSyA9j72oZA5SmsA8ugu57pqXwpxh9Sn4xuM';
 
-console.log('process.env: ', process.env);
-
 declare var google: any;
 type StateProps = {|
   showMarkers: boolean,
