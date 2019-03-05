@@ -8,13 +8,13 @@ You must have [npm](https://www.npmjs.org/) installed on your computer.
 From the root project directory run these commands from the command line:
 
 ```bash
-$ npm install
+npm install
 ```
 
 ## Running
 
 ```bash
-$ npm run server
+npm run server
 ```
 
 A browser window will automatically launch the front-end web app.
@@ -30,8 +30,9 @@ You should also configure `Settings->autoSync` to `false` while out field-testin
 You can deploy easily the app on Heroku by pushing the code to your heroku git repository.  
 
 Before this, you will need to create 2 environment variables (either in the heroku dashboard, or by executing `heroku config:set <VARIABLE_NAME>=<VARIABLE_VALUE>`) :  
+
 - `NPM_CONFIG_PRODUCTION = false` : It will tell heroku to install `devDependencies` (and not only `dependencies`), required to build browserify's `bundle.min.js` file
-- `GMAP_API_KEY = <PUT YOUR KEY HERE>` : A Google Maps API v3 allowed for your heroku domain (see https://console.developers.google.com)
+- `GMAP_API_KEY = <PUT YOUR KEY HERE>` : A Google Maps API v3 allowed for your heroku domain (see <https://console.developers.google.com>)
 - Optionally, `DB_CONNECTION_URL = postgres://<username>:<password>@<hostname>:<port>/<dbname>` if you want to persist locations
   into a postgresql db (instead of a sqlite db which will be deleted after every heroku shutdown)
 
@@ -50,4 +51,3 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
