@@ -72,7 +72,8 @@ process.on('uncaughtException', function (error) {
 
     // Spawning dedicated process on opened port.. only if not deployed on heroku
     if (!process.env.DYNO) {
-      opn(`http://localhost:${port}`);
+      opn(`http://localhost:${port}`)
+        .catch(function (error) { console.log("Optional site open failed:", error); });
     }
   });
 })();
