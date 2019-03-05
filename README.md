@@ -21,7 +21,7 @@ npm install
 npm run server
 ```
 
-A browser window will automatically launch the front-end web app.
+If you are in an environment that supports opening a web browser, a browser window will automatically launch the front-end web app at the end of the server startup procedure.
 
 ## Configure The Sample App
 
