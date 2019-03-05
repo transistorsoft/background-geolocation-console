@@ -25,9 +25,30 @@ If you are in an environment that supports opening a web browser, a browser wind
 
 ## Configure The Sample App
 
-The Background Geolocation [Sample App](https://github.com/transistorsoft/cordova-background-geolocation-SampleApp) is perfect for use with this web-application.  To configure the app, simply edit `Settings->url` and set it to `http://<your.ip.ad.dress>:9000/locations`.
+The Background Geolocation [Sample App](https://github.com/transistorsoft/cordova-background-geolocation-SampleApp) is perfect for use with this web-application.  To configure the app, determine your IP address and pick a unique console username, then simply edit `Settings->url` and set it to `http://<your.ip.ad.dress>:9000/locations/<your-console-username>`.
 
-You should also configure `Settings->autoSync` to `false` while out field-testing as well, so that the app doesn't try syncing each recorded location to the server running on your `localhost`.  Once you return after a test and you're back on your office Wifi, click the **[Sync]** button on the `Settings` screen to upload the cached locations to the **Background Geolocation Console** server.
+You may also want to configure `Settings->autoSync` to `false` while out field-testing as well, so that the app doesn't try syncing each recorded location to a possibly unreachable server running on your `localhost`.  Once you return after a test and you're back on your office Wifi, click the **[Sync]** button on the `Settings` screen to upload the cached locations to the **Background Geolocation Console** server.
+
+## Configure Your Own App
+
+As you integrate the background-geolocation plugin with your app, you may find it useful to post locations to the test console to verify your integration.
+
+If you want to post to the tracking console in your own app, it’s very easy: The plugin contains a helper method [#transistorTrackerParams](https://transistorsoft.github.io/react-native-background-geolocation-android/classes/_react_native_background_geolocation_android_.backgroundgeolocation.html#transistortrackerparams) to compose a params config suitable for consumption by the server:
+
+```javascript
+//
+// Configure the BackgroundGeolocation plugin to post to this console
+// after modifying the #url / #params below, visit in your browser:
+// http://<your.ip.ad.dress>:9000/<your-console-username
+//
+let username = 'your-custom-username';
+BackgroundGeolocation.ready({
+  url: 'http://<your-ip-address>/locations/' + <your-console-username>,
+  params: BackgroundGeolocation.transistorTrackerParams()
+}, (state) => {
+  BackgroundGeolocation.start();
+});
+```
 
 ## Running on Heroku
 
