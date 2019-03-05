@@ -2,6 +2,10 @@
 
 > A simple Node server & web app with SQLite database for field-testing & analysis of the [Background Geolocation plugin](https://github.com/transistorsoft/cordova-background-geolocation-lt).
 
+![Screenshot of console web front-end](https://cdn-images-1.medium.com/max/1600/1*LQjGoP0SgXOrqJvjy58EkQ.png)
+
+You may read the news about this [application in our article on Medium](https://medium.com/@transistorsoft/background-geolocation-console-45796532c2ee).
+
 ## Install
 
 You must have [npm](https://www.npmjs.org/) installed on your computer.
