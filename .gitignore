@@ -1,5 +1,5 @@
 node_modules
-src/server/database/*.db
+src/server/database/db/*.db
 .DS_Store
 *.log
 build/
