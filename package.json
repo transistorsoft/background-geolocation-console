@@ -27,7 +27,7 @@
     "lodash": "^4.17.4",
     "moment": "^2.18.1",
     "opn": "^5.1.0",
-    "pg": "6.1.0",
+    "pg": "7.9.0",
     "pg-hstore": "2.3.2",
     "postcss": "^5.2.16",
     "postcss-cssnext": "^2.10.0",
@@ -45,7 +45,7 @@
     "redux-thunk": "^2.2.0",
     "request": "^2.81.0",
     "reselect": "^3.0.1",
-    "sequelize": "github:sequelize/sequelize#38e8bd1"
+    "sequelize": "^5.2.6"
   },
   "devDependencies": {
     "babel-core": "^6.24.0",
