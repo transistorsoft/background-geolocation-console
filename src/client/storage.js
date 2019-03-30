@@ -13,6 +13,7 @@ export type StoredSettings = {|
   showGeofenceHits: boolean,
   showPolyline: boolean,
   showMarkers: boolean,
+  maxMarkers: number
 |};
 const getLocalStorageKey = (key: string) => (key ? `settings#${key}` : 'settings');
 
@@ -125,5 +126,6 @@ export function setSettings (key: string, settings: $Shape<StoredSettings>) {
     }),
     _.isUndefined
   );
+
   localStorage.setItem(getLocalStorageKey(key), JSON.stringify(stringifiedNewSettings));
 }

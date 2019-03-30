@@ -85,7 +85,6 @@ var Routes = function (app) {
    */
   app.post('/locations', async function (req, res) {
     var auth = req.get('Authorization');
-
     console.log('POST /locations\n%s'.green, JSON.stringify(req.headers, null, 2));
     console.log('Authorization: %s'.green, auth);
     console.log('%s\n'.yellow, JSON.stringify(req.body, null, 2));

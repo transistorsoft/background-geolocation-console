@@ -59,6 +59,7 @@ export type DashboardState = {|
   showMarkers: boolean,
   showPolyline: boolean,
   showGeofenceHits: boolean,
+  maxMarkers: number,
   devices: Device[],
   companyTokens: CompanyToken[],
   locations: Location[],
@@ -126,6 +127,10 @@ type SetShowGeofenceHitsAction = {|
   type: 'dashboard/SET_SHOW_GEOFENCE_HITS',
   value: boolean,
 |};
+type SetMaxMarkersAction = {|
+  type: 'dashboard/SET_MAX_MARKERS',
+  value: boolean,
+|};
 type SetIsWatchingAction = {|
   type: 'dashboard/SET_IS_WATCHING',
   value: boolean,
@@ -183,6 +188,7 @@ type Action =
   | SetShowMarkersAction
   | SetShowPolylineAction
   | SetShowGeofenceHitsAction
+  | SetMaxMarkersAction
   | SetIsWatchingAction
   | SetCurrentLocationAction
   | SetStartDateAction
@@ -261,6 +267,14 @@ export function setShowMarkers (value: boolean): SetShowMarkersAction {
     value: value,
   };
 }
+
+export function setShowMaxMarkers (value: boolean): SetMaxMarkersAction {
+  return {
+    type: 'dashboard/SET_MAX_MARKERS',
+    value: value,
+  };
+}
+
 export function setShowPolyline (value: boolean): SetShowPolylineAction {
   return {
     type: 'dashboard/SET_SHOW_POLYLINE',
@@ -439,7 +453,7 @@ export function loadDevices (): ThunkAction {
 
 export function loadLocations (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const { deviceId, companyToken, startDate, endDate } = getState().dashboard;
+    const { deviceId, companyToken, startDate, endDate, maxMarkers } = getState().dashboard;
     GA.sendEvent('tracker', 'loadLocations', companyToken);
 
     const params = qs.stringify({
@@ -447,6 +461,7 @@ export function loadLocations (): ThunkAction {
       device_id: deviceId,
       start_date: startDate.toISOString(),
       end_date: endDate.toISOString(),
+      limit: maxMarkers
     });
     const response = await fetch(`${API_URL}/locations?${params}`);
     const records = await response.json();
@@ -547,6 +562,13 @@ export function changeShowGeofenceHits (value: boolean) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setShowGeofenceHits(value));
     setSettings(getState().dashboard.companyTokenFromSearch, { showGeofenceHits: value });
+  };
+}
+
+export function changeMaxMarkers (value: boolean) {
+  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+    await dispatch(setShowMaxMarkers(value));
+    setSettings(getState().dashboard.companyTokenFromSearch, { maxMarkers: value });
   };
 }
 
@@ -676,6 +698,9 @@ const setShowPolylineHandler = function (state: DashboardState, action: SetShowP
 const setShowGeofenceHitsHandler = function (state: DashboardState, action: SetShowGeofenceHitsAction): DashboardState {
   return cloneState(state, { showGeofenceHits: action.value });
 };
+const setMaxMarkersHandler = function (state: DashboardState, action: SetMaxMarkersAction): DashboardState {
+  return cloneState(state, { maxMarkers: action.value });
+};
 const setIsWatchingHandler = function (state: DashboardState, action: SetIsWatchingAction): DashboardState {
   return cloneState(state, { isWatching: action.value });
 };
@@ -748,6 +773,7 @@ const initialState: DashboardState = {
   showGeofenceHits: true,
   showMarkers: true,
   showPolyline: true,
+  maxMarkers: 1000,
   selectedLocationId: null,
   currentLocation: null,
   isWatching: false,
@@ -780,6 +806,8 @@ export default function spotsReducer (state: DashboardState = initialState, acti
       return setShowPolylineHandler(state, action);
     case 'dashboard/SET_SHOW_GEOFENCE_HITS':
       return setShowGeofenceHitsHandler(state, action);
+    case 'dashboard/SET_MAX_MARKERS':
+      return setMaxMarkersHandler(state, action);
     case 'dashboard/SET_IS_WATCHING':
       return setIsWatchingHandler(state, action);
     case 'dashboard/SET_CURRENT_LOCATION':
