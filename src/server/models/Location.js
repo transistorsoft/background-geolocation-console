@@ -1,5 +1,8 @@
+import Sequelize from 'sequelize';
 import LocationModel from '../database/LocationModel';
 import { literal } from 'sequelize';
+
+const Op = Sequelize.Op;
 
 const filterByCompany = !!process.env.SHARED_DASHBOARD;
 
@@ -30,8 +33,9 @@ export async function getStats () {
 export async function getLocations (params) {
   var whereConditions = {};
   if (params.start_date && params.end_date) {
-    whereConditions.recorded_at = { $between: [new Date(params.start_date), new Date(params.end_date)] };
+    whereConditions.recorded_at = { [Op.between]: [new Date(params.start_date), new Date(params.end_date)] };
   }
+
   whereConditions.device_id = params.device_id || '';
   if (filterByCompany) {
     whereConditions.company_token = params.company_token;
@@ -40,7 +44,10 @@ export async function getLocations (params) {
   const rows = await LocationModel.findAll({
     where: whereConditions,
     order: literal('recorded_at DESC'),
+    limit: params.limit
   });
+
+
   const locations = rows.map(hydrate);
   return locations;
 }

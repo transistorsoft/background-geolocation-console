@@ -8,6 +8,8 @@ import CompanyTokenField from './CompanyTokenField';
 import CustomMarkers from './CustomMarkers';
 
 import { connect } from 'react-redux';
+import { Input } from 'react-toolbox';
+
 import { type GlobalState } from '~/reducer/state';
 import {
   type Device,
@@ -21,6 +23,7 @@ import {
   changeShowMarkers,
   changeShowPolyline,
   changeShowGeofenceHits,
+  changeMaxMarkers,
 } from '~/reducer/dashboard';
 
 import { AppBar, Button, DatePicker, TimePicker, Switch, Checkbox, Card } from 'react-toolbox';
@@ -39,6 +42,7 @@ type StateProps = {|
   showGeofenceHits: boolean,
   showPolyline: boolean,
   showMarkers: boolean,
+  maxMarkers: number
 |};
 type DispatchProps = {|
   onReload: () => any,
@@ -50,6 +54,7 @@ type DispatchProps = {|
   onChangeShowMarkers: (value: boolean) => any,
   onChangeShowPolyline: (value: boolean) => any,
   onChangeShowGeofenceHits: (value: boolean) => any,
+  onChangeMaxMarkers: (value: number) => any,
 |};
 type Props = {| ...StateProps, ...DispatchProps |};
 const FilterView = function ({
@@ -64,6 +69,7 @@ const FilterView = function ({
   showGeofenceHits,
   showPolyline,
   showMarkers,
+  maxMarkers,
   onReload,
   onChangeDeviceId,
   onChangeCompanyToken,
@@ -73,6 +79,7 @@ const FilterView = function ({
   onChangeShowMarkers,
   onChangeShowPolyline,
   onChangeShowGeofenceHits,
+  onChangeMaxMarkers,
 }: Props): React$Element<any> {
   return (
     <div className='filterView'>
@@ -122,6 +129,7 @@ const FilterView = function ({
             <Checkbox checked={showMarkers} label='Show Markers' onChange={onChangeShowMarkers} />
             <Checkbox checked={showPolyline} label='Show Polyline' onChange={onChangeShowPolyline} />
             <Checkbox checked={showGeofenceHits} label='Show Geofences' onChange={onChangeShowGeofenceHits} />
+            <Input type="text" value={maxMarkers} label="Max markers" onChange={onChangeMaxMarkers} />
           </div>
         </Card>
         <Card>
@@ -149,6 +157,7 @@ const mapStateToProps = function (state: GlobalState): StateProps {
     showGeofenceHits: state.dashboard.showGeofenceHits,
     showPolyline: state.dashboard.showPolyline,
     showMarkers: state.dashboard.showMarkers,
+    maxMarkers: state.dashboard.maxMarkers,
   };
 };
 
@@ -162,6 +171,7 @@ const mapDispatchToProps: DispatchProps = {
   onChangeShowMarkers: changeShowMarkers,
   onChangeShowPolyline: changeShowPolyline,
   onChangeShowGeofenceHits: changeShowGeofenceHits,
+  onChangeMaxMarkers: changeMaxMarkers,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(FilterView);

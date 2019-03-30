@@ -15,4 +15,4 @@ export const COLORS = {
   black: '#000',
 };
 
-export const MAX_POINTS = 1000;
+export const MAX_POINTS = 5000;
