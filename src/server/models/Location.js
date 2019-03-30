@@ -97,7 +97,7 @@ export async function createLocation (params) {
       device_model: model,
       latitude: coords.latitude,
       longitude: coords.longitude,
-      accuracy: coords.accuracy,
+      accuracy: parseInt(coords.accuracy, 10),
       altitude: coords.altitude,
       speed: coords.speed,
       heading: coords.heading,
