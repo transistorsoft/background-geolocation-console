@@ -54,9 +54,9 @@ BackgroundGeolocation.ready({
 
 ### Flutter:
 ```dart
-Map deviceParams = await bg.Config.deviceParams;
+Map deviceParams = await Config.deviceParams;
 
-bg.BackgroundGeolocation.ready(bg.Config(    
+BackgroundGeolocation.ready(Config(    
     url: 'http://<your.ip.address>:9000/locations',
     params: deviceParams
 ));
