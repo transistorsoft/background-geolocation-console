@@ -70,7 +70,7 @@ Before this, you will need to create 2 environment variables (either in the hero
 
 - `NPM_CONFIG_PRODUCTION = false` : It will tell heroku to install `devDependencies` (and not only `dependencies`), required to build browserify's `bundle.min.js` file
 - `GOOGLE_MAPS_API_KEY = <PUT YOUR KEY HERE>` : A Google Maps API v3 allowed for your heroku domain (see <https://console.developers.google.com>)
-- Optionally, `DB_CONNECTION_URL = postgres://<username>:<password>@<hostname>:<port>/<dbname>` if you want to persist locations
+- Optionally, `DATABASE_URL = postgres://<username>:<password>@<hostname>:<port>/<dbname>` if you want to persist locations
   into a postgresql db (instead of a sqlite db which will be deleted after every heroku shutdown)
 
 And to reference `heroku/nodejs` buildpack (either in the heroku dashboard, or by executing `heroku buildpacks:add --index 1 heroku/nodejs`)
