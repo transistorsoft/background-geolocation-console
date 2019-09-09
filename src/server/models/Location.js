@@ -1,6 +1,5 @@
-import Sequelize from 'sequelize';
+import Sequelize, { literal } from 'sequelize';
 import LocationModel from '../database/LocationModel';
-import { literal } from 'sequelize';
 
 const Op = Sequelize.Op;
 
@@ -44,9 +43,8 @@ export async function getLocations (params) {
   const rows = await LocationModel.findAll({
     where: whereConditions,
     order: literal('recorded_at DESC'),
-    limit: params.limit
+    limit: params.limit,
   });
-
 
   const locations = rows.map(hydrate);
   return locations;

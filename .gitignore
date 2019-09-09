@@ -3,3 +3,4 @@ src/server/database/db/*.db
 .DS_Store
 *.log
 build/
+changes.diff

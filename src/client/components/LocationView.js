@@ -2,7 +2,8 @@
 import React from 'react';
 import { createSelector } from 'reselect';
 
-import { AppBar, Card } from 'react-toolbox';
+import { AppBar } from 'react-toolbox/lib/app_bar';
+import { Card } from 'react-toolbox/lib/card';
 
 import Styles from '../assets/styles/app.css';
 import _ from 'lodash';

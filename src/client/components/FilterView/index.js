@@ -8,7 +8,7 @@ import CompanyTokenField from './CompanyTokenField';
 import CustomMarkers from './CustomMarkers';
 
 import { connect } from 'react-redux';
-import { Input } from 'react-toolbox';
+import { Input } from 'react-toolbox/lib/input';
 
 import { type GlobalState } from '~/reducer/state';
 import {

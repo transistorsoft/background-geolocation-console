@@ -52,7 +52,7 @@ process.on('uncaughtException', function (error) {
     app.use(middleware);
   }
 
-  app.use(function pushstatehook (req, res, next) {
+  app.use((req, res, next) => {
     var ext = path.extname(req.url);
     console.info(ext, req.url);
     if ((ext === '' || ext === '.html') && req.url !== '/') {
@@ -73,7 +73,7 @@ process.on('uncaughtException', function (error) {
     // Spawning dedicated process on opened port.. only if not deployed on heroku
     if (!process.env.DYNO) {
       opn(`http://localhost:${port}`)
-        .catch(function (error) { console.log("Optional site open failed:", error); });
+        .catch(error => console.log('Optional site open failed:', error));
     }
   });
 })();

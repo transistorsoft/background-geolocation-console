@@ -21,7 +21,7 @@ const htmlWebpackPlugin = new HtmlWebpackPlugin({
   },
   GOOGLE_ANALYTICS_ID: process.env.GOOGLE_ANALYTICS_ID,
   PURE_CHAT_ID: process.env.PURE_CHAT_ID,
-  GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY
+  GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
 });
 
 module.exports = {
@@ -29,8 +29,15 @@ module.exports = {
   devtool: 'source-map',
   target: 'web',
   entry: isProduction
-    ? ['./main.js']
-    : ['webpack-hot-middleware/client?path=/__webpack_hmr&timeout=20000', 'react-hot-loader/patch', './main.js'],
+    ? [
+      '@babel/polyfill',
+      './main.js',
+    ]
+    : [
+      '@babel/polyfill',
+      'webpack-hot-middleware/client?path=/__webpack_hmr&timeout=20000', 'react-hot-loader/patch',
+      './main.js',
+    ],
   output: {
     path: path.resolve(__dirname, './build'),
     publicPath: '/',
@@ -40,16 +47,21 @@ module.exports = {
   resolve: {
     extensions: ['.js', '.json', '.css', '.svg'],
   },
+  // mode: isProduction ? 'production' : 'development',
   module: {
-    loaders: [
+    rules: [
       {
         test: /\.jsx?$/,
         exclude: /node_modules/,
         loader: 'babel-loader',
       },
       {
-        test: /\.(jpg|png|svg)$/,
-        loader: 'file-loader', // or 'url'
+        test: /\.(jpe?g|png|gif|svg)$/i,
+        use: [
+          {
+            loader: 'url-loader',
+          },
+        ],
       },
       {
         test: /\.ejs$/,
@@ -68,10 +80,12 @@ module.exports = {
               localIdentName: '[name]--[local]--[hash:base64:8]',
             },
           },
-          'postcss-loader', // has separate config, see postcss.config.js nearby
+          // has separate config,
+          // see postcss.config.js nearby
+          'postcss-loader',
         ],
       },
-    ].filter(x => x),
+    ],
   },
   plugins: isProduction
     ? [

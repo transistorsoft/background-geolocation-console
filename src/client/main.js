@@ -1,10 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import Viewport from './components/Viewport';
+import WrappedViewport from './components/Viewport';
 import { AppContainer } from 'react-hot-loader';
-
 import { Provider } from 'react-redux';
-import { loadInitialData } from '~/reducer/dashboard';
 
 import store from './store';
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
@@ -20,16 +18,12 @@ if (pathQuery) {
 }
 
 const locationHash = (location.hash || '').substring(1);
+
 if (locationHash) {
   window.location = '/' + locationHash;
 }
 
 const container = document.querySelector('#app-container');
-
-const WrappedViewport = ({ match }) => {
-  store.dispatch(loadInitialData(match.params.token));
-  return <Viewport />;
-};
 
 const render = () => {
   ReactDOM.render(

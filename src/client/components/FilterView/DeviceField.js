@@ -1,8 +1,8 @@
 // @flow
 import React from 'react';
 import _ from 'lodash';
-
-import { Dropdown, Input } from 'react-toolbox';
+import { Dropdown } from 'react-toolbox/lib/dropdown';
+import { Input } from 'react-toolbox/lib/input';
 
 type Props = {
   onChange: (value: string) => any,

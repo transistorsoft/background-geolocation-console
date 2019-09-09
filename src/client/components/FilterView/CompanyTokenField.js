@@ -1,7 +1,6 @@
 // @flow
 import React from 'react';
-
-import { Dropdown } from 'react-toolbox';
+import { Dropdown } from 'react-toolbox/lib/dropdown';
 
 type Props = {
   onChange: (value: string) => any,

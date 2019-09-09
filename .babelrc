@@ -1,10 +1,16 @@
 {
-  "presets": [['es2015', {modules: false}], 'react', 'stage-0'],
+  "presets": ["@babel/preset-flow", "@babel/preset-env", "@babel/preset-react"],
   "plugins": [
-      ["react-hot-loader/babel"],
-      ["transform-runtime"],
-      ["transform-decorators-legacy"],
-      ["transform-async-to-generator"],
-      ["babel-plugin-root-import", {"rootPathSuffix": "src/client" }],
+    ["@babel/plugin-proposal-decorators", { "legacy": true }],
+    "transform-function-bind",
+    "@babel/plugin-proposal-export-namespace-from",
+    "@babel/plugin-proposal-class-properties",
+    "@babel/plugin-proposal-export-default-from",
+    "react-hot-loader/babel",
+    ["babel-plugin-root-import", {
+      "paths": [
+        { "rootPathSuffix": "src/client" },
+      ]
+    }]
   ]
 }

@@ -1,6 +1,6 @@
 // @flow
 import React from 'react';
-import Link from 'react-toolbox/lib/link';
+import { Link } from 'react-toolbox/lib/link';
 import { connect } from 'react-redux';
 import { type GlobalState } from '~/reducer/state';
 import { deleteActiveDevice } from '~/reducer/dashboard';
