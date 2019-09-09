@@ -1,7 +1,9 @@
 // @flow
 import React, { Component } from 'react';
 
-import { Layout, NavDrawer, Panel, Tabs, Tab, Sidebar } from 'react-toolbox';
+// import { Layout, NavDrawer, Panel, Tabs, Tab, Sidebar } from 'react-toolbox';
+import { Layout, Panel, Sidebar, NavDrawer } from 'react-toolbox/lib/layout';
+import { Tab, Tabs } from 'react-toolbox/lib/tabs';
 
 import Styles from '../assets/styles/app.css';
 import HeaderView from './HeaderView';
@@ -13,7 +15,7 @@ import LoadingIndicator from './LoadingIndicator';
 import WatchModeWarning from './WatchModeWarning';
 import TooManyPointsWarning from './TooManyPointsWarning';
 import { connect } from 'react-redux';
-import { type GlobalState } from '~/reducer/state';
+import type { GlobalState } from '~/reducer/state';
 import { changeActiveTab, type Tab as TabType } from '~/reducer/dashboard';
 
 type StateProps = {|
