@@ -3,8 +3,6 @@ import ReactDOM from 'react-dom';
 import WrappedViewport from './components/Viewport';
 import { AppContainer } from 'react-hot-loader';
 import { Provider } from 'react-redux';
-// import 'normalize.css';
-// import '~/assets/styles/global.css';
 
 import store from './store';
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
