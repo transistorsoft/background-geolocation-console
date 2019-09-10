@@ -1,7 +1,7 @@
 // @flow
 
 import React, { Component } from 'react';
-import _ from 'lodash';
+import find from 'lodash/fp/find';
 import { createSelector } from 'reselect';
 
 import { connect } from 'react-redux';
@@ -10,7 +10,6 @@ import { type GlobalState } from '~/reducer/state';
 
 import GoogleMap from 'google-map-react';
 
-import Styles from '../assets/styles/app.css';
 import { COLORS, MAX_POINTS } from '~/constants';
 import { changeTabBus, type ChangeTabPayload, fitBoundsBus, type FitBoundsPayload } from '~/globalBus';
 
@@ -65,12 +64,12 @@ class MapView extends Component {
   };
   postponedFitBoundsPayload: ?FitBoundsPayload = null;
 
-  componentWillMount () {
+  UNSAFE_componentWillMount () {
     fitBoundsBus.subscribe(this.fitBounds);
     changeTabBus.subscribe(this.changeTab);
   }
 
-  componentWillUnmount () {
+  UNSAFE_componentWillUnmount () {
     fitBoundsBus.unsubscribe(this.fitBounds);
     changeTabBus.unsubscribe(this.changeTab);
   }
@@ -524,7 +523,7 @@ class MapView extends Component {
     this.motionChangePolylines = [];
   }
 
-  componentWillUpdate (nextProps: Props) {
+  UNSAFE_componentWillUpdate (nextProps: Props) {
     // If the map was rendered - decide how we can only partially update markers
     // to significantly speed up the update
     if (this.gmap) {
@@ -550,19 +549,17 @@ class MapView extends Component {
     }
 
     return (
-      <div className={Styles.map}>
-        <GoogleMap
-          yesIWantToUseGoogleMapApiInternals={true}
-          bootstrapURLKeys={{
-            key: API_KEY,
-            libraries: 'geometry',
-          }}
-          className='map'
-          center={this.state.center}
-          zoom={15}
-          onGoogleApiLoaded={this.onMapLoaded}
-        />
-      </div>
+      <GoogleMap
+        yesIWantToUseGoogleMapApiInternals={true}
+        bootstrapURLKeys={{
+          key: API_KEY,
+          libraries: 'geometry',
+        }}
+        className='map'
+        center={this.state.center}
+        zoom={15}
+        onGoogleApiLoaded={this.onMapLoaded}
+      />
     );
   }
 }
@@ -578,7 +575,7 @@ const selectedLocationSelector = createSelector(
       selectedLocationId: state.dashboard.selectedLocationId,
     }),
   ],
-  ({ locations, selectedLocationId }: LocationArgs) => _.find(locations, { uuid: selectedLocationId })
+  ({ locations, selectedLocationId }: LocationArgs) => find(locations, { uuid: selectedLocationId })
 );
 
 const nthItem = function (n: number) {

@@ -2,7 +2,8 @@
 import { API_URL } from '~/constants';
 import { type GlobalState } from '~/reducer/state';
 import cloneState from '~/utils/cloneState';
-import _ from 'lodash';
+import find from 'lodash/fp/find';
+import isEqual from 'lodash/fp/isEqual';
 import qs from 'querystring';
 import { fitBoundsBus, scrollToRowBus, changeTabBus } from '~/globalBus';
 import { setSettings, getSettings, getUrlSettings, setUrlSettings, type StoredSettings } from '~/storage';
@@ -609,7 +610,7 @@ const areLocationsEqual = function (existingLocations: Location[], newLocations:
   const firstNewLocation = newLocations[0];
   const lastExistingLocation = existingLocations[existingLocations.length - 1];
   const lastNewLocation = newLocations[newLocations.length - 1];
-  return _.isEqual([firstExistingLocation, lastExistingLocation], [firstNewLocation, lastNewLocation]);
+  return isEqual([firstExistingLocation, lastExistingLocation], [firstNewLocation, lastNewLocation]);
 };
 
 const setLocationsHandler = function (state: DashboardState, action: SetLocationsAction): DashboardState {
@@ -631,7 +632,7 @@ const autoselectOrInvalidateSelectedCompanyTokenHandler = function (
     return cloneState(state, { companyToken: state.companyTokens[0].id });
   }
   if (state.companyTokens.length > 1) {
-    const existingCompanyToken = _.find(state.companyTokens, { id: state.companyToken });
+    const existingCompanyToken = find(state.companyTokens, { id: state.companyToken });
     if (!existingCompanyToken) {
       return cloneState(state, { companyToken: state.companyTokens[0].id });
     } else {
@@ -652,7 +653,7 @@ const autoselectOrInvalidateSelectedDeviceHandler = function (
     return cloneState(state, { deviceId: state.devices[0].id });
   }
   if (state.devices.length > 1) {
-    const existingDevice = _.find(state.devices, { id: state.deviceId });
+    const existingDevice = find(state.devices, { id: state.deviceId });
     if (!existingDevice) {
       return cloneState(state, { deviceId: state.devices[0].id });
     } else {
@@ -672,7 +673,7 @@ const invalidateSelectedLocationHandler = function (
   if (state.isWatching) {
     return cloneState(state, { selectedLocationId: state.currentLocation ? state.currentLocation.uuid : null });
   } else {
-    const existingLocation = _.find(state.locations, { uuid: state.selectedLocationId });
+    const existingLocation = find(state.locations, { uuid: state.selectedLocationId });
     if (!existingLocation) {
       return cloneState(state, { selectedLocationId: null });
     } else {

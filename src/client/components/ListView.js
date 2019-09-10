@@ -2,7 +2,7 @@
 import React from 'react';
 
 import { connect } from 'react-redux';
-import moment from 'moment';
+import format from 'date-fns/format';
 import { List, AutoSizer } from 'react-virtualized';
 import classNames from 'classnames';
 
@@ -13,7 +13,7 @@ import { type GlobalState } from '~/reducer/state';
 import { createSelector } from 'reselect';
 
 import { changeTabBus, type ChangeTabPayload, scrollToRowBus, type ScrollToRowPayload } from '~/globalBus';
-import _ from 'lodash';
+import findIndex from 'lodash/fp/findIndex';
 
 type LocationRow = {|
   uuid: string,
@@ -53,8 +53,8 @@ const getRowData = (location: Location): LocationRow => {
     uuid: location.uuid,
     device_id: location.device_id,
     coordinate: location.latitude.toFixed(6) + ', ' + location.longitude.toFixed(6),
-    recorded_at: moment(new Date(location.recorded_at)).format('MM-DD HH:mm:ss:SSS'),
-    created_at: moment(new Date(location.created_at)).format('MM-DD HH:mm:ss:SSS'),
+    recorded_at: format(new Date(location.recorded_at), 'MM-dd HH:mm:ss:SSS'),
+    created_at: format(new Date(location.created_at), 'MM-dd HH:mm:ss:SSS'),
     is_moving: location.is_moving ? 'true' : 'false',
     accuracy: location.accuracy,
     speed: location.speed,
@@ -71,12 +71,12 @@ class ListView extends React.PureComponent {
   list: any;
   postponedScrollToRowPayload: ?ScrollToRowPayload = null;
 
-  componentWillMount () {
+  UNSAFE_componentWillMount () {
     scrollToRowBus.subscribe(this.scrollToRow);
     changeTabBus.subscribe(this.changeTab);
   }
 
-  componentWillUnmount () {
+  UNSAFE_componentWillUnmount () {
     scrollToRowBus.unsubscribe(this.scrollToRow);
     changeTabBus.unsubscribe(this.changeTab);
   }
@@ -102,7 +102,7 @@ class ListView extends React.PureComponent {
       return;
     }
     if (this.list) {
-      const index = _.findIndex(this.props.locations, { uuid: locationId });
+      const index = findIndex(this.props.locations, { uuid: locationId });
       this.list.scrollToRow(index);
     }
   };

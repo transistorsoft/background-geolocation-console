@@ -1,6 +1,6 @@
 // @flow
 import React from 'react';
-import { Dropdown } from 'react-toolbox/lib/dropdown';
+import Select from '@material-ui/core/Select';
 
 type Props = {
   onChange: (value: string) => any,
@@ -10,7 +10,9 @@ type Props = {
 
 const CompanyTokenField = ({ onChange, source, value }: Props) => {
   return source.length > 1
-    ? <Dropdown auto label={`Users (${source.length})`} onChange={onChange} source={source} value={value} />
+    ? <Select autoWidth label={`Users (${source.length})`} onChange={onChange} value={value}>
+      {source.map(x => (<MenuItem key={x.value} value={x.valur}>{x.label}</MenuItem>))}
+      </Select>
     : null;
 };
 

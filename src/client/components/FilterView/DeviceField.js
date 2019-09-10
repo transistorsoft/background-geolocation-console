@@ -1,8 +1,8 @@
 // @flow
 import React from 'react';
-import _ from 'lodash';
-import { Dropdown } from 'react-toolbox/lib/dropdown';
-import { Input } from 'react-toolbox/lib/input';
+import find from 'lodash/fp/find';
+import Select from '@material-ui/core/Select';
+import TextField from '@material-ui/core/TextField';
 
 type Props = {
   onChange: (value: string) => any,
@@ -12,13 +12,15 @@ type Props = {
 };
 
 const DeviceField = ({ onChange, source, hasData, value }: Props) => {
-  const entry = _.find(source, { value: value });
+  const entry = find(source, { value: value });
   const text = !entry ? 'No device present' : entry.label;
   return source.length > 1
-    ? <Dropdown auto label='Device' onChange={onChange} source={source} value={value} />
+    ? <Select autoWidth label='Device' onChange={onChange} value={value}>
+        {source.map(x => (<MenuItem key={x.value} value={x.valur}>{x.label}</MenuItem>))}
+      </Select>
     : hasData
-      ? <Input label='Device' readOnly value={text} />
-      : <Input label='Device' readOnly value='Loading devices ...' />;
+      ? <TextField fullWidth label='Device' readOnly value={text} />
+      : <TextField fullWidth label='Device' readOnly value='Loading devices ...' />;
 };
 
 export default DeviceField;

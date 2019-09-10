@@ -1,25 +1,33 @@
 // @flow
 import React from 'react';
 import { connect } from 'react-redux';
+import Fade from '@material-ui/core/Fade';
+import LinearProgress from '@material-ui/core/LinearProgress';
 import { type GlobalState } from '~/reducer/state';
+
+const style = {
+  height: 10,
+  zIndex: '99999',
+  top: 0,
+  position: 'absolute',
+  left: 0,
+  right: 0,
+};
 
 type Props = {|
   isLoading: boolean,
 |};
-const LoadingIndicator = ({ isLoading }: Props) =>
-  <div
+const LoadingIndicator = ({ isLoading }: Props) => (<div style={style}>
+  <Fade
+    in={isLoading}
     style={{
-      zIndex: 10000,
-      display: isLoading ? '' : 'none',
-      position: 'absolute',
-      top: 15,
-      left: '50%',
-      background: 'yellow',
-      padding: 10,
+      transitionDelay: isLoading ? '800ms' : '0ms',
     }}
+    unmountOnExit
   >
-    Loading locations ...
-  </div>;
+    <LinearProgress />
+  </Fade>
+</div>);
 
 const mapStateToProps = (state: GlobalState) => ({
   isLoading: state.dashboard.isLoading,

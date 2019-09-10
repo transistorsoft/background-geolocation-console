@@ -1,7 +1,8 @@
 // @flow
 import cloneState from '~/utils/cloneState';
 import queryString from 'query-string';
-import _ from 'lodash';
+import isUndefined from 'lodash/fp/find';
+import omitBy from 'lodash/fp/omitBy';
 import { type Tab } from './reducer/dashboard';
 export type StoredSettings = {|
   activeTab: Tab,
@@ -22,12 +23,12 @@ export function getSettings (key: string): StoredSettings {
   if (encodedSettings) {
     const parsed = JSON.parse(encodedSettings);
     // convert start/endDate to Date if they are present
-    return _.omitBy(
+    return omitBy(
       cloneState(parsed, {
         startDate: parsed.startDate ? new Date(parsed.startDate) : undefined,
         endDate: parsed.endDate ? new Date(parsed.endDate) : undefined,
       }),
-      _.isUndefined
+      isUndefined
     );
   } else {
     return JSON.parse('{}');
@@ -89,13 +90,13 @@ function encodeEndDate (date: ?Date) {
 }
 export function getUrlSettings (): $Shape<StoredSettings> {
   const params = queryString.parse(location.search);
-  return _.omitBy(
+  return omitBy(
     {
       deviceId: params.device,
       startDate: parseStartDate(params.start),
       endDate: parseEndDate(params.end),
     },
-    _.isUndefined
+    isUndefined
   );
 }
 export function setUrlSettings (settings: {|
@@ -119,12 +120,12 @@ export function setSettings (key: string, settings: $Shape<StoredSettings>) {
   const existingSettings = getSettings(key);
   const newSettings = cloneState(existingSettings, settings);
   // convert start/endDate to string if they are present
-  const stringifiedNewSettings = _.omitBy(
+  const stringifiedNewSettings = omitBy(
     Object.assign({}, newSettings, {
       startDate: newSettings.startDate ? newSettings.startDate.toISOString() : undefined,
       endDate: newSettings.endDate ? newSettings.endDate.toISOString() : undefined,
     }),
-    _.isUndefined
+    isUndefined
   );
 
   localStorage.setItem(getLocalStorageKey(key), JSON.stringify(stringifiedNewSettings));

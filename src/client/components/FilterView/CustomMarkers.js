@@ -1,8 +1,9 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import Styles from '~/assets/styles/app.css';
-import { Button } from 'react-toolbox/lib/button';
-import { Input } from 'react-toolbox/lib/input';
+import Button from '@material-ui/core/Button';
+import TextField from '@material-ui/core/TextField';
+import CardContent from '@material-ui/core/CardContent';
+import CardActions from '@material-ui/core/CardActions';
 
 class CustomMarkers extends React.Component {
   constructor (props) {
@@ -34,7 +35,7 @@ class CustomMarkers extends React.Component {
     });
   }
 
-  onAdd () {
+  onAdd = () => {
     let position = this.state.position;
     let latlng = position.replace(/\s+/, '').split(',');
     let radius = this.state.radius;
@@ -50,43 +51,40 @@ class CustomMarkers extends React.Component {
     });
   }
   render () {
-    return (
-      <div className={Styles.content}>
-        <h3>Custom Markers</h3>
-        <Input type='text' value={this.state.label} label='Label' onChange={this.onChangeLabel.bind(this)} />
-        <Input
+    return [
+      <CardContent key='content'>
+        <TextField fullWidth type='text' value={this.state.label} label='Label' onChange={this.onChangeLabel.bind(this)} />
+        <TextField
           type='text'
+          fullWidth
           value={this.state.position}
           label='Location'
           hint={this.state.positionHint}
           required
           onChange={this.onChangePosition.bind(this)}
         />
-        <Input
+        <TextField
           type='text'
+          fullWidth
           value={this.state.radius}
           label='Radius (for geofence circle)'
           onChange={this.onChangeRadius.bind(this)}
         />
-        <Button label='Add Marker' raised primary style={{ width: '100%' }} onMouseUp={this.onAdd.bind(this)} />
-      </div>
-    );
+      </CardContent>,
+      <CardActions key='actions' disableSpacing>
+        <Button fullWidth variant='contained' color='primary' style={{ width: '100%' }} onClick={this.onAdd}>
+          Add Marker
+        </Button>
+      </CardActions>,
+    ];
   }
 };
 
-function mapStateToProps (state, ownProps) {
-  return {};
-}
-
-function mapDispatchToProps (dispatch) {
-  return {
-    onAddTestMarker: (marker) => {
-      dispatch({
-        type: 'ADD_TEST_MARKER',
-        data: marker,
-      });
-    },
-  };
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(CustomMarkers);
+export default connect(
+  undefined,
+  {
+    onAddTestMarker: (data) => ({
+      type: 'ADD_TEST_MARKER',
+      data,
+    }),
+  })(CustomMarkers);
