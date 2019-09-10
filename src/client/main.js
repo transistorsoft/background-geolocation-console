@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import WrappedViewport from './components/Viewport';
+import WrappedViewport from './components/WrappedViewport';
 import { AppContainer } from 'react-hot-loader';
 import { Provider } from 'react-redux';
 
@@ -30,12 +30,10 @@ const render = () => {
     <AppContainer>
       <Provider store={store}>
         <Router>
-          <div>
-            <Switch>
-              <Route path='/:token' component={WrappedViewport} />
-              <Route path='/' component={WrappedViewport} />
-            </Switch>
-          </div>
+          <Switch>
+            <Route path='/:token' component={WrappedViewport} />
+            <Route path='/' component={WrappedViewport} />
+          </Switch>
         </Router>
       </Provider>
     </AppContainer>,

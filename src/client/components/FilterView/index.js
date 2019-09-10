@@ -1,15 +1,40 @@
 // @flow
 import React from 'react';
-import formatDate from '~/utils/formatDate';
+import { connect } from 'react-redux';
+import DateFnsUtils from '@date-io/date-fns';
+import {
+  AppBar,
+  Button,
+  Card,
+  CardActions,
+  CardContent,
+  CardHeader,
+  Checkbox,
+  FormControlLabel,
+  IconButton,
+  Switch,
+  TextField,
+  Toolbar,
+  Typography,
+  useTheme,
+} from '@material-ui/core';
+import {
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  Refresh as RefreshIcon,
+} from '@material-ui/icons';
+import {
+  DatePicker,
+  MuiPickersUtilsProvider,
+  TimePicker,
+} from '@material-ui/pickers';
 
+import useStyles from './Style';
+import formatDate from '~/utils/formatDate';
 import DeviceField from './DeviceField';
 import DeleteDeviceLink from './DeleteDeviceLink';
 import CompanyTokenField from './CompanyTokenField';
 import CustomMarkers from './CustomMarkers';
-
-import { connect } from 'react-redux';
-import { Input } from 'react-toolbox/lib/input';
-
 import { type GlobalState } from '~/reducer/state';
 import {
   type Device,
@@ -25,11 +50,7 @@ import {
   changeShowGeofenceHits,
   changeMaxMarkers,
 } from '~/reducer/dashboard';
-
-import { AppBar, Button, DatePicker, TimePicker, Switch, Checkbox, Card } from 'react-toolbox';
-
-import Styles from '~/assets/styles/app.css';
-
+const cardMargins = { marginBottom: '10px' };
 type StateProps = {|
   hasData: boolean,
   devices: { value: string, label: string }[],
@@ -46,6 +67,7 @@ type StateProps = {|
 |};
 type DispatchProps = {|
   onReload: () => any,
+  setOpen: (open: boolean) => any,
   onChangeDeviceId: (deviceId: string) => any,
   onChangeCompanyToken: (companyToken: string) => any,
   onChangeStartDate: (date: Date) => any,
@@ -71,6 +93,7 @@ const FilterView = function ({
   showMarkers,
   maxMarkers,
   onReload,
+  setOpen,
   onChangeDeviceId,
   onChangeCompanyToken,
   onChangeStartDate,
@@ -81,60 +104,101 @@ const FilterView = function ({
   onChangeShowGeofenceHits,
   onChangeMaxMarkers,
 }: Props): React$Element<any> {
+  const theme = useTheme();
+  const classes = useStyles();
   return (
     <div className='filterView'>
-      <AppBar title='Filter' rightIcon='refresh' onRightIconClick={onReload} />
-      <div className={Styles.content}>
-        <Card style={{ marginBottom: '10px' }}>
-          <div className={Styles.content}>
-            <h3>Locations</h3>
-            <CompanyTokenField onChange={onChangeCompanyToken} source={companyTokens} value={companyToken} />
-            <DeviceField onChange={onChangeDeviceId} source={devices} hasData={hasData} value={deviceId} />
-            <DeleteDeviceLink />
-            <div style={{ display: 'flex', flexDirection: 'row' }}>
-              <DatePicker
-                label='Start date'
-                sundayFirstDayOfWeek
-                autoOk
-                style={{ flex: 1 }}
-                onChange={onChangeStartDate}
-                value={startDate}
-                inputFormat={formatDate}
+      <AppBar className={classes.appBar} position='static'>
+        <Toolbar style={{ justifyContent: 'space-between' }}>
+          <IconButton edge='start' onClick={onReload} color='inherit' aria-label='menu'>
+            <RefreshIcon />
+          </IconButton>
+          <Typography variant='h6'>
+            Filter
+          </Typography>
+          <IconButton edge='end' color='inherit' onClick={() => setOpen(false)}>
+            {theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+          </IconButton>
+        </Toolbar>
+      </AppBar>
+      <div className={classes.cardsContainer}>
+        <MuiPickersUtilsProvider utils={DateFnsUtils}>
+          <Card style={cardMargins}>
+            <CardHeader className={classes.header} title='Locations' />
+            <CardContent className={classes.relative}>
+              <CompanyTokenField onChange={onChangeCompanyToken} source={companyTokens} value={companyToken} />
+              <DeviceField onChange={onChangeDeviceId} source={devices} hasData={hasData} value={deviceId} />
+              <DeleteDeviceLink />
+              <div style={{ display: 'flex', flexDirection: 'row' }}>
+                <DatePicker
+                  autoOk
+                  label='Start date'
+                  format='MM-dd'
+                  style={{ flex: 1 }}
+                  onChange={onChangeStartDate}
+                  value={startDate}
+                  labelFunc={formatDate}
+                />
+                <TimePicker
+                  autoOk
+                  label='Time'
+                  style={{ flex: 1 }}
+                  onChange={onChangeStartDate}
+                  value={startDate}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'row' }}>
+                <DatePicker
+                  autoOk
+                  label='End date'
+                  format='MM-dd'
+                  style={{ flex: 1 }}
+                  onChange={onChangeEndDate}
+                  value={endDate}
+                  labelFunc={formatDate}
+                />
+                <TimePicker
+                  autoOk
+                  label='Time'
+                  style={{ flex: 1 }}
+                  onChange={onChangeEndDate}
+                  value={endDate}
+                />
+              </div>
+              <Button fullWidth className={classes.paddingRow} variant='contained' color='primary' onClick={onReload}>
+                <RefreshIcon />
+                Reload
+              </Button>
+              <FormControlLabel
+                labelPlacement='start'
+                className={classes.switch}
+                control={
+                  <Switch color='primary' value='watching' checked={isWatching} onChange={(e) => onChangeIsWatching(e.target.checked)} style={{ flex: 1 }} />
+                }
+                label='Watch mode'
               />
-              <TimePicker label='Time' style={{ flex: 1 }} onChange={onChangeStartDate} value={startDate} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'row' }}>
-              <DatePicker
-                label='End date'
-                sundayFirstDayOfWeek
-                autoOk
-                style={{ flex: 1 }}
-                onChange={onChangeEndDate}
-                value={endDate}
-                inputFormat={formatDate}
+            </CardContent>
+          </Card>
+          <Card style={cardMargins}>
+            <CardHeader className={classes.header} title='Map' />
+            <CardContent>
+              <FormControlLabel
+                control={<Checkbox color='primary' checked={showMarkers} onChange={onChangeShowMarkers} />}
+                label='Show Markers'
               />
-              <TimePicker label='Time' style={{ flex: 1 }} onChange={onChangeEndDate} value={endDate} />
-            </div>
-            <Button icon='refresh' label='reload' style={{ width: '100%' }} raised primary onMouseUp={onReload} />
-
-            <div style={{ display: 'flex', flexDirection: 'row', marginTop: 10 }}>
-              <label style={{ flex: 1 }}>Watch mode</label>
-              <Switch checked={isWatching} onChange={onChangeIsWatching} style={{ flex: 1 }} />
-            </div>
-          </div>
-        </Card>
-        <Card style={{marginBottom: '10px'}}>
-          <div className={Styles.content}>
-            <h3>Map</h3>
-            <Checkbox checked={showMarkers} label='Show Markers' onChange={onChangeShowMarkers} />
-            <Checkbox checked={showPolyline} label='Show Polyline' onChange={onChangeShowPolyline} />
-            <Checkbox checked={showGeofenceHits} label='Show Geofences' onChange={onChangeShowGeofenceHits} />
-            <Input type="text" value={maxMarkers} label="Max markers" onChange={onChangeMaxMarkers} />
-          </div>
-        </Card>
-        <Card>
-          <CustomMarkers />
-        </Card>
+              <FormControlLabel
+                control={<Checkbox color='primary' checked={showPolyline} onChange={onChangeShowPolyline} />}
+                label='Show Polyline'
+              />
+              <FormControlLabel
+                control={<Checkbox color='primary' checked={showGeofenceHits} onChange={onChangeShowGeofenceHits} />}
+                label='Show Geofences'
+              />
+              <TextField fullWidth type='text' value={maxMarkers} onChange={onChangeMaxMarkers} label='Max markers' />
+            </CardContent>
+          </Card>
+          <CustomMarkers classes={classes} />
+        </MuiPickersUtilsProvider>
       </div>
     </div>
   );

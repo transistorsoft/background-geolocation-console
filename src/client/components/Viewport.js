@@ -1,86 +1,114 @@
 // @flow
-import React, { Component } from 'react';
+import React, { Component, useState } from 'react';
+import clsx from 'classnames';
+import {
+  Container,
+  CssBaseline,
+  Divider,
+  Drawer,
+  IconButton,
+  Tab,
+  Tabs,
+  useTheme,
+} from '@material-ui/core';
 
-// import { Layout, NavDrawer, Panel, Tabs, Tab, Sidebar } from 'react-toolbox';
-import { Layout, Panel, Sidebar, NavDrawer } from 'react-toolbox/lib/layout';
-import { Tab, Tabs } from 'react-toolbox/lib/tabs';
-
-import Styles from '../assets/styles/app.css';
 import HeaderView from './HeaderView';
 import FilterView from './FilterView';
-import LocationView from './LocationView';
+import TabPanel from './TabPanel';
+import LocationView, { getLocation } from './LocationView';
 import MapView from './MapView';
 import ListView from './ListView';
 import LoadingIndicator from './LoadingIndicator';
 import WatchModeWarning from './WatchModeWarning';
+import useStyles from './ViewportStyle';
 import TooManyPointsWarning from './TooManyPointsWarning';
 import { connect } from 'react-redux';
 import type { GlobalState } from '~/reducer/state';
-import { changeActiveTab, type Tab as TabType } from '~/reducer/dashboard';
+import { changeActiveTab, type Tab as TabType, type Location } from '~/reducer/dashboard';
 
 type StateProps = {|
   isLocationSelected: boolean,
   activeTabIndex: 0 | 1,
+  location: ?Location,
 |};
 type DispatchProps = {|
   onChangeActiveTab: (tab: TabType) => any,
 |};
 
 type Props = {| ...StateProps, ...DispatchProps |};
-class Viewport extends Component {
-  props: Props;
-  changeActiveTabIndex = (index: 0 | 1) => {
-    if (index === 0) {
-      this.props.onChangeActiveTab('map');
-    }
-    if (index === 1) {
-      this.props.onChangeActiveTab('list');
-    }
-  };
+const Viewport = ({ isLocationSelected, activeTabIndex, location }: StateProps) => {
+  const [tabIndex, setTabIndex] = useState(activeTabIndex);
+  const [open, setOpen] = React.useState(true);
+  const theme = useTheme();
+  const classes = useStyles();
 
-  render () {
-    const { isLocationSelected, activeTabIndex } = this.props;
-    return (
-      <Layout className={Styles.viewport}>
+  return (
+    <div className={classes.root}>
+      <CssBaseline />
+      <HeaderView classes={classes} setOpen={setOpen} location={location} open={open}>
+        <Tabs className={classes.tabs} value={tabIndex} onChange={(e, index) => setTabIndex(index)}>
+          <Tab label='Map' />
+          <Tab label='Data' />
+        </Tabs>
+      </HeaderView>
+      <Drawer
+        className={classes.drawer}
+        variant="persistent"
+        anchor="left"
+        open={open}
+        classes={{
+          paper: classes.drawerPaper,
+        }}
+      >
+        <FilterView setOpen={setOpen} />
+      </Drawer>
+      <main
+        className={clsx(
+          classes.content,
+          {
+            [classes.contentShift]: open,
+            [classes.contentShiftLocation]: !!location,
+          }
+        )}
+      >
         <LoadingIndicator />
-        <NavDrawer active={true} pinned={true} className={Styles.navDrawer}>
-          <FilterView />
-        </NavDrawer>
-        <Sidebar pinned={isLocationSelected} width={6}>
-          <LocationView />
-        </Sidebar>
-        <Panel className={Styles.workspace} bodyScroll={false}>
-          <HeaderView />
-          <TooManyPointsWarning />
-          <Tabs index={activeTabIndex} hideMode='display' onChange={this.changeActiveTabIndex} inverse>
-            <Tab label='Map'>
-              <MapView />
-            </Tab>
-            <Tab label='Data'>
-              <div
-                style={{
-                  position: 'absolute',
-                  flex: 1,
-                  overflow: 'auto',
-                  height: 'calc(100% - 160px)',
-                  width: 'calc(100% - 40px)',
-                }}
-              >
-                <WatchModeWarning />
-                <ListView style={{ width: 1300 }} />
-              </div>
-            </Tab>
-          </Tabs>
-        </Panel>
-      </Layout>
-    );
-  }
+        <TooManyPointsWarning />
+        <TabPanel
+          value={tabIndex}
+          index={0}
+          className={classes.tabPanel}
+        >
+          <MapView open={open} />
+        </TabPanel>
+        <TabPanel
+          value={tabIndex}
+          index={1}
+          className={clsx(classes.tabPanel, classes.overflowAuto, classes.whiteBackground)}
+        >
+          <WatchModeWarning />
+          <ListView style={{ width: 1300 }} />
+        </TabPanel>
+      </main>
+      <Drawer
+        className={classes.locationDrawer}
+        variant="persistent"
+        anchor="right"
+        open={!!location}
+        classes={{
+          paper: classes.drawerLocationPaper,
+        }}
+      >
+        <LocationView classes={classes} />
+      </Drawer>
+    </div>
+  );
 }
 
 const mapStateToProps = function (state: GlobalState): StateProps {
   return {
     isLocationSelected: !!state.dashboard.selectedLocationId,
     activeTabIndex: state.dashboard.activeTab === 'map' ? 0 : 1,
+    location: getLocation(state)
   };
 };
 const mapDispatchToProps: DispatchProps = {

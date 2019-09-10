@@ -1,4 +1,5 @@
-import moment from 'moment';
+import format from 'date-fns/format';
+
 export default function formatDate (date) {
-  return moment(date).format('MM-DD');
+  return format(date, 'MM-dd');
 }

@@ -1,17 +1,45 @@
 // @flow
 import React from 'react';
-import { AppBar } from 'react-toolbox/lib/app_bar';
-import { Navigation } from 'react-toolbox/lib/navigation';
-import { Link } from 'react-toolbox/lib/link';
-import Styles from '../assets/styles/app.css';
+import clsx from 'classnames';
+import {
+  AppBar,
+  Toolbar,
+  Link,
+  Typography,
+  IconButton,
+ } from '@material-ui/core';
+ import MenuIcon from '@material-ui/icons/Menu';
 import logo from '../assets/images/transistor-logo.svg';
 
-const HeaderView = () =>
-  <AppBar title='Background Geolocation Console' leftIcon='menu'>
-    <Navigation type='horizontal'>
-      <Link href='http://transistorsoft.com' label=''>
-        <img className={Styles.logo} src={logo} />
+const style = { 'justifyContent': 'space-between' };
+type Props = {| classes: {| appBar: string |} |};
+
+const HeaderView = ({ classes, open, setOpen, children, location }: Props) =>
+  <AppBar
+    position='static'
+    className={clsx(classes.appBar, {
+      [classes.appBarShift]: open && !location,
+      [classes.appBarWithLocationShift]: !open && !!location,
+      [classes.appBarBothShift]: open && !!location,
+    })}
+  >
+    <Toolbar style={style}>
+      <IconButton
+        edge='start'
+        className={clsx(classes.menuButton, open && classes.hide)}
+        color='inherit' onClick={() => setOpen(true)}
+        aria-label='menu'
+      >
+        <MenuIcon />
+      </IconButton>
+      <Typography variant='h6'>
+        Background Geolocation Console
+      </Typography>
+      <Link edge='end' href='http://transistorsoft.com'>
+        <img width="180" style={{ marginRight: '-20px' }} src={logo} />
       </Link>
-    </Navigation>
+    </Toolbar>
+    {children}
   </AppBar>;
+
 export default HeaderView;

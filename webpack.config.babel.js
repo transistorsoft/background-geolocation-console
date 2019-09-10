@@ -47,7 +47,7 @@ module.exports = {
   resolve: {
     extensions: ['.js', '.json', '.css', '.svg'],
   },
-  // mode: isProduction ? 'production' : 'development',
+  mode: isProduction ? 'production' : 'development',
   module: {
     rules: [
       {

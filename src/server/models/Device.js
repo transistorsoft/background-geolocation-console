@@ -1,5 +1,5 @@
 import LocationModel from '../database/LocationModel';
-import { literal } from 'sequelize';
+import sequelize from 'sequelize';
 
 const filterByCompany = !!process.env.SHARED_DASHBOARD;
 
@@ -13,7 +13,7 @@ export async function getDevices (params) {
     where: whereConditions,
     attributes: ['device_id', 'device_model'],
     group: ['device_id', 'device_model'],
-    order: literal('max(recorded_at) DESC'),
+    order: [[sequelize.fn('max', sequelize.col('recorded_at')), 'DESC']],
   });
   return result;
 }
