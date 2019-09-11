@@ -105,15 +105,15 @@ const FilterView = function ({
   const classes = useStyles();
   return (
     <div className='filterView'>
-      <AppBar className={classes.appBar} position="static">
+      <AppBar className={classes.appBar} position='static'>
         <Toolbar style={{ justifyContent: 'space-between' }}>
-          <IconButton edge="start" onClick={onReload} color="inherit" aria-label="menu">
+          <IconButton edge='start' onClick={onReload} color='inherit' aria-label='menu'>
             <RefreshIcon />
           </IconButton>
-          <Typography variant="h6">
+          <Typography variant='h6'>
             Filter
           </Typography>
-          <IconButton edge="end" color="inherit" onClick={() => setOpen(false)}>
+          <IconButton edge='end' color='inherit' onClick={() => setOpen(false)}>
             {theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
           </IconButton>
         </Toolbar>
@@ -121,7 +121,7 @@ const FilterView = function ({
       <div className={classes.cardsContainer}>
         <MuiPickersUtilsProvider utils={DateFnsUtils}>
           <Card style={cardMargins}>
-            <CardHeader className={classes.header} title="Locations" />
+            <CardHeader className={classes.header} title='Locations' />
             <CardContent className={classes.relative}>
               <CompanyTokenField onChange={onChangeCompanyToken} source={companyTokens} value={companyToken} />
               <DeviceField onChange={onChangeDeviceId} source={devices} hasData={hasData} value={deviceId} />
@@ -130,7 +130,7 @@ const FilterView = function ({
                 <DatePicker
                   autoOk
                   label='Start date'
-                  format="MM-dd"
+                  format='MM-dd'
                   style={{ flex: 1 }}
                   onChange={onChangeStartDate}
                   value={startDate}
@@ -148,7 +148,7 @@ const FilterView = function ({
                 <DatePicker
                   autoOk
                   label='End date'
-                  format="MM-dd"
+                  format='MM-dd'
                   style={{ flex: 1 }}
                   onChange={onChangeEndDate}
                   value={endDate}
@@ -170,32 +170,32 @@ const FilterView = function ({
                 labelPlacement='start'
                 className={classes.switch}
                 control={
-                  <Switch color="primary" value='watching' checked={isWatching} onChange={(e) => onChangeIsWatching(e.target.checked)} style={{ flex: 1 }} />
+                  <Switch color='primary' value='watching' checked={isWatching} onChange={(e) => onChangeIsWatching(e.target.checked)} style={{ flex: 1 }} />
                 }
-                label="Watch mode"
+                label='Watch mode'
               />
             </CardContent>
           </Card>
           <Card style={cardMargins}>
-            <CardHeader className={classes.header} title="Map" />
+            <CardHeader className={classes.header} title='Map' />
             <CardContent>
               <FormControlLabel
-                control={<Checkbox color="primary" checked={showMarkers} onChange={onChangeShowMarkers} />}
+                control={<Checkbox color='primary' checked={showMarkers} onChange={onChangeShowMarkers} />}
                 label='Show Markers'
               />
               <FormControlLabel
-                control={<Checkbox color="primary" checked={showPolyline} onChange={onChangeShowPolyline} />}
+                control={<Checkbox color='primary' checked={showPolyline} onChange={onChangeShowPolyline} />}
                 label='Show Polyline'
               />
               <FormControlLabel
-                control={<Checkbox color="primary" checked={showGeofenceHits} onChange={onChangeShowGeofenceHits} />}
+                control={<Checkbox color='primary' checked={showGeofenceHits} onChange={onChangeShowGeofenceHits} />}
                 label='Show Geofences'
               />
-              <TextField fullWidth type="text" value={maxMarkers} onChange={onChangeMaxMarkers} label="Max markers" />
+              <TextField fullWidth type='text' value={maxMarkers} onChange={onChangeMaxMarkers} label='Max markers' />
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className={classes.header} key='header' title='Custom Markers' />,
+            <CardHeader className={classes.header} key='header' title='Custom Markers' />
             <CustomMarkers />
           </Card>
         </MuiPickersUtilsProvider>
