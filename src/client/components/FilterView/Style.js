@@ -14,6 +14,13 @@ const useStyles = makeStyles(theme => ({
   relative: {
     position: 'relative',
   },
+  switch: {
+    margin: 0,
+    display: 'flex',
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    padding: 0,
+  },
 }));
 
 export default useStyles;

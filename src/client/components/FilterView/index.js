@@ -167,8 +167,10 @@ const FilterView = function ({
                 Reload
               </Button>
               <FormControlLabel
+                labelPlacement='start'
+                className={classes.switch}
                 control={
-                  <Switch color="primary" checked={isWatching} onChange={(e, val) => onChangeIsWatching(val)} style={{ flex: 1 }} />
+                  <Switch color="primary" value='watching' checked={isWatching} onChange={(e) => onChangeIsWatching(e.target.checked)} style={{ flex: 1 }} />
                 }
                 label="Watch mode"
               />
