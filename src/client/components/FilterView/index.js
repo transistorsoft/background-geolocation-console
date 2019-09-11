@@ -2,28 +2,32 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import DateFnsUtils from '@date-io/date-fns';
-import { useTheme } from '@material-ui/core/styles';
-import TextField from '@material-ui/core/TextField';
-import Card from '@material-ui/core/Card';
-import CardContent from '@material-ui/core/CardContent';
-import CardActions from '@material-ui/core/CardActions';
-import CardHeader from '@material-ui/core/CardHeader';
-import Toolbar from '@material-ui/core/Toolbar';
-import Checkbox from '@material-ui/core/Checkbox';
-import AppBar from '@material-ui/core/AppBar';
-import Button from '@material-ui/core/Button';
-import Switch from '@material-ui/core/Switch';
-import Typography from '@material-ui/core/Typography';
-import IconButton from '@material-ui/core/IconButton';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import RefreshIcon from '@material-ui/icons/Refresh';
-import SaveIcon from '@material-ui/icons/Save';
-import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
-import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import {
-  TimePicker,
+  AppBar,
+  Button,
+  Card,
+  CardActions,
+  CardContent,
+  CardHeader,
+  Checkbox,
+  FormControlLabel,
+  IconButton,
+  Switch,
+  TextField,
+  Toolbar,
+  Typography,
+  useTheme,
+} from '@material-ui/core';
+import {
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  Refresh as RefreshIcon,
+  Save as SaveIcon,
+} from '@material-ui/icons';
+import {
   DatePicker,
   MuiPickersUtilsProvider,
+  TimePicker,
 } from '@material-ui/pickers';
 
 import useStyles from './Style';
@@ -194,10 +198,7 @@ const FilterView = function ({
               <TextField fullWidth type='text' value={maxMarkers} onChange={onChangeMaxMarkers} label='Max markers' />
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className={classes.header} key='header' title='Custom Markers' />
-            <CustomMarkers />
-          </Card>
+          <CustomMarkers classes={classes} />
         </MuiPickersUtilsProvider>
       </div>
     </div>

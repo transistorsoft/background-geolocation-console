@@ -1,14 +1,16 @@
 // @flow
 import React from 'react';
 import { createSelector } from 'reselect';
-import find from 'lodash/fp/find';
+import find from 'lodash/find';
 
-import AppBar from '@material-ui/core/AppBar';
-import Card from '@material-ui/core/Card';
-import CardContent from '@material-ui/core/CardContent';
-import CardHeader from '@material-ui/core/CardHeader';
+import {
+  AppBar,
+  Card,
+  CardContent,
+  CardHeader,
+  IconButton,
+} from '@material-ui/core';
 import CloseIcon from '@material-ui/icons/Close';
-import IconButton from '@material-ui/core/IconButton';
 
 import { connect } from 'react-redux';
 import { type Location, unselectLocation } from '~/reducer/dashboard';
@@ -24,20 +26,22 @@ type DispatchProps = {|
 type Props = {| ...StateProps, ...DispatchProps |};
 
 const LocationView = ({ location, onClose }: Props) => (
-  <Card style={{ marginBottom: '10px' }}>
-    <CardHeader
-      title="Location"
-      action={
-        <IconButton onClick={onClose} aria-label="settings">
-          <CloseIcon />
-        </IconButton>
-      }
-    />
-    <CardContent>
-      <pre style={{ fontSize: '12px' }}>{JSON.stringify(location, null, 2)}</pre>
-    </CardContent>
-  </Card>
-);
+  location && (
+    <Card style={{ marginBottom: '10px' }}>
+      <CardHeader
+        title="Location"
+        action={
+          <IconButton onClick={onClose} aria-label="settings">
+            <CloseIcon />
+          </IconButton>
+        }
+      />
+      <CardContent>
+        <pre style={{ fontSize: '12px' }}>{JSON.stringify(location, null, 2)}</pre>
+      </CardContent>
+    </Card>
+  )
+) || '';
 
 type LocationArgs = {
   isWatching: boolean,
@@ -46,7 +50,7 @@ type LocationArgs = {
   selectedLocationId: ?string,
 };
 
-const getLocation = createSelector(
+export const getLocation = createSelector(
   [
     (state: GlobalState) => ({
       isWatching: state.dashboard.isWatching,
@@ -56,7 +60,9 @@ const getLocation = createSelector(
     }),
   ],
   ({ isWatching, currentLocation, locations, selectedLocationId }: LocationArgs) =>
-    isWatching ? currentLocation : find(locations, { uuid: selectedLocationId })
+    isWatching
+    ? currentLocation
+    : find(locations, { uuid: selectedLocationId })
 );
 
 const mapStateToProps = (state: GlobalState): StateProps => ({

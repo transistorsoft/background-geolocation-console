@@ -2,8 +2,7 @@
 import { API_URL } from '~/constants';
 import { type GlobalState } from '~/reducer/state';
 import cloneState from '~/utils/cloneState';
-import find from 'lodash/fp/find';
-import isEqual from 'lodash/fp/isEqual';
+import isEqual from 'lodash/isEqual';
 import qs from 'querystring';
 import { fitBoundsBus, scrollToRowBus, changeTabBus } from '~/globalBus';
 import { setSettings, getSettings, getUrlSettings, setUrlSettings, type StoredSettings } from '~/storage';
@@ -627,16 +626,17 @@ const autoselectOrInvalidateSelectedCompanyTokenHandler = function (
   state: DashboardState,
   action: AutoselectOrInvalidateSelectedCompanyTokenAction
 ): DashboardState {
-  if (state.companyTokens.length === 0) {
+  const { companyTokens, companyToken } = state;
+  if (companyTokens.length === 0) {
     return cloneState(state, { companyToken: 'bogus' });
   }
-  if (state.companyTokens.length === 1) {
-    return cloneState(state, { companyToken: state.companyTokens[0].id });
+  if (companyTokens.length === 1) {
+    return cloneState(state, { companyToken: companyTokens[0].id });
   }
-  if (state.companyTokens.length > 1) {
-    const existingCompanyToken = find(state.companyTokens, { id: state.companyToken });
+  if (companyTokens.length > 1) {
+    const existingCompanyToken = companyTokens && companyTokens.find(x => x.id === companyToken);
     if (!existingCompanyToken) {
-      return cloneState(state, { companyToken: state.companyTokens[0].id });
+      return cloneState(state, { companyToken: companyTokens[0].id });
     } else {
       return state;
     }
@@ -648,16 +648,17 @@ const autoselectOrInvalidateSelectedDeviceHandler = function (
   state: DashboardState,
   action: AutoselectOrInvalidateSelectedDeviceAction
 ): DashboardState {
-  if (state.devices.length === 0) {
+  const { devices, deviceId } = state;
+  if (devices.length === 0) {
     return cloneState(state, { deviceId: null });
   }
-  if (state.devices.length === 1) {
-    return cloneState(state, { deviceId: state.devices[0].id });
+  if (devices.length === 1) {
+    return cloneState(state, { deviceId: devices[0].id });
   }
-  if (state.devices.length > 1) {
-    const existingDevice = find(state.devices, { id: state.deviceId });
+  if (devices.length > 1) {
+    const existingDevice = devices && devices.find(x => x.id === state.deviceId);
     if (!existingDevice) {
-      return cloneState(state, { deviceId: state.devices[0].id });
+      return cloneState(state, { deviceId: devices[0].id });
     } else {
       return state;
     }
@@ -669,13 +670,14 @@ const invalidateSelectedLocationHandler = function (
   state: DashboardState,
   action: InvalidateSelectedLocationAction
 ): DashboardState {
-  if (!state.selectedLocationId) {
+  const { selectedLocationId, isWatching, currentLocation } = state;
+  if (!selectedLocationId) {
     return state;
   }
-  if (state.isWatching) {
-    return cloneState(state, { selectedLocationId: state.currentLocation ? state.currentLocation.uuid : null });
+  if (isWatching) {
+    return cloneState(state, { selectedLocationId: currentLocation ? currentLocation.uuid : null });
   } else {
-    const existingLocation = find(state.locations, { uuid: state.selectedLocationId });
+    const existingLocation = locations && locations.find(x => x.uuid === selectedLocationId);
     if (!existingLocation) {
       return cloneState(state, { selectedLocationId: null });
     } else {
@@ -779,7 +781,7 @@ const initialState: DashboardState = {
   maxMarkers: 1000,
   selectedLocationId: null,
   currentLocation: null,
-  isWatching: false,
+  isWatching: true,
 };
 
 // ------------------------------------

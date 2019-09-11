@@ -1,12 +1,14 @@
 // @flow
 import React from 'react';
 import clsx from 'classnames';
-import AppBar from '@material-ui/core/AppBar';
-import Toolbar from '@material-ui/core/Toolbar';
-import Link from '@material-ui/core/Link';
-import Typography from '@material-ui/core/Typography';
-import IconButton from '@material-ui/core/IconButton';
-import MenuIcon from '@material-ui/icons/Menu';
+import {
+  AppBar,
+  Toolbar,
+  Link,
+  Typography,
+  IconButton,
+ } from '@material-ui/core';
+ import MenuIcon from '@material-ui/icons/Menu';
 import logo from '../assets/images/transistor-logo.svg';
 
 const style = { 'justifyContent': 'space-between' };

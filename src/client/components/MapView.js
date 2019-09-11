@@ -1,7 +1,6 @@
 // @flow
 
 import React, { Component } from 'react';
-import find from 'lodash/fp/find';
 import { createSelector } from 'reselect';
 
 import { connect } from 'react-redux';
@@ -265,6 +264,7 @@ class MapView extends Component {
       console.timeEnd('renderMarkers: Visibility');
     }
     // handle current location
+    console.info('renderMarkers', isWatching, currentLocation);
     if (isWatching && currentLocation) {
       console.time('renderMarkers: Current Location');
       let latLng = new google.maps.LatLng(currentLocation.latitude, currentLocation.longitude);
@@ -575,7 +575,7 @@ const selectedLocationSelector = createSelector(
       selectedLocationId: state.dashboard.selectedLocationId,
     }),
   ],
-  ({ locations, selectedLocationId }: LocationArgs) => find(locations, { uuid: selectedLocationId })
+  ({ locations, selectedLocationId }: LocationArgs) => locations && locations.find(x => x.uuid === selectedLocationId),
 );
 
 const nthItem = function (n: number) {

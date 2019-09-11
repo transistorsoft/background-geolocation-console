@@ -13,7 +13,6 @@ import { type GlobalState } from '~/reducer/state';
 import { createSelector } from 'reselect';
 
 import { changeTabBus, type ChangeTabPayload, scrollToRowBus, type ScrollToRowPayload } from '~/globalBus';
-import findIndex from 'lodash/fp/findIndex';
 
 type LocationRow = {|
   uuid: string,
@@ -97,12 +96,13 @@ class ListView extends React.PureComponent {
   // scrolling to the specified location
   // if the tab is not active - postpone till tab becomes active
   scrollToRow = ({ locationId }: ScrollToRowPayload) => {
-    if (!this.props.isActiveTab) {
+    const { isActiveTab, locations } = this.props;
+    if (!isActiveTab) {
       this.postponedScrollToRowPayload = { locationId };
       return;
     }
     if (this.list) {
-      const index = findIndex(this.props.locations, { uuid: locationId });
+      const index = locations.find(x => x.uuid === locationId);
       this.list.scrollToRow(index);
     }
   };

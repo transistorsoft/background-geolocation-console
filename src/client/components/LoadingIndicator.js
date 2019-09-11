@@ -1,8 +1,10 @@
 // @flow
 import React from 'react';
 import { connect } from 'react-redux';
-import Fade from '@material-ui/core/Fade';
-import LinearProgress from '@material-ui/core/LinearProgress';
+import {
+  Fade,
+  LinearProgress,
+ } from '@material-ui/core';
 import { type GlobalState } from '~/reducer/state';
 
 const style = {

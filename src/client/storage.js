@@ -1,8 +1,8 @@
 // @flow
 import cloneState from '~/utils/cloneState';
 import queryString from 'query-string';
-import isUndefined from 'lodash/fp/find';
-import omitBy from 'lodash/fp/omitBy';
+import isUndefined from 'lodash/isUndefined';
+import omitBy from 'lodash/omitBy';
 import { type Tab } from './reducer/dashboard';
 export type StoredSettings = {|
   activeTab: Tab,
@@ -23,15 +23,16 @@ export function getSettings (key: string): StoredSettings {
   if (encodedSettings) {
     const parsed = JSON.parse(encodedSettings);
     // convert start/endDate to Date if they are present
-    return omitBy(
+    const result = omitBy(
       cloneState(parsed, {
         startDate: parsed.startDate ? new Date(parsed.startDate) : undefined,
         endDate: parsed.endDate ? new Date(parsed.endDate) : undefined,
       }),
       isUndefined
     );
+    return result;
   } else {
-    return JSON.parse('{}');
+    return {};
   }
 }
 
@@ -98,7 +99,6 @@ export function getUrlSettings (): $Shape<StoredSettings> {
     },
     isUndefined
   );
-  // console.log('getUrlSettings', location.search, params, result);
   return result;
 }
 export function setUrlSettings (settings: {|

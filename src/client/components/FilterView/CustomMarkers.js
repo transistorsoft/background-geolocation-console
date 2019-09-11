@@ -1,13 +1,17 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import Button from '@material-ui/core/Button';
-import TextField from '@material-ui/core/TextField';
-import CardContent from '@material-ui/core/CardContent';
-import CardActions from '@material-ui/core/CardActions';
+import {
+  Button,
+  Card,
+  CardActions,
+  CardContent,
+  CardHeader,
+  TextField,
+} from '@material-ui/core';
 
 class CustomMarkers extends React.Component {
-  constructor (props) {
-    super(props);
+  constructor (props, context) {
+    super(props, context);
     this.state = {
       label: '',
       positionHint: 'latitude, longitude',
@@ -51,32 +55,36 @@ class CustomMarkers extends React.Component {
     });
   }
   render () {
-    return [
-      <CardContent key='content'>
-        <TextField fullWidth type='text' value={this.state.label} label='Label' onChange={this.onChangeLabel.bind(this)} />
-        <TextField
-          type='text'
-          fullWidth
-          value={this.state.position}
-          label='Location'
-          hint={this.state.positionHint}
-          required
-          onChange={this.onChangePosition.bind(this)}
-        />
-        <TextField
-          type='text'
-          fullWidth
-          value={this.state.radius}
-          label='Radius (for geofence circle)'
-          onChange={this.onChangeRadius.bind(this)}
-        />
-      </CardContent>,
-      <CardActions key='actions' disableSpacing>
-        <Button fullWidth variant='contained' color='primary' style={{ width: '100%' }} onClick={this.onAdd}>
-          Add Marker
-        </Button>
-      </CardActions>,
-    ];
+    const { classes } = this.props;
+    return (
+      <Card>
+        <CardHeader className={classes.header} key='header' title='Custom Markers' />
+        <CardContent>
+          <TextField fullWidth type='text' value={this.state.label} label='Label' onChange={this.onChangeLabel.bind(this)} />
+          <TextField
+            type='text'
+            fullWidth
+            value={this.state.position}
+            label='Location'
+            hint={this.state.positionHint}
+            required
+            onChange={this.onChangePosition.bind(this)}
+          />
+          <TextField
+            type='text'
+            fullWidth
+            value={this.state.radius}
+            label='Radius (for geofence circle)'
+            onChange={this.onChangeRadius.bind(this)}
+          />
+        </CardContent>
+        <CardActions disableSpacing>
+          <Button fullWidth variant='contained' color='primary' style={{ width: '100%' }} onClick={this.onAdd}>
+            Add Marker
+          </Button>
+        </CardActions>
+      </Card>
+    );
   }
 };
 
