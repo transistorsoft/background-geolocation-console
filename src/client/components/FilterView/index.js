@@ -162,7 +162,7 @@ const FilterView = function ({
                   value={endDate}
                 />
               </div>
-              <Button fullWidth variant='contained' color='primary' onClick={onReload}>
+              <Button fullWidth className={classes.paddingRow} variant='contained' color='primary' onClick={onReload}>
                 <RefreshIcon />
                 Reload
               </Button>

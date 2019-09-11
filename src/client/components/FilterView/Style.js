@@ -11,6 +11,10 @@ const useStyles = makeStyles(theme => ({
   appBar: {
     backgroundColor: theme.palette.primary.dark,
   },
+  paddingRow: {
+    marginTop: 10,
+    // marginBottom: 10,
+  },
   relative: {
     position: 'relative',
   },
