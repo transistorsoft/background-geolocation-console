@@ -19,8 +19,8 @@ const DeviceField = ({ onChange, source, hasData, value }: Props) => {
         {source.map(x => (<MenuItem key={x.value} value={x.valur}>{x.label}</MenuItem>))}
       </Select>
     : hasData
-      ? <TextField fullWidth label='Device' readOnly value={text} />
-      : <TextField fullWidth label='Device' readOnly value='Loading devices ...' />;
+      ? <TextField fullWidth label='Device' disabled value={text} />
+      : <TextField fullWidth label='Device' disabled value='Loading devices ...' />;
 };
 
 export default DeviceField;
