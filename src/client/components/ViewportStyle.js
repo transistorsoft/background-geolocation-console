@@ -25,6 +25,23 @@ const useStyles = makeStyles(theme => ({
       duration: theme.transitions.duration.enteringScreen,
     }),
   },
+  appBarWithLocationShift: {
+    width: `calc(100% - ${locationDrawlerWidth}px)`,
+    marginRight: locationDrawlerWidth,
+    transition: theme.transitions.create(['margin', 'width'], {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+  },
+  appBarBothShift: {
+    width: `calc(100% - ${drawerWidth + locationDrawlerWidth}px)`,
+    marginLeft: drawerWidth,
+    marginRight: locationDrawlerWidth,
+    transition: theme.transitions.create(['margin', 'width'], {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+  },
   locationContainer: {
     width: locationDrawlerWidth,
     overflow: 'auto',

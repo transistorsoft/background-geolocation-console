@@ -45,7 +45,7 @@ const Viewport = ({ isLocationSelected, activeTabIndex, location }: StateProps) 
   return (
     <div className={classes.root}>
       <CssBaseline />
-      <HeaderView classes={classes} setOpen={setOpen} open={open}>
+      <HeaderView classes={classes} setOpen={setOpen} location={location} open={open}>
         <Tabs className={classes.tabs} value={tabIndex} onChange={(e, index) => setTabIndex(index)}>
           <Tab label='Map' />
           <Tab label='Data' />

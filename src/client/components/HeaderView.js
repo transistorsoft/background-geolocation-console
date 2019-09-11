@@ -14,11 +14,13 @@ import logo from '../assets/images/transistor-logo.svg';
 const style = { 'justifyContent': 'space-between' };
 type Props = {| classes: {| appBar: string |} |};
 
-const HeaderView = ({ classes, open, setOpen, children }: Props) =>
+const HeaderView = ({ classes, open, setOpen, children, location }: Props) =>
   <AppBar
     position='static'
     className={clsx(classes.appBar, {
-      [classes.appBarShift]: open,
+      [classes.appBarShift]: open && !location,
+      [classes.appBarWithLocationShift]: !open && !!location,
+      [classes.appBarBothShift]: open && !!location,
     })}
   >
     <Toolbar style={style}>
