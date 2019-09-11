@@ -98,7 +98,7 @@ export function getUrlSettings (): $Shape<StoredSettings> {
     },
     isUndefined
   );
-  console.log('getUrlSettings', location.search, params, result);
+  // console.log('getUrlSettings', location.search, params, result);
   return result;
 }
 export function setUrlSettings (settings: {|
@@ -123,11 +123,12 @@ export function setSettings (key: string, settings: $Shape<StoredSettings>) {
   const newSettings = cloneState(existingSettings, settings);
   // convert start/endDate to string if they are present
   const stringifiedNewSettings = omitBy(
-    Object.assign({}, newSettings, {
+    {
+      ...newSettings,
       startDate: newSettings.startDate ? newSettings.startDate.toISOString() : undefined,
       endDate: newSettings.endDate ? newSettings.endDate.toISOString() : undefined,
-    }),
-    isUndefined
+    },
+    isUndefined,
   );
 
   localStorage.setItem(getLocalStorageKey(key), JSON.stringify(stringifiedNewSettings));

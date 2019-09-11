@@ -16,7 +16,7 @@ const DeviceField = ({ onChange, source, hasData, value }: Props) => {
   const text = !entry ? 'No device present' : entry.label;
   return source.length > 1
     ? <Select autoWidth label='Device' onChange={onChange} value={value}>
-        {source.map(x => (<MenuItem key={x.value} value={x.value}>{x.label}</MenuItem>))}
+        {source.map(x => (<MenuItem key={x.id} value={x.id}>{x.name}</MenuItem>))}
       </Select>
     : hasData
       ? <TextField fullWidth label='Device' disabled value={text} />
