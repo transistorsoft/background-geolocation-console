@@ -22,7 +22,6 @@ import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   Refresh as RefreshIcon,
-  Save as SaveIcon,
 } from '@material-ui/icons';
 import {
   DatePicker,

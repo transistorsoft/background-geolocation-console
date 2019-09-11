@@ -1,6 +1,7 @@
 import { makeStyles } from '@material-ui/core/styles';
 
 export const drawerWidth = 255;
+export const locationDrawlerWidth = 384;
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -24,6 +25,13 @@ const useStyles = makeStyles(theme => ({
       duration: theme.transitions.duration.enteringScreen,
     }),
   },
+  locationContainer: {
+    width: locationDrawlerWidth,
+    overflow: 'auto',
+    height: '100%',
+    whiteSpace: 'pre-wrap',
+    wordWrap: 'break-word',
+  },
   tabPanel: {
     position: 'absolute',
     top: 0,
@@ -44,8 +52,15 @@ const useStyles = makeStyles(theme => ({
     width: drawerWidth,
     flexShrink: 0,
   },
+  locationDrawer: {
+    width: locationDrawlerWidth,
+    flexShrink: 0,
+  },
   drawerPaper: {
     width: drawerWidth,
+  },
+  drawerLocationPaper: {
+    width: locationDrawlerWidth,
   },
   drawerHeader: {
     display: 'flex',
@@ -69,6 +84,13 @@ const useStyles = makeStyles(theme => ({
       duration: theme.transitions.duration.leavingScreen,
     }),
     marginLeft: -drawerWidth,
+  },
+  contentShiftLocation: {
+    transition: theme.transitions.create('margin', {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+    marginRight: locationDrawlerWidth,
   },
   contentShift: {
     transition: theme.transitions.create('margin', {

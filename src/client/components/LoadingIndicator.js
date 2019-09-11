@@ -9,7 +9,7 @@ import { type GlobalState } from '~/reducer/state';
 
 const style = {
   height: 10,
-  zIndex: '99999',
+  zIndex: '1000',
   top: 0,
   position: 'absolute',
   left: 0,

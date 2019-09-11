@@ -2,14 +2,21 @@
 import React from 'react';
 import { createSelector } from 'reselect';
 import find from 'lodash/find';
-
 import {
   AppBar,
   Card,
   CardContent,
   CardHeader,
   IconButton,
+  Toolbar,
+  Typography,
+  useTheme,
 } from '@material-ui/core';
+import {
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+} from '@material-ui/icons';
+
 import CloseIcon from '@material-ui/icons/Close';
 
 import { connect } from 'react-redux';
@@ -25,23 +32,23 @@ type DispatchProps = {|
 
 type Props = {| ...StateProps, ...DispatchProps |};
 
-const LocationView = ({ location, onClose }: Props) => (
-  location && (
-    <Card style={{ marginBottom: '10px' }}>
-      <CardHeader
-        title="Location"
-        action={
-          <IconButton onClick={onClose} aria-label="settings">
-            <CloseIcon />
-          </IconButton>
-        }
-      />
-      <CardContent>
-        <pre style={{ fontSize: '12px' }}>{JSON.stringify(location, null, 2)}</pre>
-      </CardContent>
-    </Card>
-  )
-) || '';
+const LocationView = ({ location, onClose, classes }: Props) => (location && (
+  <div>
+    <AppBar className={classes.appBar} position='static'>
+      <Toolbar style={{ justifyContent: 'space-between' }}>
+        <Typography variant='h6'>
+          Location
+        </Typography>
+        <IconButton color='inherit' onClick={onClose}>
+          {useTheme().direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+        </IconButton>
+      </Toolbar>
+    </AppBar>
+    <div className={classes.locationContainer}>
+      <pre style={{ fontSize: '12px' }}>{JSON.stringify(location, null, 2)}</pre>
+    </div>
+  </div>
+)) || '';
 
 type LocationArgs = {
   isWatching: boolean,

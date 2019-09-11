@@ -670,7 +670,7 @@ const invalidateSelectedLocationHandler = function (
   state: DashboardState,
   action: InvalidateSelectedLocationAction
 ): DashboardState {
-  const { selectedLocationId, isWatching, currentLocation } = state;
+  const { selectedLocationId, isWatching, currentLocation, locations } = state;
   if (!selectedLocationId) {
     return state;
   }

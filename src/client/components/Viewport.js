@@ -67,6 +67,7 @@ const Viewport = ({ isLocationSelected, activeTabIndex, location }: StateProps) 
           classes.content,
           {
             [classes.contentShift]: open,
+            [classes.contentShiftLocation]: !!location,
           }
         )}
       >
@@ -89,15 +90,15 @@ const Viewport = ({ isLocationSelected, activeTabIndex, location }: StateProps) 
         </TabPanel>
       </main>
       <Drawer
-        className={classes.drawer}
+        className={classes.locationDrawer}
         variant="persistent"
         anchor="right"
         open={!!location}
         classes={{
-          paper: classes.drawerPaper,
+          paper: classes.drawerLocationPaper,
         }}
       >
-        <LocationView />
+        <LocationView classes={classes} />
       </Drawer>
     </div>
   );

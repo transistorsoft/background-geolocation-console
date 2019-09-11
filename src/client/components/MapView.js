@@ -264,7 +264,6 @@ class MapView extends Component {
       console.timeEnd('renderMarkers: Visibility');
     }
     // handle current location
-    console.info('renderMarkers', isWatching, currentLocation);
     if (isWatching && currentLocation) {
       console.time('renderMarkers: Current Location');
       let latLng = new google.maps.LatLng(currentLocation.latitude, currentLocation.longitude);
