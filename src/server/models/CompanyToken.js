@@ -1,5 +1,5 @@
 import LocationModel from '../database/LocationModel';
-import { literal } from 'sequelize';
+import sequelize from 'sequelize';
 
 const filterByCompany = !!process.env.SHARED_DASHBOARD;
 const adminCompanyToken = process.env.ADMIN_TOKEN;
@@ -18,7 +18,7 @@ export async function getCompanyTokens (params) {
     where: whereConditions,
     attributes: ['company_token'],
     group: ['company_token'],
-    order: literal('min(created_at) desc'),
+    order: [[sequelize.fn('max', sequelize.col('created_at')), 'DESC']],
   });
   return result;
 }

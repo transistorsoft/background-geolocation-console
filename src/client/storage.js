@@ -90,7 +90,7 @@ function encodeEndDate (date: ?Date) {
 }
 export function getUrlSettings (): $Shape<StoredSettings> {
   const params = queryString.parse(location.search);
-  return omitBy(
+  const result = omitBy(
     {
       deviceId: params.device,
       startDate: parseStartDate(params.start),
@@ -98,6 +98,8 @@ export function getUrlSettings (): $Shape<StoredSettings> {
     },
     isUndefined
   );
+  console.log('getUrlSettings', location.search, params, result);
+  return result;
 }
 export function setUrlSettings (settings: {|
   deviceId: ?string,

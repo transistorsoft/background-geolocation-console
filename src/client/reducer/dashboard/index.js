@@ -378,12 +378,14 @@ export function doAddTestMarker(value: Object): AddTestMarkerAction {
 // ------------------------------------
 export function loadInitialData (id: string): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    if (getState().dashboard.hasData) {
+    const { dashboard: { hasData } } = getState();
+    if (hasData) {
       console.error('extra call after everything is set up!');
       return;
     }
     await dispatch(setCompanyTokenFromSearch(id));
-    const existingSettings = getSettings(getState().dashboard.companyTokenFromSearch);
+    const { dashboard: { companyTokenFromSearch } } = getState();
+    const existingSettings = getSettings(companyTokenFromSearch);
     const urlSettings = getUrlSettings();
     await dispatch(applyExistingSettings(existingSettings));
     await dispatch(applyExistingSettings(urlSettings));
@@ -413,7 +415,7 @@ export function reload (): ThunkAction {
 
 export function deleteActiveDevice (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const deviceId = getState().dashboard.deviceId;
+    const { dashboard: { deviceId } } = getState();
     if (!deviceId) {
       return;
     }
@@ -425,7 +427,7 @@ export function deleteActiveDevice (): ThunkAction {
 
 export function loadCompanyTokens (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const { companyTokenFromSearch } = getState().dashboard;
+    const { dashboard: { companyTokenFromSearch } } = getState();
     const params = qs.stringify({
       company_token: companyTokenFromSearch,
     });
@@ -441,7 +443,7 @@ export function loadCompanyTokens (): ThunkAction {
 
 export function loadDevices (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const { companyToken } = getState().dashboard;
+    const { dashboard: { companyToken } } = getState();
     const params = qs.stringify({
       company_token: companyToken,
     });
