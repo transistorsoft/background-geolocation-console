@@ -1,6 +1,8 @@
 const webpack = require('webpack');
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
+const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 
 const isProduction = process.env.NODE_ENV === 'production';
 const htmlWebpackPlugin = new HtmlWebpackPlugin({
@@ -48,6 +50,39 @@ module.exports = {
     extensions: ['.js', '.json', '.css', '.svg'],
   },
   mode: isProduction ? 'production' : 'development',
+  optimization: {
+    minimizer: [
+      new UglifyJsPlugin({
+        sourceMap: true,
+        parallel: false,
+        uglifyOptions: {
+          ecma: 8,
+          sourceMap: true,
+          beautify: false,
+          drop_console: true,
+          safari10: true,
+          ie8: true,
+          mangle: {
+            ie8: true,
+            keep_fnames: true
+          },
+          compress: {
+            ie8: true,
+            drop_console: true,
+            warnings: false
+          },
+          output: {
+            comments: false
+          },
+          compressor: {
+            warnings: false
+          },
+          comments: false
+        }
+      }),
+      new OptimizeCSSAssetsPlugin({}),
+    ],
+  },
   module: {
     rules: [
       {
@@ -95,14 +130,6 @@ module.exports = {
       new webpack.LoaderOptionsPlugin({
         minimize: true,
         debug: false,
-      }),
-      new webpack.optimize.UglifyJsPlugin({
-        sourceMap: true,
-        compress: {
-          warnings: false,
-        },
-        mangle: true,
-        beautify: false, // use true for debugging
       }),
       htmlWebpackPlugin,
     ]

@@ -32,6 +32,7 @@
     "google-map-react": "^1.1.4",
     "lodash": "^4.17.15",
     "opn": "^5.1.0",
+    "optimize-css-assets-webpack-plugin": "^5.0.3",
     "pg": "6.1.0",
     "pg-hstore": "2.3.2",
     "postcss": "^5.2.16",
@@ -51,6 +52,7 @@
     "request": "^2.81.0",
     "reselect": "^3.0.1",
     "sequelize": "^5.2.7",
+    "uglifyjs-webpack-plugin": "^2.2.0",
     "url-loader": "^2.1.0"
   },
   "devDependencies": {
