@@ -69,13 +69,9 @@ module.exports = {
           compress: {
             ie8: true,
             drop_console: true,
-            warnings: false
           },
           output: {
             comments: false
-          },
-          compressor: {
-            warnings: false
           },
           comments: false
         }

@@ -6,7 +6,6 @@ import {
   AppBar,
   Button,
   Card,
-  CardActions,
   CardContent,
   CardHeader,
   Checkbox,
@@ -63,7 +62,7 @@ type StateProps = {|
   showGeofenceHits: boolean,
   showPolyline: boolean,
   showMarkers: boolean,
-  maxMarkers: number
+  maxMarkers: number,
 |};
 type DispatchProps = {|
   onReload: () => any,
