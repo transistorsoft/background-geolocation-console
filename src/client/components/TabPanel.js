@@ -1,13 +1,7 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import {
-  makeStyles,
-  AppBar,
-  Tabs,
-  Tab,
   Typography,
-  Box
- } from '@material-ui/core';
+} from '@material-ui/core';
 
 type Props = {|
   children: boolean,

@@ -4,9 +4,6 @@ import { createSelector } from 'reselect';
 import find from 'lodash/find';
 import {
   AppBar,
-  Card,
-  CardContent,
-  CardHeader,
   IconButton,
   Toolbar,
   Typography,
@@ -16,8 +13,6 @@ import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
 } from '@material-ui/icons';
-
-import CloseIcon from '@material-ui/icons/Close';
 
 import { connect } from 'react-redux';
 import { type Location, unselectLocation } from '~/reducer/dashboard';

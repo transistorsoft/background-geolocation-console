@@ -182,7 +182,7 @@ const FilterView = function ({
             <CardHeader className={classes.header} title='Map' />
             <CardContent>
               <FormControlLabel
-                control={<Checkbox color='primary' checked={showMarkers} onChange={e => onChangeShowMarkers(e.target.value)} />}
+                control={<Checkbox color='primary' checked={showMarkers} onChange={e => onChangeShowMarkers(e.target.checked)} />}
                 label='Show Markers'
               />
               <FormControlLabel

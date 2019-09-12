@@ -1,15 +1,11 @@
 // @flow
-import React, { Component, useState } from 'react';
+import React, { useState } from 'react';
 import clsx from 'classnames';
 import {
-  Container,
   CssBaseline,
-  Divider,
   Drawer,
-  IconButton,
   Tab,
   Tabs,
-  useTheme,
 } from '@material-ui/core';
 
 import HeaderView from './HeaderView';
@@ -39,7 +35,6 @@ type Props = {| ...StateProps, ...DispatchProps |};
 const Viewport = ({ isLocationSelected, activeTabIndex, location }: StateProps) => {
   const [tabIndex, setTabIndex] = useState(activeTabIndex);
   const [open, setOpen] = React.useState(true);
-  const theme = useTheme();
   const classes = useStyles();
 
   return (
@@ -53,8 +48,8 @@ const Viewport = ({ isLocationSelected, activeTabIndex, location }: StateProps) 
       </HeaderView>
       <Drawer
         className={classes.drawer}
-        variant="persistent"
-        anchor="left"
+        variant='persistent'
+        anchor='left'
         open={open}
         classes={{
           paper: classes.drawerPaper,
@@ -91,8 +86,8 @@ const Viewport = ({ isLocationSelected, activeTabIndex, location }: StateProps) 
       </main>
       <Drawer
         className={classes.locationDrawer}
-        variant="persistent"
-        anchor="right"
+        variant='persistent'
+        anchor='right'
         open={!!location}
         classes={{
           paper: classes.drawerLocationPaper,
@@ -102,13 +97,13 @@ const Viewport = ({ isLocationSelected, activeTabIndex, location }: StateProps) 
       </Drawer>
     </div>
   );
-}
+};
 
 const mapStateToProps = function (state: GlobalState): StateProps {
   return {
     isLocationSelected: !!state.dashboard.selectedLocationId,
     activeTabIndex: state.dashboard.activeTab === 'map' ? 0 : 1,
-    location: getLocation(state)
+    location: getLocation(state),
   };
 };
 const mapDispatchToProps: DispatchProps = {
