@@ -6,11 +6,17 @@
     "@babel/plugin-proposal-export-namespace-from",
     "@babel/plugin-proposal-class-properties",
     "@babel/plugin-proposal-export-default-from",
-    "react-hot-loader/babel",
     ["babel-plugin-root-import", {
       "paths": [
-        { "rootPathSuffix": "src/client" },
+        { "rootPathSuffix": "src/client" }
       ]
     }]
-  ]
+  ],
+  "env": {
+    "development": {
+      "plugins": [
+        "react-hot-loader/babel"
+      ]
+    }
+  }
 }
