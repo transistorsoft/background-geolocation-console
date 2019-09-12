@@ -12,7 +12,7 @@
     "migrate": "babel-node ./src/server/database/migrate.js"
   },
   "engines": {
-    "node": "6.x"
+    "node": "8.16.1"
   },
   "author": "Chris Scott, Transistor Software",
   "license": "MIT",
