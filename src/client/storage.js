@@ -124,7 +124,6 @@ export function setSettings (key: string, settings: $Shape<StoredSettings>) {
   // convert start/endDate to string if they are present
   const stringifiedNewSettings = omitBy(
     {
-      ...newSettings,
       startDate: newSettings.startDate ? newSettings.startDate.toISOString() : undefined,
       endDate: newSettings.endDate ? newSettings.endDate.toISOString() : undefined,
     },
