@@ -33,21 +33,33 @@ You may also want to configure `Settings->autoSync` to `false` while out field-t
 
 As you integrate the background-geolocation plugin with your app, you may find it useful to post locations to the test console to verify your integration.
 
-If you want to post to the tracking console in your own app, it’s very easy: The plugin contains a helper method [#transistorTrackerParams](https://transistorsoft.github.io/react-native-background-geolocation-android/classes/_react_native_background_geolocation_android_.backgroundgeolocation.html#transistortrackerparams) to compose a params config suitable for consumption by the server:
+### React Native &amp; Cordova:
+If you want to post to the tracking console in your own app, it’s very easy: The plugin contains a helper method [#transistorTrackerParams](https://transistorsoft.github.io/react-native-background-geolocation-android/classes/_react_native_background_geolocation_android_.backgroundgeolocation.html#transistortrackerparams) to compose a params config suitable for consumption by the server.  It's up to you to provide the `device` plugin instance (*Cordova*: `cordova-plugin-device`, *React Native*: `react-native-device-info`, *Flutter*
 
 ```javascript
 //
 // Configure the BackgroundGeolocation plugin to post to this console
 // after modifying the #url / #params below, visit in your browser:
-// http://<your.ip.ad.dress>:9000/<your-console-username
+// http://<your.ip.ad.dress>:9000
 //
+
 let username = 'your-custom-username';
 BackgroundGeolocation.ready({
-  url: 'http://<your-ip-address>/locations/' + <your-console-username>,
-  params: BackgroundGeolocation.transistorTrackerParams()
+  url: 'http://<your-ip-address>:9000/locations',
+  params: BackgroundGeolocation.transistorTrackerParams(device) // <-- device plugin instance.
 }, (state) => {
   BackgroundGeolocation.start();
 });
+```
+
+### Flutter:
+```dart
+Map deviceParams = await Config.deviceParams;
+
+BackgroundGeolocation.ready(Config(    
+    url: 'http://<your.ip.address>:9000/locations',
+    params: deviceParams
+));
 ```
 
 ## Running on Heroku
