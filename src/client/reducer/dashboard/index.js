@@ -173,7 +173,7 @@ type SetCompanyTokenFromSearchAction = {|
 
 type AddTestMarkerAction = {|
   type: 'dashboard/ADD_TEST_MARKER',
-  value: Object
+  value: Object,
 |};
 
 type Action =
@@ -365,11 +365,11 @@ export function setCompanyTokenFromSearch (value: string): SetCompanyTokenFromSe
   };
 }
 
-export function doAddTestMarker(value: Object): AddTestMarkerAction {
+export function doAddTestMarker (value: Object): AddTestMarkerAction {
   return {
     type: 'dashboard/ADD_TEST_MARKER',
-    value: value
-  }
+    value: value,
+  };
 }
 
 // ------------------------------------
@@ -463,7 +463,7 @@ export function loadLocations (): ThunkAction {
       device_id: deviceId,
       start_date: startDate.toISOString(),
       end_date: endDate.toISOString(),
-      limit: maxMarkers
+      limit: maxMarkers,
     });
     const response = await fetch(`${API_URL}/locations?${params}`);
     const records = await response.json();
@@ -656,7 +656,7 @@ const autoselectOrInvalidateSelectedDeviceHandler = function (
     return cloneState(state, { deviceId: devices[0].id });
   }
   if (devices.length > 1) {
-    const existingDevice = devices && devices.find(x => x.id === state.deviceId);
+    const existingDevice = devices && devices.find(x => x.id === deviceId);
     if (!existingDevice) {
       return cloneState(state, { deviceId: devices[0].id });
     } else {
@@ -740,11 +740,12 @@ const setCompanyTokenFromSearchHandler = function (state: DashboardState, action
   return cloneState(state, { companyTokenFromSearch: action.value });
 };
 
-const addTestMarkerHandler = function(state: DashboardState, action: AddTestMarkerAction) {
+const addTestMarkerHandler = function (state: DashboardState, action: AddTestMarkerAction) {
   let markers = [].concat(state.testMarkers);
   markers.push(action.data);
-  return cloneState(state, {testMarkers: markers});
-}
+  return cloneState(state, { testMarkers: markers });
+};
+
 // ------------------------------------
 // Initial State
 // ------------------------------------
