@@ -13,7 +13,7 @@ const DeviceField = ({ onChange, source, hasData, value }: Props) => {
   const entry = !!source && source.find(x => x.value ===value);
   const text = !entry ? 'No device present' : entry.label;
   return source.length > 1
-    ? <Select autoWidth style={{ display: 'flex' }} label='Device' onChange={onChange} value={value || ''}>
+    ? <Select autoWidth style={{ display: 'flex' }} label='Device' onChange={e => onChange(e.target.value)} value={value || ''}>
         {source.map(x => (<MenuItem key={x.value} value={x.value}>{x.label}</MenuItem>))}
       </Select>
     : hasData
