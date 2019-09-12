@@ -20,20 +20,20 @@ class CustomMarkers extends React.Component {
     };
   }
 
-  onChangeLabel (value) {
+  onChangeLabel = (value) => {
     this.setState({
       label: value,
     });
   }
 
-  onChangePosition (value) {
+  onChangePosition = (value) => {
     this.setState({
       positionHint: (value.length > 0) ? '' : 'latitude, longitude',
       position: value,
     });
   }
 
-  onChangeRadius (value) {
+  onChangeRadius = (value) => {
     this.setState({
       radius: value,
     });
@@ -60,7 +60,7 @@ class CustomMarkers extends React.Component {
       <Card>
         <CardHeader className={classes.header} key='header' title='Custom Markers' />
         <CardContent>
-          <TextField fullWidth type='text' value={this.state.label} label='Label' onChange={this.onChangeLabel.bind(this)} />
+          <TextField fullWidth type='text' value={this.state.label} label='Label' onChange={e => this.onChangeLabel((e.target.value))} />
           <TextField
             type='text'
             fullWidth
@@ -68,14 +68,14 @@ class CustomMarkers extends React.Component {
             label='Location'
             hint={this.state.positionHint}
             required
-            onChange={this.onChangePosition.bind(this)}
+            onChange={e => this.onChangePosition(e.target.value)}
           />
           <TextField
             type='text'
             fullWidth
             value={this.state.radius}
             label='Radius (for geofence circle)'
-            onChange={this.onChangeRadius.bind(this)}
+            onChange={e => this.onChangeRadius(e.target.value)}
           />
         </CardContent>
         <CardActions disableSpacing>

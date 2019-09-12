@@ -173,7 +173,7 @@ const FilterView = function ({
                 labelPlacement='start'
                 className={classes.switch}
                 control={
-                  <Switch color='primary' value='watching' checked={isWatching} onChange={(e) => onChangeIsWatching(e.target.checked)} style={{ flex: 1 }} />
+                  <Switch color='primary' value='watching' checked={isWatching} onChange={e => onChangeIsWatching(e.target.checked)} style={{ flex: 1 }} />
                 }
                 label='Watch mode'
               />
@@ -183,18 +183,18 @@ const FilterView = function ({
             <CardHeader className={classes.header} title='Map' />
             <CardContent>
               <FormControlLabel
-                control={<Checkbox color='primary' checked={showMarkers} onChange={onChangeShowMarkers} />}
+                control={<Checkbox color='primary' checked={showMarkers} onChange={e => onChangeShowMarkers(e.target.value)} />}
                 label='Show Markers'
               />
               <FormControlLabel
-                control={<Checkbox color='primary' checked={showPolyline} onChange={onChangeShowPolyline} />}
+                control={<Checkbox color='primary' checked={showPolyline} onChange={e => onChangeShowPolyline((e.target.checked))} />}
                 label='Show Polyline'
               />
               <FormControlLabel
-                control={<Checkbox color='primary' checked={showGeofenceHits} onChange={onChangeShowGeofenceHits} />}
+                control={<Checkbox color='primary' checked={showGeofenceHits} onChange={e => onChangeShowGeofenceHits((e.target.checked))} />}
                 label='Show Geofences'
               />
-              <TextField fullWidth type='text' value={maxMarkers} onChange={onChangeMaxMarkers} label='Max markers' />
+              <TextField fullWidth type='text' value={maxMarkers} onChange={e => onChangeMaxMarkers(e.target.value)} label='Max markers' />
             </CardContent>
           </Card>
           <CustomMarkers classes={classes} />

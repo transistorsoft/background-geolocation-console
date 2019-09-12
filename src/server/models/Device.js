@@ -5,7 +5,7 @@ const filterByCompany = !!process.env.SHARED_DASHBOARD;
 
 export async function getDevices (params) {
   const whereConditions = {};
-  console.info(filterByCompany);
+  // console.info(filterByCompany);
   if (filterByCompany) {
     whereConditions.company_token = params.company_token;
   }
