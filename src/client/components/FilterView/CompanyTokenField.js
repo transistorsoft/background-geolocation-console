@@ -10,8 +10,8 @@ type Props = {
 
 const CompanyTokenField = ({ onChange, source, value }: Props) => {
   return source.length > 1
-    ? <Select autoWidth label={`Users (${source.length})`} onChange={e => onChange(e.target.value)} value={value}>
-      {source.map(x => (<MenuItem key={x.value} value={x.valur}>{x.label}</MenuItem>))}
+    ? <Select autoWidth style={{ display: 'flex' }} label={`Users (${source.length})`} onChange={e => onChange(e.target.value)} value={value}>
+      {source.map(x => (<MenuItem key={x.value} value={x.value}>{x.label}</MenuItem>))}
       </Select>
     : null;
 };
