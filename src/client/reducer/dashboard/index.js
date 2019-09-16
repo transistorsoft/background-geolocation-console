@@ -495,7 +495,7 @@ export function changeStartDate (value: Date) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setStartDate(value));
     setSettings(getState().dashboard.companyTokenFromSearch, { startDate: value });
-    const dashboard = getState().dashboard;
+    const { dashboard } = getState();
     setUrlSettings({
       startDate: dashboard.startDate,
       endDate: dashboard.endDate,
@@ -509,7 +509,7 @@ export function changeEndDate (value: Date) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setEndDate(value));
     setSettings(getState().dashboard.companyTokenFromSearch, { endDate: value });
-    const dashboard = getState().dashboard;
+    const { dashboard } = getState();
     setUrlSettings({
       startDate: dashboard.startDate,
       endDate: dashboard.endDate,
@@ -531,7 +531,7 @@ export function changeDeviceId (value: string) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setDevice(value));
     setSettings(getState().dashboard.companyTokenFromSearch, { deviceId: value });
-    const dashboard = getState().dashboard;
+    const { dashboard } = getState();
     setUrlSettings({
       startDate: dashboard.startDate,
       endDate: dashboard.endDate,
@@ -785,7 +785,7 @@ const initialState: DashboardState = {
   maxMarkers: 1000,
   selectedLocationId: null,
   currentLocation: null,
-  isWatching: true,
+  isWatching: false,
 };
 
 // ------------------------------------

@@ -14,7 +14,7 @@ export type StoredSettings = {|
   showGeofenceHits: boolean,
   showPolyline: boolean,
   showMarkers: boolean,
-  maxMarkers: number
+  maxMarkers: number,
 |};
 const getLocalStorageKey = (key: string) => (key ? `settings#${key}` : 'settings');
 
@@ -27,6 +27,10 @@ export function getSettings (key: string): StoredSettings {
       cloneState(parsed, {
         startDate: parsed.startDate ? new Date(parsed.startDate) : undefined,
         endDate: parsed.endDate ? new Date(parsed.endDate) : undefined,
+        showGeofenceHits: parsed.showGeofenceHits,
+        showMarkers: parsed.showMarkers,
+        showPolyline: parsed.showPolyline,
+        maxMarkers: parsed.maxMarkers,
       }),
       isUndefined
     );
@@ -126,6 +130,10 @@ export function setSettings (key: string, settings: $Shape<StoredSettings>) {
     {
       startDate: newSettings.startDate ? newSettings.startDate.toISOString() : undefined,
       endDate: newSettings.endDate ? newSettings.endDate.toISOString() : undefined,
+      showGeofenceHits: newSettings.showGeofenceHits,
+      showMarkers: newSettings.showMarkers,
+      showPolyline: newSettings.showPolyline,
+      maxMarkers: newSettings.maxMarkers,
     },
     isUndefined,
   );
