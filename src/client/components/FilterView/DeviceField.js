@@ -10,7 +10,7 @@ type Props = {
 };
 
 const DeviceField = ({ onChange, source, hasData, value }: Props) => {
-  const entry = !!source && source.find(x => x.value ===value);
+  const entry = !!source && source.find(x => x.value === value);
   const text = !entry ? 'No device present' : entry.label;
   return source.length > 1
     ? <Select autoWidth style={{ display: 'flex' }} label='Device' onChange={e => onChange(e.target.value)} value={value || ''}>
