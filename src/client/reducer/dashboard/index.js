@@ -524,7 +524,7 @@ export function changeCompanyToken (value: string) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setCompanyToken(value));
     setSettings(getState().dashboard.companyTokenFromSearch, { companyToken: value });
-    await dispatch(reload());
+    await dispatch(reload({ loadUsers: false }));
   };
 }
 export function changeDeviceId (value: string) {
