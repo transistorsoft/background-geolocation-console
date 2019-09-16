@@ -13,6 +13,9 @@ export type Device = {|
   id: string,
   name: string,
 |};
+export type LoadParams = {|
+  loadUsers: boolean,
+|};
 export type CompanyToken = {|
   id: string,
   name: string,
@@ -397,10 +400,10 @@ export function loadInitialData (id: string): ThunkAction {
   };
 }
 
-export function reload (): ThunkAction {
+export function reload ({ loadUsers }: LoadParams = { loadUsers: true }): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setIsLoading(true));
-    await dispatch(loadCompanyTokens());
+    loadUsers && await dispatch(loadCompanyTokens());
     await dispatch(autoselectOrInvalidateSelectedCompanyToken());
     await dispatch(loadDevices());
     await dispatch(autoselectOrInvalidateSelectedDevice());
@@ -419,7 +422,7 @@ export function deleteActiveDevice (): ThunkAction {
       return;
     }
     await fetch(`${API_URL}/devices/${deviceId}`, { method: 'delete' });
-    await dispatch(reload());
+    await dispatch(reload({ loadUsers: false }));
     GA.sendEvent('tracker', 'delete device:' + deviceId);
   };
 }
@@ -499,7 +502,7 @@ export function changeStartDate (value: Date) {
       deviceId: dashboard.deviceId,
       companyTokenFromSearch: dashboard.companyTokenFromSearch,
     });
-    await dispatch(reload());
+    await dispatch(reload({ loadUsers: false }));
   };
 }
 export function changeEndDate (value: Date) {
@@ -513,7 +516,7 @@ export function changeEndDate (value: Date) {
       deviceId: dashboard.deviceId,
       companyTokenFromSearch: dashboard.companyTokenFromSearch,
     });
-    await dispatch(reload());
+    await dispatch(reload({ loadUsers: false }));
   };
 }
 
@@ -535,7 +538,7 @@ export function changeDeviceId (value: string) {
       deviceId: dashboard.deviceId,
       companyTokenFromSearch: dashboard.companyTokenFromSearch,
     });
-    await dispatch(reload());
+    await dispatch(reload({ loadUsers: false }));
   };
 }
 
