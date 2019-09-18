@@ -1,85 +1,98 @@
 import React from 'react';
-
-
 import { connect } from 'react-redux';
-
-import Styles from '~/assets/styles/app.css';
-
-import { AppBar, Button, DatePicker, TimePicker, Switch, Checkbox, Card, Input } from 'react-toolbox';
+import {
+  Button,
+  Card,
+  CardActions,
+  CardContent,
+  CardHeader,
+  TextField,
+} from '@material-ui/core';
 
 class CustomMarkers extends React.Component {
-  constructor(props) {
-    super(props);
+  constructor (props, context) {
+    super(props, context);
     this.state = {
       label: '',
       positionHint: 'latitude, longitude',
       position: '',
-      radius: ''
+      radius: '',
     };
   }
 
-  onChangeLabel(value) {
+  onChangeLabel = (value) => {
     this.setState({
-      label: value
+      label: value,
     });
   }
 
-  onChangePosition(value) {                            
+  onChangePosition = (value) => {
     this.setState({
       positionHint: (value.length > 0) ? '' : 'latitude, longitude',
-      position: value
+      position: value,
     });
   }
 
-  onChangeRadius(value) {
+  onChangeRadius = (value) => {
     this.setState({
-      radius: value
+      radius: value,
     });
   }
 
-  onAdd() {
+  onAdd = () => {
     let position = this.state.position;
     let latlng = position.replace(/\s+/, '').split(',');
     let radius = this.state.radius;
-    
+
     this.props.onAddTestMarker({
       type: (!radius.length) ? 'location' : 'geofence',
       label: this.state.label,
       position: {
         lat: parseFloat(latlng[0], 10),
-        lng: parseFloat(latlng[1], 10)
+        lng: parseFloat(latlng[1], 10),
       },
-      radius: parseInt(radius, 10)
+      radius: parseInt(radius, 10),
     });
   }
-  render() {
+  render () {
+    const { classes } = this.props;
     return (
-      <div className={Styles.content}>
-        <h3>Custom Markers</h3>
-        <Input type="text" value={this.state.label} label="Label" onChange={this.onChangeLabel.bind(this)} />
-        <Input type="text" value={this.state.position} label="Location" hint={this.state.positionHint} required onChange={this.onChangePosition.bind(this)} />
-        <Input type="text" value={this.state.radius} label="Radius (for geofence circle)" onChange={this.onChangeRadius.bind(this)} />
-        <Button label="Add Marker" raised primary style={{width: '100%'}} onMouseUp={this.onAdd.bind(this)} />            
-      </div>
+      <Card>
+        <CardHeader className={classes.header} key='header' title='Custom Markers' />
+        <CardContent>
+          <TextField fullWidth type='text' value={this.state.label} label='Label' onChange={e => this.onChangeLabel((e.target.value))} />
+          <TextField
+            type='text'
+            fullWidth
+            value={this.state.position}
+            label='Location'
+            hint={this.state.positionHint}
+            required
+            onChange={e => this.onChangePosition(e.target.value)}
+          />
+          <TextField
+            type='text'
+            fullWidth
+            value={this.state.radius}
+            label='Radius (for geofence circle)'
+            onChange={e => this.onChangeRadius(e.target.value)}
+          />
+        </CardContent>
+        <CardActions disableSpacing>
+          <Button fullWidth variant='contained' color='primary' style={{ width: '100%' }} onClick={this.onAdd}>
+            Add Marker
+          </Button>
+        </CardActions>
+      </Card>
     );
   }
 };
 
-function mapStateToProps(state, ownProps) {
-  return {};
-}
-
-function mapDispatchToProps(dispatch) {
-  return {
-    onAddTestMarker: (marker) => {
-      dispatch({
-        type: 'ADD_TEST_MARKER',
-        data: marker
-      });
-    }
-  };
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(CustomMarkers);
-
-
+export default connect(
+  undefined,
+  {
+    onAddTestMarker: (data) => ({
+      type: 'ADD_TEST_MARKER',
+      data,
+    }),
+  })(CustomMarkers);

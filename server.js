@@ -2,9 +2,6 @@ import initializeDatabase from './src/server/database/initializeDatabase';
 import express from 'express';
 import bodyParser from 'body-parser';
 import path from 'path';
-import webpack from 'webpack';
-import webpackDevMiddleware from 'webpack-dev-middleware';
-import webpackHotMiddleware from 'webpack-hot-middleware';
 import compress from 'compression';
 import 'colors';
 import opn from 'opn';
@@ -30,6 +27,9 @@ process.on('uncaughtException', function (error) {
     app.use(express.static('./build'));
   } else {
     console.info('adding webpack');
+    const webpack = require('webpack');
+    const webpackDevMiddleware = require('webpack-dev-middleware');
+    const webpackHotMiddleware = require('webpack-hot-middleware');
     const webpackConfig = require('./webpack.config.babel');
     const compiler = webpack(webpackConfig);
 
@@ -52,7 +52,7 @@ process.on('uncaughtException', function (error) {
     app.use(middleware);
   }
 
-  app.use(function pushstatehook (req, res, next) {
+  app.use((req, res, next) => {
     var ext = path.extname(req.url);
     console.info(ext, req.url);
     if ((ext === '' || ext === '.html') && req.url !== '/') {
@@ -73,7 +73,7 @@ process.on('uncaughtException', function (error) {
     // Spawning dedicated process on opened port.. only if not deployed on heroku
     if (!process.env.DYNO) {
       opn(`http://localhost:${port}`)
-        .catch(function (error) { console.log("Optional site open failed:", error); });
+        .catch(error => console.log('Optional site open failed:', error));
     }
   });
 })();

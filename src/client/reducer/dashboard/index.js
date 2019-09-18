@@ -2,7 +2,7 @@
 import { API_URL } from '~/constants';
 import { type GlobalState } from '~/reducer/state';
 import cloneState from '~/utils/cloneState';
-import _ from 'lodash';
+import isEqual from 'lodash/isEqual';
 import qs from 'querystring';
 import { fitBoundsBus, scrollToRowBus, changeTabBus } from '~/globalBus';
 import { setSettings, getSettings, getUrlSettings, setUrlSettings, type StoredSettings } from '~/storage';
@@ -12,6 +12,9 @@ import GA from '~/utils/GA';
 export type Device = {|
   id: string,
   name: string,
+|};
+export type LoadParams = {|
+  loadUsers: boolean,
 |};
 export type CompanyToken = {|
   id: string,
@@ -173,7 +176,7 @@ type SetCompanyTokenFromSearchAction = {|
 
 type AddTestMarkerAction = {|
   type: 'dashboard/ADD_TEST_MARKER',
-  value: Object
+  value: Object,
 |};
 
 type Action =
@@ -365,11 +368,11 @@ export function setCompanyTokenFromSearch (value: string): SetCompanyTokenFromSe
   };
 }
 
-export function doAddTestMarker(value: Object): AddTestMarkerAction {
+export function doAddTestMarker (value: Object): AddTestMarkerAction {
   return {
     type: 'dashboard/ADD_TEST_MARKER',
-    value: value
-  }
+    value: value,
+  };
 }
 
 // ------------------------------------
@@ -377,12 +380,14 @@ export function doAddTestMarker(value: Object): AddTestMarkerAction {
 // ------------------------------------
 export function loadInitialData (id: string): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    if (getState().dashboard.hasData) {
+    const { dashboard: { hasData } } = getState();
+    if (hasData) {
       console.error('extra call after everything is set up!');
       return;
     }
     await dispatch(setCompanyTokenFromSearch(id));
-    const existingSettings = getSettings(getState().dashboard.companyTokenFromSearch);
+    const { dashboard: { companyTokenFromSearch } } = getState();
+    const existingSettings = getSettings(companyTokenFromSearch);
     const urlSettings = getUrlSettings();
     await dispatch(applyExistingSettings(existingSettings));
     await dispatch(applyExistingSettings(urlSettings));
@@ -395,10 +400,10 @@ export function loadInitialData (id: string): ThunkAction {
   };
 }
 
-export function reload (): ThunkAction {
+export function reload ({ loadUsers }: LoadParams = { loadUsers: true }): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setIsLoading(true));
-    await dispatch(loadCompanyTokens());
+    loadUsers && await dispatch(loadCompanyTokens());
     await dispatch(autoselectOrInvalidateSelectedCompanyToken());
     await dispatch(loadDevices());
     await dispatch(autoselectOrInvalidateSelectedDevice());
@@ -412,19 +417,19 @@ export function reload (): ThunkAction {
 
 export function deleteActiveDevice (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const deviceId = getState().dashboard.deviceId;
+    const { dashboard: { deviceId } } = getState();
     if (!deviceId) {
       return;
     }
     await fetch(`${API_URL}/devices/${deviceId}`, { method: 'delete' });
-    await dispatch(reload());
+    await dispatch(reload({ loadUsers: false }));
     GA.sendEvent('tracker', 'delete device:' + deviceId);
   };
 }
 
 export function loadCompanyTokens (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const { companyTokenFromSearch } = getState().dashboard;
+    const { dashboard: { companyTokenFromSearch } } = getState();
     const params = qs.stringify({
       company_token: companyTokenFromSearch,
     });
@@ -440,7 +445,7 @@ export function loadCompanyTokens (): ThunkAction {
 
 export function loadDevices (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const { companyToken } = getState().dashboard;
+    const { dashboard: { companyToken } } = getState();
     const params = qs.stringify({
       company_token: companyToken,
     });
@@ -461,7 +466,7 @@ export function loadLocations (): ThunkAction {
       device_id: deviceId,
       start_date: startDate.toISOString(),
       end_date: endDate.toISOString(),
-      limit: maxMarkers
+      limit: maxMarkers,
     });
     const response = await fetch(`${API_URL}/locations?${params}`);
     const records = await response.json();
@@ -490,28 +495,28 @@ export function changeStartDate (value: Date) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setStartDate(value));
     setSettings(getState().dashboard.companyTokenFromSearch, { startDate: value });
-    const dashboard = getState().dashboard;
+    const { dashboard } = getState();
     setUrlSettings({
       startDate: dashboard.startDate,
       endDate: dashboard.endDate,
       deviceId: dashboard.deviceId,
       companyTokenFromSearch: dashboard.companyTokenFromSearch,
     });
-    await dispatch(reload());
+    await dispatch(reload({ loadUsers: false }));
   };
 }
 export function changeEndDate (value: Date) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setEndDate(value));
     setSettings(getState().dashboard.companyTokenFromSearch, { endDate: value });
-    const dashboard = getState().dashboard;
+    const { dashboard } = getState();
     setUrlSettings({
       startDate: dashboard.startDate,
       endDate: dashboard.endDate,
       deviceId: dashboard.deviceId,
       companyTokenFromSearch: dashboard.companyTokenFromSearch,
     });
-    await dispatch(reload());
+    await dispatch(reload({ loadUsers: false }));
   };
 }
 
@@ -519,21 +524,21 @@ export function changeCompanyToken (value: string) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setCompanyToken(value));
     setSettings(getState().dashboard.companyTokenFromSearch, { companyToken: value });
-    await dispatch(reload());
+    await dispatch(reload({ loadUsers: false }));
   };
 }
 export function changeDeviceId (value: string) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setDevice(value));
     setSettings(getState().dashboard.companyTokenFromSearch, { deviceId: value });
-    const dashboard = getState().dashboard;
+    const { dashboard } = getState();
     setUrlSettings({
       startDate: dashboard.startDate,
       endDate: dashboard.endDate,
       deviceId: dashboard.deviceId,
       companyTokenFromSearch: dashboard.companyTokenFromSearch,
     });
-    await dispatch(reload());
+    await dispatch(reload({ loadUsers: false }));
   };
 }
 
@@ -609,7 +614,7 @@ const areLocationsEqual = function (existingLocations: Location[], newLocations:
   const firstNewLocation = newLocations[0];
   const lastExistingLocation = existingLocations[existingLocations.length - 1];
   const lastNewLocation = newLocations[newLocations.length - 1];
-  return _.isEqual([firstExistingLocation, lastExistingLocation], [firstNewLocation, lastNewLocation]);
+  return isEqual([firstExistingLocation, lastExistingLocation], [firstNewLocation, lastNewLocation]);
 };
 
 const setLocationsHandler = function (state: DashboardState, action: SetLocationsAction): DashboardState {
@@ -624,16 +629,17 @@ const autoselectOrInvalidateSelectedCompanyTokenHandler = function (
   state: DashboardState,
   action: AutoselectOrInvalidateSelectedCompanyTokenAction
 ): DashboardState {
-  if (state.companyTokens.length === 0) {
+  const { companyTokens, companyToken } = state;
+  if (companyTokens.length === 0) {
     return cloneState(state, { companyToken: 'bogus' });
   }
-  if (state.companyTokens.length === 1) {
-    return cloneState(state, { companyToken: state.companyTokens[0].id });
+  if (companyTokens.length === 1) {
+    return cloneState(state, { companyToken: companyTokens[0].id });
   }
-  if (state.companyTokens.length > 1) {
-    const existingCompanyToken = _.find(state.companyTokens, { id: state.companyToken });
+  if (companyTokens.length > 1) {
+    const existingCompanyToken = companyTokens && companyTokens.find(x => x.id === companyToken);
     if (!existingCompanyToken) {
-      return cloneState(state, { companyToken: state.companyTokens[0].id });
+      return cloneState(state, { companyToken: companyTokens[0].id });
     } else {
       return state;
     }
@@ -645,16 +651,17 @@ const autoselectOrInvalidateSelectedDeviceHandler = function (
   state: DashboardState,
   action: AutoselectOrInvalidateSelectedDeviceAction
 ): DashboardState {
-  if (state.devices.length === 0) {
+  const { devices, deviceId } = state;
+  if (devices.length === 0) {
     return cloneState(state, { deviceId: null });
   }
-  if (state.devices.length === 1) {
-    return cloneState(state, { deviceId: state.devices[0].id });
+  if (devices.length === 1) {
+    return cloneState(state, { deviceId: devices[0].id });
   }
-  if (state.devices.length > 1) {
-    const existingDevice = _.find(state.devices, { id: state.deviceId });
+  if (devices.length > 1) {
+    const existingDevice = devices && devices.find(x => x.id === deviceId);
     if (!existingDevice) {
-      return cloneState(state, { deviceId: state.devices[0].id });
+      return cloneState(state, { deviceId: devices[0].id });
     } else {
       return state;
     }
@@ -666,13 +673,14 @@ const invalidateSelectedLocationHandler = function (
   state: DashboardState,
   action: InvalidateSelectedLocationAction
 ): DashboardState {
-  if (!state.selectedLocationId) {
+  const { selectedLocationId, isWatching, currentLocation, locations } = state;
+  if (!selectedLocationId) {
     return state;
   }
-  if (state.isWatching) {
-    return cloneState(state, { selectedLocationId: state.currentLocation ? state.currentLocation.uuid : null });
+  if (isWatching) {
+    return cloneState(state, { selectedLocationId: currentLocation ? currentLocation.uuid : null });
   } else {
-    const existingLocation = _.find(state.locations, { uuid: state.selectedLocationId });
+    const existingLocation = locations && locations.find(x => x.uuid === selectedLocationId);
     if (!existingLocation) {
       return cloneState(state, { selectedLocationId: null });
     } else {
@@ -735,11 +743,12 @@ const setCompanyTokenFromSearchHandler = function (state: DashboardState, action
   return cloneState(state, { companyTokenFromSearch: action.value });
 };
 
-const addTestMarkerHandler = function(state: DashboardState, action: AddTestMarkerAction) {
+const addTestMarkerHandler = function (state: DashboardState, action: AddTestMarkerAction) {
   let markers = [].concat(state.testMarkers);
   markers.push(action.data);
-  return cloneState(state, {testMarkers: markers});
-}
+  return cloneState(state, { testMarkers: markers });
+};
+
 // ------------------------------------
 // Initial State
 // ------------------------------------
