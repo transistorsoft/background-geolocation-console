@@ -1,6 +1,5 @@
 import Sequelize from 'sequelize';
 import LocationModel from '../database/LocationModel';
-import { literal } from 'sequelize';
 
 const Op = Sequelize.Op;
 
@@ -43,10 +42,9 @@ export async function getLocations (params) {
 
   const rows = await LocationModel.findAll({
     where: whereConditions,
-    order: literal('recorded_at DESC'),
-    limit: params.limit
+    order: [['recorded_at', 'DESC']],
+    limit: params.limit,
   });
-
 
   const locations = rows.map(hydrate);
   return locations;
@@ -61,7 +59,7 @@ export async function getLatestLocation (params) {
   }
   const row = await LocationModel.findOne({
     where: whereConditions,
-    order: literal('recorded_at DESC'),
+    order: [['recorded_at', 'DESC']],
   });
   const result = row ? hydrate(row) : null;
   return result;

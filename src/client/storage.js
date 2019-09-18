@@ -1,7 +1,8 @@
 // @flow
 import cloneState from '~/utils/cloneState';
 import queryString from 'query-string';
-import _ from 'lodash';
+import isUndefined from 'lodash/isUndefined';
+import omitBy from 'lodash/omitBy';
 import { type Tab } from './reducer/dashboard';
 export type StoredSettings = {|
   activeTab: Tab,
@@ -13,7 +14,7 @@ export type StoredSettings = {|
   showGeofenceHits: boolean,
   showPolyline: boolean,
   showMarkers: boolean,
-  maxMarkers: number
+  maxMarkers: number,
 |};
 const getLocalStorageKey = (key: string) => (key ? `settings#${key}` : 'settings');
 
@@ -22,15 +23,20 @@ export function getSettings (key: string): StoredSettings {
   if (encodedSettings) {
     const parsed = JSON.parse(encodedSettings);
     // convert start/endDate to Date if they are present
-    return _.omitBy(
+    const result = omitBy(
       cloneState(parsed, {
         startDate: parsed.startDate ? new Date(parsed.startDate) : undefined,
         endDate: parsed.endDate ? new Date(parsed.endDate) : undefined,
+        showGeofenceHits: parsed.showGeofenceHits,
+        showMarkers: parsed.showMarkers,
+        showPolyline: parsed.showPolyline,
+        maxMarkers: parsed.maxMarkers,
       }),
-      _.isUndefined
+      isUndefined
     );
+    return result;
   } else {
-    return JSON.parse('{}');
+    return {};
   }
 }
 
@@ -89,14 +95,15 @@ function encodeEndDate (date: ?Date) {
 }
 export function getUrlSettings (): $Shape<StoredSettings> {
   const params = queryString.parse(location.search);
-  return _.omitBy(
+  const result = omitBy(
     {
       deviceId: params.device,
       startDate: parseStartDate(params.start),
       endDate: parseEndDate(params.end),
     },
-    _.isUndefined
+    isUndefined
   );
+  return result;
 }
 export function setUrlSettings (settings: {|
   deviceId: ?string,
@@ -119,12 +126,16 @@ export function setSettings (key: string, settings: $Shape<StoredSettings>) {
   const existingSettings = getSettings(key);
   const newSettings = cloneState(existingSettings, settings);
   // convert start/endDate to string if they are present
-  const stringifiedNewSettings = _.omitBy(
-    Object.assign({}, newSettings, {
+  const stringifiedNewSettings = omitBy(
+    {
       startDate: newSettings.startDate ? newSettings.startDate.toISOString() : undefined,
       endDate: newSettings.endDate ? newSettings.endDate.toISOString() : undefined,
-    }),
-    _.isUndefined
+      showGeofenceHits: newSettings.showGeofenceHits,
+      showMarkers: newSettings.showMarkers,
+      showPolyline: newSettings.showPolyline,
+      maxMarkers: newSettings.maxMarkers,
+    },
+    isUndefined,
   );
 
   localStorage.setItem(getLocalStorageKey(key), JSON.stringify(stringifiedNewSettings));
