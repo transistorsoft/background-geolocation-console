@@ -31,8 +31,11 @@ type DispatchProps = {|
   onChangeActiveTab: (tab: TabType) => any,
 |};
 
-type Props = {| ...StateProps, ...DispatchProps |};
-const Viewport = ({ isLocationSelected, activeTabIndex, location }: StateProps) => {
+type Props = {|
+  ...StateProps,
+  ...DispatchProps,
+|};
+const Viewport = ({ isLocationSelected, activeTabIndex, location }: Props) => {
   const [tabIndex, setTabIndex] = useState(activeTabIndex);
   const [open, setOpen] = React.useState(true);
   const classes = useStyles();
@@ -41,7 +44,7 @@ const Viewport = ({ isLocationSelected, activeTabIndex, location }: StateProps) 
     <div className={classes.root}>
       <CssBaseline />
       <HeaderView classes={classes} setOpen={setOpen} location={location} open={open}>
-        <Tabs className={classes.tabs} value={tabIndex} onChange={(e, index) => setTabIndex(index)}>
+        <Tabs className={classes.tabs} value={tabIndex} onChange={(e: Event, index: number) => setTabIndex(index)}>
           <Tab label='Map' />
           <Tab label='Data' />
         </Tabs>

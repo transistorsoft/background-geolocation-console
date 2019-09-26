@@ -65,17 +65,17 @@ const getRowData = (location: Location): LocationRow => {
   };
 };
 
-class ListView extends React.PureComponent {
+class ListView extends React.PureComponent<Props> {
   props: Props;
   list: any;
   postponedScrollToRowPayload: ?ScrollToRowPayload = null;
 
-  UNSAFE_componentWillMount () {
+  componentDidMount () {
     scrollToRowBus.subscribe(this.scrollToRow);
     changeTabBus.subscribe(this.changeTab);
   }
 
-  UNSAFE_componentWillUnmount () {
+  componentWillUnmount () {
     scrollToRowBus.unsubscribe(this.scrollToRow);
     changeTabBus.unsubscribe(this.changeTab);
   }
@@ -102,7 +102,7 @@ class ListView extends React.PureComponent {
       return;
     }
     if (this.list) {
-      const index = locations.find(x => x.uuid === locationId);
+      const index = locations.find((x: LocationRow) => x.uuid === locationId);
       this.list.scrollToRow(index);
     }
   };
@@ -199,7 +199,7 @@ class ListView extends React.PureComponent {
               <List
                 scrollToAlignment='start'
                 style={{ outline: 0 }}
-                ref={(list: React$Element<any>) => (this.list = list)}
+                ref={(list: React$Element<any> | null) => (this.list = this.list || list)}
                 width={1260}
                 height={height}
                 rowCount={this.props.locations.length}
