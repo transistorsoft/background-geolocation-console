@@ -25,7 +25,19 @@ type DispatchProps = {|
   onClose: () => any,
 |};
 
-type Props = {| ...StateProps, ...DispatchProps |};
+type Props = {|
+  ...StateProps,
+  ...DispatchProps,
+  classes: {|
+    appBar: string,
+    appBarShift: string,
+    appBarWithLocationShift: string,
+    appBarBothShift: string,
+    menuButton: string,
+    hide: string,
+    locationContainer: string,
+  |},
+|};
 
 const LocationView = ({ location, onClose, classes }: Props) => (location && (
   <div>
@@ -63,8 +75,8 @@ export const getLocation = createSelector(
   ],
   ({ isWatching, currentLocation, locations, selectedLocationId }: LocationArgs) =>
     isWatching
-    ? currentLocation
-    : find(locations, { uuid: selectedLocationId })
+      ? currentLocation
+      : find(locations, { uuid: selectedLocationId })
 );
 
 const mapStateToProps = (state: GlobalState): StateProps => ({

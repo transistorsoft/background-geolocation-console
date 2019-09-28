@@ -38,6 +38,8 @@ import { type GlobalState } from '~/reducer/state';
 import {
   type Device,
   type CompanyToken,
+  type Source,
+  type MaterialInputElement,
   reload,
   changeDeviceId,
   changeCompanyToken,
@@ -52,9 +54,9 @@ import {
 const cardMargins = { marginBottom: '10px' };
 type StateProps = {|
   hasData: boolean,
-  devices: { value: string, label: string }[],
+  devices: Source[],
   deviceId: string,
-  companyTokens: { value: string, label: string }[],
+  companyTokens: Source[],
   companyToken: string,
   startDate: Date,
   endDate: Date,
@@ -66,7 +68,6 @@ type StateProps = {|
 |};
 type DispatchProps = {|
   onReload: () => any,
-  setOpen: (open: boolean) => any,
   onChangeDeviceId: (deviceId: string) => any,
   onChangeCompanyToken: (companyToken: string) => any,
   onChangeStartDate: (date: Date) => any,
@@ -77,7 +78,11 @@ type DispatchProps = {|
   onChangeShowGeofenceHits: (value: boolean) => any,
   onChangeMaxMarkers: (value: number) => any,
 |};
-type Props = {| ...StateProps, ...DispatchProps |};
+type Props = {|
+  ...StateProps,
+  ...DispatchProps,
+  setOpen: (open: boolean) => any,
+|};
 const FilterView = function ({
   hasData,
   devices,
@@ -172,7 +177,13 @@ const FilterView = function ({
                 labelPlacement='start'
                 className={classes.switch}
                 control={
-                  <Switch color='primary' value='watching' checked={isWatching} onChange={e => onChangeIsWatching(e.target.checked)} style={{ flex: 1 }} />
+                  <Switch
+                    color='primary'
+                    value='watching'
+                    checked={isWatching}
+                    onChange={(e: MaterialInputElement) => onChangeIsWatching(e.target.checked)}
+                    style={{ flex: 1 }}
+                  />
                 }
                 label='Watch mode'
               />
@@ -182,18 +193,42 @@ const FilterView = function ({
             <CardHeader className={classes.header} title='Map' />
             <CardContent>
               <FormControlLabel
-                control={<Checkbox color='primary' checked={showMarkers} onChange={e => onChangeShowMarkers(e.target.checked)} />}
+                control={(
+                  <Checkbox
+                    color='primary'
+                    checked={showMarkers}
+                    onChange={(e: MaterialInputElement) => onChangeShowMarkers(e.target.checked)}
+                  />
+                )}
                 label='Show Markers'
               />
               <FormControlLabel
-                control={<Checkbox color='primary' checked={showPolyline} onChange={e => onChangeShowPolyline((e.target.checked))} />}
+                control={(
+                  <Checkbox
+                    color='primary'
+                    checked={showPolyline}
+                    onChange={(e: MaterialInputElement) => onChangeShowPolyline((e.target.checked))}
+                  />
+                )}
                 label='Show Polyline'
               />
               <FormControlLabel
-                control={<Checkbox color='primary' checked={showGeofenceHits} onChange={e => onChangeShowGeofenceHits((e.target.checked))} />}
+                control={(
+                  <Checkbox
+                    color='primary'
+                    checked={showGeofenceHits}
+                    onChange={(e: MaterialInputElement) => onChangeShowGeofenceHits((e.target.checked))}
+                  />
+                )}
                 label='Show Geofences'
               />
-              <TextField fullWidth type='text' value={maxMarkers} onChange={e => onChangeMaxMarkers(e.target.value)} label='Max markers' />
+              <TextField
+                fullWidth
+                type='text'
+                value={maxMarkers}
+                onChange={(e: MaterialInputElement) => onChangeMaxMarkers(+e.target.value)}
+                label='Max markers'
+              />
             </CardContent>
           </Card>
           <CustomMarkers classes={classes} />
@@ -202,7 +237,6 @@ const FilterView = function ({
     </div>
   );
 };
-
 
 const mapStateToProps = function (state: GlobalState): StateProps {
   return {
