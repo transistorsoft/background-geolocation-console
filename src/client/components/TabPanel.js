@@ -1,20 +1,24 @@
+// @flow
 import React from 'react';
 import {
   Typography,
 } from '@material-ui/core';
 
 type Props = {|
-  children: boolean,
+  children: any,
+  value: number,
+  index: number,
+  className: any,
 |};
 
-const TabPanel = (({ children, value, index, ...other }): Props) => (
+const TabPanel = ({ children, value, index, className }: Props) => (
   <Typography
     component='div'
     role='tabpanel'
     hidden={value !== index}
     id={`nav-tabpanel-${index}`}
     aria-labelledby={`nav-tab-${index}`}
-    {...other}
+    className={className}
   >
     {children}
   </Typography>

@@ -60,7 +60,13 @@ class CustomMarkers extends React.Component {
       <Card>
         <CardHeader className={classes.header} key='header' title='Custom Markers' />
         <CardContent>
-          <TextField fullWidth type='text' value={this.state.label} label='Label' onChange={e => this.onChangeLabel((e.target.value))} />
+          <TextField
+            fullWidth
+            type='text'
+            value={this.state.label}
+            label='Label'
+            onChange={e => this.onChangeLabel((e.target.value))}
+          />
           <TextField
             type='text'
             fullWidth
@@ -93,6 +99,6 @@ export default connect(
   {
     onAddTestMarker: (data) => ({
       type: 'ADD_TEST_MARKER',
-      data,
+      value: { data },
     }),
   })(CustomMarkers);

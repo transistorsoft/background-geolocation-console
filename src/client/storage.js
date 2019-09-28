@@ -18,7 +18,7 @@ export type StoredSettings = {|
 |};
 const getLocalStorageKey = (key: string) => (key ? `settings#${key}` : 'settings');
 
-export function getSettings (key: string): StoredSettings {
+export function getSettings (key: string): $Shape<StoredSettings> {
   const encodedSettings = localStorage.getItem(getLocalStorageKey(key));
   if (encodedSettings) {
     const parsed = JSON.parse(encodedSettings);

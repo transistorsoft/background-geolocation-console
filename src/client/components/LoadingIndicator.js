@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import {
   Fade,
   LinearProgress,
- } from '@material-ui/core';
+} from '@material-ui/core';
 import { type GlobalState } from '~/reducer/state';
 
 const style = {

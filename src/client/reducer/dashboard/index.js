@@ -8,7 +8,13 @@ import { fitBoundsBus, scrollToRowBus, changeTabBus } from '~/globalBus';
 import { setSettings, getSettings, getUrlSettings, setUrlSettings, type StoredSettings } from '~/storage';
 import GA from '~/utils/GA';
 
-// Types
+export type Source = {|
+  value: string,
+  label: string,
+|};
+export type MaterialInputElement = {|
+  target: HTMLInputElement,
+|};
 export type Device = {|
   id: string,
   name: string,
@@ -22,21 +28,22 @@ export type CompanyToken = {|
 |};
 export type Tab = 'map' | 'list';
 export type Location = {|
-  device_id: string,
-  activity_type: string,
+  accuracy: number,
   activity_confidence: number,
-  uuid: string,
-  event: string,
-  recorded_at: string,
+  activity_type: string,
+  battery_is_charging: boolean,
+  battery_level: number,
   created_at: string,
+  device_id: string,
+  event: string,
+  heading: number,
+  is_moving: string,
   latitude: number,
   longitude: number,
-  accuracy: number,
   odometer: number,
+  recorded_at: string,
   speed: number,
-  battery_level: number,
-  battery_is_charging: boolean,
-  heading: number,
+  uuid: string,
   geofence: {
     action: string,
     identifier: string,
@@ -132,7 +139,7 @@ type SetShowGeofenceHitsAction = {|
 |};
 type SetMaxMarkersAction = {|
   type: 'dashboard/SET_MAX_MARKERS',
-  value: boolean,
+  value: number,
 |};
 type SetIsWatchingAction = {|
   type: 'dashboard/SET_IS_WATCHING',
@@ -176,7 +183,7 @@ type SetCompanyTokenFromSearchAction = {|
 
 type AddTestMarkerAction = {|
   type: 'dashboard/ADD_TEST_MARKER',
-  value: Object,
+  value: $Shape<{| data: any |}>,
 |};
 
 type Action =
@@ -267,34 +274,34 @@ export function invalidateSelectedLocation (): InvalidateSelectedLocationAction 
 export function setShowMarkers (value: boolean): SetShowMarkersAction {
   return {
     type: 'dashboard/SET_SHOW_MARKERS',
-    value: value,
+    value,
   };
 }
 
-export function setShowMaxMarkers (value: boolean): SetMaxMarkersAction {
+export function setShowMaxMarkers (value: number): SetMaxMarkersAction {
   return {
     type: 'dashboard/SET_MAX_MARKERS',
-    value: value,
+    value,
   };
 }
 
 export function setShowPolyline (value: boolean): SetShowPolylineAction {
   return {
     type: 'dashboard/SET_SHOW_POLYLINE',
-    value: value,
+    value,
   };
 }
 export function setShowGeofenceHits (value: boolean): SetShowGeofenceHitsAction {
   return {
     type: 'dashboard/SET_SHOW_GEOFENCE_HITS',
-    value: value,
+    value,
   };
 }
 
 export function setIsWatching (value: boolean): SetIsWatchingAction {
   return {
     type: 'dashboard/SET_IS_WATCHING',
-    value: value,
+    value,
   };
 }
 
@@ -308,14 +315,14 @@ export function setCurrentLocation (location: ?Location): SetCurrentLocationActi
 export function setStartDate (value: Date): SetStartDateAction {
   return {
     type: 'dashboard/SET_START_DATE',
-    value: value,
+    value,
   };
 }
 
 export function setEndDate (value: Date): SetEndDateAction {
   return {
     type: 'dashboard/SET_END_DATE',
-    value: value,
+    value,
   };
 }
 
@@ -357,21 +364,21 @@ export function setActiveTab (tab: Tab): SetActiveTabAction {
 export function setCompanyToken (value: string): SetCompanyTokenAction {
   return {
     type: 'dashboard/SET_COMPANY_TOKEN',
-    value: value,
+    value,
   };
 }
 
 export function setCompanyTokenFromSearch (value: string): SetCompanyTokenFromSearchAction {
   return {
     type: 'dashboard/SET_COMPANY_TOKEN_FROM_SEARCH',
-    value: value,
+    value,
   };
 }
 
 export function doAddTestMarker (value: Object): AddTestMarkerAction {
   return {
     type: 'dashboard/ADD_TEST_MARKER',
-    value: value,
+    value,
   };
 }
 
@@ -570,7 +577,7 @@ export function changeShowGeofenceHits (value: boolean) {
   };
 }
 
-export function changeMaxMarkers (value: boolean) {
+export function changeMaxMarkers (value: number) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setShowMaxMarkers(value));
     setSettings(getState().dashboard.companyTokenFromSearch, { maxMarkers: value });
@@ -637,7 +644,7 @@ const autoselectOrInvalidateSelectedCompanyTokenHandler = function (
     return cloneState(state, { companyToken: companyTokens[0].id });
   }
   if (companyTokens.length > 1) {
-    const existingCompanyToken = companyTokens && companyTokens.find(x => x.id === companyToken);
+    const existingCompanyToken = companyTokens && companyTokens.find((x: Device) => x.id === companyToken);
     if (!existingCompanyToken) {
       return cloneState(state, { companyToken: companyTokens[0].id });
     } else {
@@ -659,7 +666,7 @@ const autoselectOrInvalidateSelectedDeviceHandler = function (
     return cloneState(state, { deviceId: devices[0].id });
   }
   if (devices.length > 1) {
-    const existingDevice = devices && devices.find(x => x.id === deviceId);
+    const existingDevice = devices && devices.find((x: Device) => x.id === deviceId);
     if (!existingDevice) {
       return cloneState(state, { deviceId: devices[0].id });
     } else {
@@ -680,7 +687,7 @@ const invalidateSelectedLocationHandler = function (
   if (isWatching) {
     return cloneState(state, { selectedLocationId: currentLocation ? currentLocation.uuid : null });
   } else {
-    const existingLocation = locations && locations.find(x => x.uuid === selectedLocationId);
+    const existingLocation = locations && locations.find((x: Location) => x.uuid === selectedLocationId);
     if (!existingLocation) {
       return cloneState(state, { selectedLocationId: null });
     } else {
@@ -745,7 +752,7 @@ const setCompanyTokenFromSearchHandler = function (state: DashboardState, action
 
 const addTestMarkerHandler = function (state: DashboardState, action: AddTestMarkerAction) {
   let markers = [].concat(state.testMarkers);
-  markers.push(action.data);
+  markers.push(action.value.data);
   return cloneState(state, { testMarkers: markers });
 };
 
@@ -837,10 +844,11 @@ export default function spotsReducer (state: DashboardState = initialState, acti
       return setCompanyTokenHandler(state, action);
     case 'dashboard/SET_COMPANY_TOKEN_FROM_SEARCH':
       return setCompanyTokenFromSearchHandler(state, action);
-    case 'ADD_TEST_MARKER':
+    case 'dashboard/ADD_TEST_MARKER':
       return addTestMarkerHandler(state, action);
     default:
-      (action: empty); // eslint-disable-line no-unused-expressions
+      // eslint-disable-next-line no-unused-expressions
+      (action: empty);
       return state;
   }
 }

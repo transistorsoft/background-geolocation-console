@@ -7,12 +7,26 @@ import {
   Link,
   Typography,
   IconButton,
- } from '@material-ui/core';
- import MenuIcon from '@material-ui/icons/Menu';
+} from '@material-ui/core';
+import MenuIcon from '@material-ui/icons/Menu';
 import logo from '../assets/images/transistor-logo.svg';
 
 const style = { 'justifyContent': 'space-between' };
-type Props = {| classes: {| appBar: string |} |};
+const margin = { marginRight: '-20px' };
+type Props = {|
+  classes: {|
+    appBar: string,
+    appBarShift: string,
+    appBarWithLocationShift: string,
+    appBarBothShift: string,
+    menuButton: string,
+    hide: string,
+  |},
+  setOpen: (open: boolean) => any,
+  open: boolean,
+  children: any,
+  location: any,
+|};
 
 const HeaderView = ({ classes, open, setOpen, children, location }: Props) =>
   <AppBar
@@ -36,7 +50,7 @@ const HeaderView = ({ classes, open, setOpen, children, location }: Props) =>
         Background Geolocation Console
       </Typography>
       <Link edge='end' href='http://transistorsoft.com'>
-        <img width="180" style={{ marginRight: '-20px' }} src={logo} />
+        <img width='180' style={margin} src={logo} />
       </Link>
     </Toolbar>
     {children}

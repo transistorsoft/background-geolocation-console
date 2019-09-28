@@ -10,7 +10,7 @@
     "react",
     "promise",
     "immutable",
-    "flowtype",
+    "flowtype"
   ],
   "env": {
     "browser" : true
@@ -28,6 +28,9 @@
   "settings": {
     "flowtype": {
       "onlyFilesWithFlowAnnotation": true
+    },
+    "react": {
+      "version": "detect"
     }
   },
   "rules": {

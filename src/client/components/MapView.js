@@ -2,6 +2,7 @@
 
 import React, { Component } from 'react';
 import { createSelector } from 'reselect';
+import isEqual from 'lodash/isEqual';
 
 import { connect } from 'react-redux';
 import { type Location, clickMarker } from '~/reducer/dashboard';
@@ -31,14 +32,18 @@ type DispatchProps = {|
   onSelectLocation: string => any,
 |};
 
-type Props = {| ...StateProps, ...DispatchProps |};
+type Props = {|
+  ...StateProps,
+  ...DispatchProps,
+  open: boolean,
+|};
 
-type State = {|
+type MapState = {|
   center: {| lat: number, lng: number |},
   zoom: number,
 |};
 
-class MapView extends Component {
+class MapView extends Component<Props, MapState> {
   props: Props;
   previousLocations: Location[] = [];
   motionChangePolylines: any = [];
@@ -50,7 +55,7 @@ class MapView extends Component {
   polyline: any = null;
   currentLocationMarker: any = null;
   locationAccuracyCircle: any = null;
-  state: State = {
+  state: MapState = {
     center: { lat: -25.363882, lng: 131.044922 },
     zoom: 18,
   };
@@ -63,12 +68,12 @@ class MapView extends Component {
   };
   postponedFitBoundsPayload: ?FitBoundsPayload = null;
 
-  UNSAFE_componentWillMount () {
+  componentDidMount () {
     fitBoundsBus.subscribe(this.fitBounds);
     changeTabBus.subscribe(this.changeTab);
   }
 
-  UNSAFE_componentWillUnmount () {
+  componentWillUnmount () {
     fitBoundsBus.unsubscribe(this.fitBounds);
     changeTabBus.unsubscribe(this.changeTab);
   }
@@ -197,7 +202,15 @@ class MapView extends Component {
 
   renderMarkers () {
     console.time('renderMarkers');
-    const { locations, isWatching, currentLocation, showPolyline, showMarkers, showGeofenceHits, testMarkers } = this.props;
+    const {
+      currentLocation,
+      isWatching,
+      locations,
+      showGeofenceHits,
+      showMarkers,
+      showPolyline,
+      testMarkers,
+    } = this.props;
 
     // if locations have not changed - do not clear markers
     // just update current location, selected location and handle visibility of markers
@@ -296,17 +309,19 @@ class MapView extends Component {
     radius: Number (present only when type: "geofence")
   }
   */
-  renderTestMarkers(testMarkers) {
+  renderTestMarkers (testMarkers: any) {
     // 37.33313411,-122.05283635
-    for (let n=0,len=testMarkers.length;n<len;n++) {
+    for (let n = 0, len = testMarkers.length; n < len; n++) {
       let record = testMarkers[n];
       if (record.type === 'location') {
+        // eslint-disable-next-line no-new
         new google.maps.Marker({
           position: record.position,
           map: this.gmap,
-          label: record.label
+          label: record.label,
         });
       } else if (record.type === 'geofence') {
+        // eslint-disable-next-line no-new
         new google.maps.Circle({
           zIndex: 2000,
           fillOpacity: 0,
@@ -315,7 +330,7 @@ class MapView extends Component {
           strokeOpacity: 1,
           radius: record.radius,
           center: record.position,
-          map: this.gmap
+          map: this.gmap,
         });
       }
     }
@@ -522,9 +537,10 @@ class MapView extends Component {
     this.motionChangePolylines = [];
   }
 
-  UNSAFE_componentWillUpdate (nextProps: Props) {
+  getSnapshotBeforeUpdate (nextProps: Props) {
     // If the map was rendered - decide how we can only partially update markers
     // to significantly speed up the update
+    const previous = this.updateFlags;
     if (this.gmap) {
       this.updateFlags = {
         needsMarkersRedraw: nextProps.locations !== this.props.locations,
@@ -533,7 +549,9 @@ class MapView extends Component {
         needsShowPolylineUpdate: nextProps.showPolyline !== this.props.showPolyline,
         needsShowGeofenceHitsUpdate: nextProps.showGeofenceHits !== this.props.showGeofenceHits,
       };
+      return isEqual(previous, this.updateFlags);
     }
+    return null;
   }
 
   render () {
@@ -574,7 +592,8 @@ const selectedLocationSelector = createSelector(
       selectedLocationId: state.dashboard.selectedLocationId,
     }),
   ],
-  ({ locations, selectedLocationId }: LocationArgs) => locations && locations.find(x => x.uuid === selectedLocationId),
+  ({ locations, selectedLocationId }: LocationArgs) => locations &&
+    locations.find((x: Location) => x.uuid === selectedLocationId),
 );
 
 const nthItem = function (n: number) {
