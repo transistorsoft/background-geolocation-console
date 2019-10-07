@@ -2,7 +2,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import DateFnsUtils from '@date-io/date-fns';
-import { ThemeProvider } from '@material-ui/styles';
 import {
   AppBar,
   Button,
@@ -10,7 +9,6 @@ import {
   CardContent,
   CardHeader,
   Checkbox,
-  createMuiTheme,
   FormControlLabel,
   IconButton,
   Switch,
@@ -33,6 +31,7 @@ import {
 import useStyles from './Style';
 import formatDate from '~/utils/formatDate';
 import DeviceField from './DeviceField';
+import RemoveAnimationProvider from '../RemoveAnimationProvider';
 import DeleteDeviceLink from './DeleteDeviceLink';
 import CompanyTokenField from './CompanyTokenField';
 import CustomMarkers from './CustomMarkers';
@@ -85,11 +84,6 @@ type Props = {|
   ...DispatchProps,
   setOpen: (open: boolean) => any,
 |};
-const removeAnimationTheme = createMuiTheme({
-  transitions: {
-    create: () => 'none',
-  },
-});
 const FilterView = function ({
   hasData,
   devices,
@@ -137,10 +131,10 @@ const FilterView = function ({
           <Card style={cardMargins}>
             <CardHeader className={classes.header} title='Locations' />
             <CardContent className={classes.relative}>
-              <ThemeProvider theme={removeAnimationTheme}>
+              <RemoveAnimationProvider>
                 <CompanyTokenField onChange={onChangeCompanyToken} source={companyTokens} value={companyToken} />
                 <DeviceField onChange={onChangeDeviceId} source={devices} hasData={hasData} value={deviceId} />
-              </ThemeProvider>
+              </RemoveAnimationProvider>
               <DeleteDeviceLink />
               <div style={{ display: 'flex', flexDirection: 'row' }}>
                 <DatePicker
