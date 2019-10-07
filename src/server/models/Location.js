@@ -30,7 +30,7 @@ export async function getStats () {
 }
 
 export async function getLocations (params) {
-  var whereConditions = {};
+  const whereConditions = {};
   if (params.start_date && params.end_date) {
     whereConditions.recorded_at = { [Op.between]: [new Date(params.start_date), new Date(params.end_date)] };
   }

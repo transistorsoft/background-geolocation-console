@@ -3,6 +3,8 @@ import React from 'react';
 import Button from '@material-ui/core/Button';
 import DeleteIcon from '@material-ui/icons/Delete';
 import { connect } from 'react-redux';
+import format from 'date-fns/format';
+import ConfirmationDialog, { type Result } from '../ConfirmationDialog';
 import { type GlobalState } from '~/reducer/state';
 import { deleteActiveDevice } from '~/reducer/dashboard';
 
@@ -10,7 +12,7 @@ type StateProps = {|
   isVisible: boolean,
 |};
 type DispatchProps = {|
-  onClick: () => any,
+  deleteDevice: () => any,
 |};
 type Props = {| ...StateProps, ...DispatchProps |};
 const style = {
@@ -22,33 +24,52 @@ const style = {
   // float: 'right',
 };
 
-const DeleteDeviceLink = ({ isVisible, onClick }: Props) => {
+const DeleteDeviceLink = ({ isVisible, startDate, endDate, deleteDevice }: Props) => {
+  const [open, setOpen] = React.useState(false);
+
   if (!isVisible) {
     return null;
   }
-  return (
+
+  const onClose = (result: Result) => {
+    setOpen(false);
+    result && deleteDevice();
+  };
+  const onClick = (e: Event) => {
+    e.preventDefault();
+    setOpen(true);
+  };
+
+  return [
     <Button
+      key='button'
       style={style}
-      onClick={(e: Event) => {
-        e.preventDefault();
-        if (confirm('Delete device and all its locations?')) {
-          onClick();
-        }
-      }}
+      type='button'
+      onClick={onClick}
     >
       <DeleteIcon />
-    </Button>
-  );
+    </Button>,
+    <ConfirmationDialog
+      key='confirmation'
+      open={open}
+      onClose={onClose}
+      title='Delete device confirmation'
+    >
+      Delete device and all
+      locations between {format(new Date(startDate), 'MM-dd')}
+      and {format(new Date(endDate), 'MM-dd')}?
+    </ConfirmationDialog>,
+  ];
 };
 
-const mapStateToProps = function (state: GlobalState): StateProps {
-  return {
-    isVisible: state.dashboard.devices.length > 0,
-  };
-};
+const mapStateToProps = (state: GlobalState): StateProps => ({
+  isVisible: state.dashboard.devices.length > 0,
+  startDate: state.dashboard.startDate,
+  endDate: state.dashboard.endDate,
+});
 
 const mapDispatchToProps: DispatchProps = {
-  onClick: deleteActiveDevice,
+  deleteDevice: deleteActiveDevice,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(DeleteDeviceLink);
