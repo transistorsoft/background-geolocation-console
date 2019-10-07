@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { stringify } from 'querystring';
 import { getDevices, deleteDevice } from './models/Device';
 import { getCompanyTokens } from './models/CompanyToken';
 import { getLocations, getLatestLocation, createLocation, deleteLocations, getStats } from './models/Location';
@@ -34,8 +35,8 @@ var Routes = function (app) {
 
   app.delete('/devices/:id', async function (req, res) {
     try {
-      console.log(`DELETE /devices/${req.params.id}\n`.green);
-      await deleteDevice(req.params.id);
+      console.log(`DELETE /devices/${req.params.id}?${stringify(req.query)}\n`.green);
+      await deleteDevice({ ...req.query, id: req.params.id });
       res.send({ success: true });
     } catch (err) {
       console.info('err: ', err);

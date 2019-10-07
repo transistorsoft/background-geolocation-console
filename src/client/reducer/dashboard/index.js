@@ -19,6 +19,10 @@ export type Device = {|
   id: string,
   name: string,
 |};
+export type DeleteOptions = {|
+  startDate: Date,
+  endDate: Date,
+|};
 export type LoadParams = {|
   loadUsers: boolean,
 |};
@@ -422,13 +426,19 @@ export function reload ({ loadUsers }: LoadParams = { loadUsers: true }): ThunkA
   };
 }
 
-export function deleteActiveDevice (): ThunkAction {
+export function deleteActiveDevice (deleteOptions: ?DeleteOptions): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     const { dashboard: { deviceId } } = getState();
     if (!deviceId) {
       return;
     }
-    await fetch(`${API_URL}/devices/${deviceId}`, { method: 'delete' });
+    const params = deleteOptions
+      ? `?${qs.stringify({
+        start_date: deleteOptions.startDate.toISOString(),
+        end_date: deleteOptions.endDate.toISOString(),
+      })}`
+      : '';
+    await fetch(`${API_URL}/devices/${deviceId}${params}`, { method: 'delete' });
     await dispatch(reload({ loadUsers: false }));
     GA.sendEvent('tracker', 'delete device:' + deviceId);
   };

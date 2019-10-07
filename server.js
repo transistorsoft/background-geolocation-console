@@ -6,9 +6,19 @@ import compress from 'compression';
 import 'colors';
 import opn from 'opn';
 import request from 'request';
-const app = express();
 
 const isProduction = process.env.NODE_ENV === 'production';
+
+// if (!isProduction) {
+//   if (!require('piping')({
+//     hook: true,
+//     ignore: /(\/\.|~$|\.json$)/i,
+//   })) {
+//     return;
+//   }
+// }
+
+const app = express();
 const port = process.env.PORT || 9000;
 
 process.on('uncaughtException', function (error) {

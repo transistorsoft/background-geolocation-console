@@ -31,6 +31,7 @@ import {
 import useStyles from './Style';
 import formatDate from '~/utils/formatDate';
 import DeviceField from './DeviceField';
+import RemoveAnimationProvider from '../RemoveAnimationProvider';
 import DeleteDeviceLink from './DeleteDeviceLink';
 import CompanyTokenField from './CompanyTokenField';
 import CustomMarkers from './CustomMarkers';
@@ -130,8 +131,10 @@ const FilterView = function ({
           <Card style={cardMargins}>
             <CardHeader className={classes.header} title='Locations' />
             <CardContent className={classes.relative}>
-              <CompanyTokenField onChange={onChangeCompanyToken} source={companyTokens} value={companyToken} />
-              <DeviceField onChange={onChangeDeviceId} source={devices} hasData={hasData} value={deviceId} />
+              <RemoveAnimationProvider>
+                <CompanyTokenField onChange={onChangeCompanyToken} source={companyTokens} value={companyToken} />
+                <DeviceField onChange={onChangeDeviceId} source={devices} hasData={hasData} value={deviceId} />
+              </RemoveAnimationProvider>
               <DeleteDeviceLink />
               <div style={{ display: 'flex', flexDirection: 'row' }}>
                 <DatePicker

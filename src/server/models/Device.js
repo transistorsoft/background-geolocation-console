@@ -1,5 +1,5 @@
 import LocationModel from '../database/LocationModel';
-import sequelize from 'sequelize';
+import sequelize, { Op } from 'sequelize';
 
 const filterByCompany = !!process.env.SHARED_DASHBOARD;
 
@@ -18,6 +18,11 @@ export async function getDevices (params) {
   return result;
 }
 
-export async function deleteDevice (deviceId) {
-  await LocationModel.destroy({ where: { device_id: deviceId || 'blank' } });
+export async function deleteDevice ({ id: deviceId, start_date: startDate, end_date: endDate }) {
+  const where = { device_id: deviceId || 'blank' };
+  if (startDate && endDate && new Date(startDate) && new Date(endDate)) {
+    where.recorded_at = { [Op.between]: [new Date(startDate), new Date(endDate)] };
+  }
+  const result = await LocationModel.destroy({ where });
+  return result;
 }
