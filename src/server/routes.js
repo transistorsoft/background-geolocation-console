@@ -94,8 +94,8 @@ var Routes = function (app) {
       await createLocation(req.body);
       res.send({ success: true });
     } catch (err) {
-      console.info('err: ', err);
-      res.status(500).send({ error: 'Something failed!' });
+      console.error('err: ', err);
+      res.status(500).send({ error: err.toString() });
     }
   });
 
@@ -115,8 +115,8 @@ var Routes = function (app) {
       await createLocation(req.body);
       res.send({ success: true });
     } catch (err) {
-      console.info('err: ', err);
-      res.status(500).send({ error: 'Something failed!' });
+      console.error('err: ', err);
+      res.status(500).send({ error: err.toString() });
     }
   });
 
