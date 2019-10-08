@@ -2,7 +2,7 @@ import fs from 'fs';
 import { stringify } from 'querystring';
 import { getDevices, deleteDevice } from './models/Device';
 import { getCompanyTokens } from './models/CompanyToken';
-import { getLocations, getLatestLocation, createLocation, deleteLocations, getStats } from './models/Location';
+import { getLocations, getLatestLocation, createLocation, deleteLocations, getStats, DenieError } from './models/Location';
 
 var Routes = function (app) {
   /**
@@ -94,8 +94,11 @@ var Routes = function (app) {
       await createLocation(req.body);
       res.send({ success: true });
     } catch (err) {
+      if (err instanceof DenieError) {
+        return res.status(403).send({ error: err.toString() });
+      }
       console.error('err: ', err);
-      res.status(500).send({ error: err.toString() });
+      res.status(500).send({ error: 'Something failed!' });
     }
   });
 
@@ -115,8 +118,11 @@ var Routes = function (app) {
       await createLocation(req.body);
       res.send({ success: true });
     } catch (err) {
+      if (err instanceof DenieError) {
+        return res.status(403).send({ error: err.toString() });
+      }
       console.error('err: ', err);
-      res.status(500).send({ error: err.toString() });
+      res.status(500).send({ error: 'Something failed!' });
     }
   });
 

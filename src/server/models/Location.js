@@ -7,6 +7,8 @@ const filterByCompany = !!process.env.SHARED_DASHBOARD;
 const deniedCompanies = (process.env.DENIED_COMPANY_TOKENS || '').split(',');
 const deniedDevices = (process.env.DENIED_DEVICE_TOKENS || '').split(',');
 
+export class DenieError extends Error {};
+
 function hydrate (record) {
   if (record.geofence) {
     record.geofence = JSON.parse(record.geofence);
@@ -81,7 +83,7 @@ export async function createLocation (params) {
   const device = params.device || { model: 'UNKNOWN' };
 
   if (deniedCompanies.find(x => !!x && comapnyToken.toLowerCase().startsWith(x.toLowerCase()))) {
-    throw new Error(
+    throw new DenieError(
       'This is a question from the CEO of Transistor Software.\n' +
       'Why are you spamming my demo server1?\n' +
       'Please email me at chris@transistorsoft.com.'
@@ -103,7 +105,7 @@ export async function createLocation (params) {
     const model = device.framework ? device.model + ' (' + device.framework + ')' : device.model;
 
     if (deniedDevices.find(x => !!x && device.model.toLowerCase().startsWith(x.toLowerCase()))) {
-      throw new Error(
+      throw new DenieError(
         'This is a question from the CEO of Transistor Software.\n' +
         'Why are you spamming my demo server2?\n' +
         'Please email me at chris@transistorsoft.com.'
