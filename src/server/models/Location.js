@@ -4,6 +4,8 @@ import LocationModel from '../database/LocationModel';
 const Op = Sequelize.Op;
 
 const filterByCompany = !!process.env.SHARED_DASHBOARD;
+const deniedCompanies = (process.env.DENIED_COMPANY_TOKENS || '').split(',');
+const deniedDevices = (process.env.DENIED_DEVICE_TOKENS || '').split(',');
 
 function hydrate (record) {
   if (record.geofence) {
@@ -67,12 +69,24 @@ export async function getLatestLocation (params) {
 export async function createLocation (params) {
   if (Array.isArray(params)) {
     for (let location of params) {
-      await createLocation(location);
+      try {
+        await createLocation(location);
+      } catch (e) {
+        throw e;
+      }
     }
     return;
   }
-  const location = params.location;
+  const { location, company_token: comapnyToken } = params;
   const device = params.device || { model: 'UNKNOWN' };
+
+  if (deniedCompanies.find(x => !!x && comapnyToken.toLowerCase().startsWith(x.toLowerCase()))) {
+    throw new Error(
+      'This is a question from the CEO of Transistor Software.\n' +
+      'Why are you spamming my demo server1?\n' +
+      'Please email me at chris@transistorsoft.com.'
+    );
+  }
 
   // Considering we're always working with locations array
   const locations = location.length ? location : [location];
@@ -88,9 +102,17 @@ export async function createLocation (params) {
     const uuid = device.framework ? device.framework + '-' + device.uuid : device.uuid;
     const model = device.framework ? device.model + ' (' + device.framework + ')' : device.model;
 
+    if (deniedDevices.find(x => !!x && device.model.toLowerCase().startsWith(x.toLowerCase()))) {
+      throw new Error(
+        'This is a question from the CEO of Transistor Software.\n' +
+        'Why are you spamming my demo server2?\n' +
+        'Please email me at chris@transistorsoft.com.'
+      );
+    }
+
     await LocationModel.create({
       uuid: location.uuid,
-      company_token: params.company_token || null,
+      company_token: comapnyToken || null,
       device_id: uuid,
       device_model: model,
       latitude: coords.latitude,
