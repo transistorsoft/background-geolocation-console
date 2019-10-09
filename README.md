@@ -56,7 +56,7 @@ BackgroundGeolocation.ready({
 ```dart
 Map deviceParams = await Config.deviceParams;
 
-BackgroundGeolocation.ready(Config(    
+BackgroundGeolocation.ready(Config(
     url: 'http://<your.ip.address>:9000/locations',
     params: deviceParams
 ));
@@ -64,9 +64,9 @@ BackgroundGeolocation.ready(Config(
 
 ## Running on Heroku
 
-You can deploy easily the app on Heroku by pushing the code to your heroku git repository.  
+You can deploy easily the app on Heroku by pushing the code to your heroku git repository.
 
-Before this, you will need to create 2 environment variables (either in the heroku dashboard, or by executing `heroku config:set <VARIABLE_NAME>=<VARIABLE_VALUE>`) :  
+Before this, you will need to create 2 environment variables (either in the heroku dashboard, or by executing `heroku config:set <VARIABLE_NAME>=<VARIABLE_VALUE>`) :
 
 - `NPM_CONFIG_PRODUCTION = false` : It will tell heroku to install `devDependencies` (and not only `dependencies`), required to build browserify's `bundle.min.js` file
 - `GOOGLE_MAPS_API_KEY = <PUT YOUR KEY HERE>` : A Google Maps API v3 allowed for your heroku domain (see <https://console.developers.google.com>)
