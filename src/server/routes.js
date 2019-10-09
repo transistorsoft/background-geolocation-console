@@ -2,7 +2,14 @@ import fs from 'fs';
 import { stringify } from 'querystring';
 import { getDevices, deleteDevice } from './models/Device';
 import { getCompanyTokens } from './models/CompanyToken';
-import { getLocations, getLatestLocation, createLocation, deleteLocations, getStats, DenieError } from './models/Location';
+import {
+  AccessDeniedError,
+  createLocation,
+  deleteLocations,
+  getLatestLocation,
+  getLocations,
+  getStats,
+} from './models/Location';
 
 var Routes = function (app) {
   /**
@@ -94,7 +101,7 @@ var Routes = function (app) {
       await createLocation(req.body);
       res.send({ success: true });
     } catch (err) {
-      if (err instanceof DenieError) {
+      if (err instanceof AccessDeniedError) {
         return res.status(403).send({ error: err.toString() });
       }
       console.error('err: ', err);
@@ -118,7 +125,7 @@ var Routes = function (app) {
       await createLocation(req.body);
       res.send({ success: true });
     } catch (err) {
-      if (err instanceof DenieError) {
+      if (err instanceof AccessDeniedError) {
         return res.status(403).send({ error: err.toString() });
       }
       console.error('err: ', err);
