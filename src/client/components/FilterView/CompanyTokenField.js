@@ -90,7 +90,7 @@ class CompanyTokenField extends Component<Props> {
     const { onChange, value, source, fullScreen } = this.props;
     const { open, filter } = this.state;
     const val = filter.toLowerCase();
-    this.source = source.filter((x: Source) => !!~x.label.toLowerCase().indexOf(val));
+    this.source = val ? source.filter((x: Source) => x.label && !!~x.label.toLowerCase().indexOf(val)) : source;
     this.isLong = source.length > 10;
 
     if (!filter && !this.source.length) {
