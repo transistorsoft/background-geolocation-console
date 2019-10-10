@@ -32,7 +32,7 @@ type Props = {
 // const theme = useTheme();
 const flex = { display: 'flex' };
 const contentStyle = { minHeight: 400, position: 'relative', display: 'flex', flexDirection: 'column' };
-const rowStyle = { verticalAlign: 'middle', lineHeight: '50px' };
+const rowStyle = { verticalAlign: 'middle', lineHeight: '50px', cursor: 'pointer' };
 const containerStyle = { flex: '1 auto', 'overflowY': 'auto' };
 
 class CompanyTokenField extends Component<Props> {
