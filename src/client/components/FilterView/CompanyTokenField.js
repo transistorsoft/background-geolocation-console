@@ -11,9 +11,10 @@ import FormControl from '@material-ui/core/FormControl';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogTitle from '@material-ui/core/DialogTitle';
-import List from '@material-ui/core/List';
+import { withStyles } from '@material-ui/core/styles';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
+import CloseIcon from '@material-ui/icons/Close';
 import ListItemText from '@material-ui/core/ListItemText';
 import AutoSizer from 'react-virtualized/dist/commonjs/AutoSizer';
 import WindowScroller from 'react-virtualized/dist/commonjs/WindowScroller';
@@ -34,7 +35,16 @@ const flex = { display: 'flex' };
 const contentStyle = { minHeight: 400, position: 'relative', display: 'flex', flexDirection: 'column' };
 const rowStyle = { verticalAlign: 'middle', lineHeight: '50px', cursor: 'pointer' };
 const containerStyle = { flex: '1 auto', 'overflowY': 'auto' };
+const styles = (theme: any) => ({
+  closeButton: {
+    position: 'absolute',
+    right: theme.spacing(1),
+    top: theme.spacing(1),
+    color: theme.palette.grey[500],
+  },
+});
 
+@withStyles(styles)
 class CompanyTokenField extends Component<Props> {
   state = { open: false, filter: '' };
 
@@ -87,7 +97,7 @@ class CompanyTokenField extends Component<Props> {
   };
 
   render () {
-    const { onChange, value, source, fullScreen } = this.props;
+    const { onChange, value, source, fullScreen, classes } = this.props;
     const { open, filter } = this.state;
     const val = filter.toLowerCase();
     this.source = val ? source.filter((x: Source) => x.label && !!~x.label.toLowerCase().indexOf(val)) : source;
@@ -124,7 +134,12 @@ class CompanyTokenField extends Component<Props> {
         onClose={this.handleCancel}
         scroll='paper'
       >
-        <DialogTitle id='confirmation-dialog-title'>Company selector</DialogTitle>
+        <DialogTitle id='confirmation-dialog-title'>
+          Company selector
+          <IconButton aria-label='close' className={classes.closeButton} onClick={this.handleCancel}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
         <DialogContent
           dividers
           style={contentStyle}
@@ -162,8 +177,11 @@ class CompanyTokenField extends Component<Props> {
                     {({ width, height }: any) => (
                       <div ref={registerChild}>
                         <Grid
+                          // autoWidth
+                          autoContainerWidth
+                          autoHeight
                           cellRenderer={this.rowRenderer}
-                          columnWidth={() => 250}
+                          columnWidth={500}
                           columnCount={1}
                           height={height}
                           overscanColumnCount={2}
