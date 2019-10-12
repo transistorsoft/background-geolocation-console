@@ -17,7 +17,7 @@ import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
 import AutoSizer from 'react-virtualized/dist/commonjs/AutoSizer';
 import WindowScroller from 'react-virtualized/dist/commonjs/WindowScroller';
-import ListVirtualized from 'react-virtualized/dist/commonjs/List';
+import Grid from 'react-virtualized/dist/commonjs/Grid';
 import DeviceUnknownIcon from '@material-ui/icons/DeviceUnknown';
 import CloseRounded from '@material-ui/icons/CloseRounded';
 import RemoveAnimationProvider from '../RemoveAnimationProvider';
@@ -69,18 +69,18 @@ class CompanyTokenField extends Component<Props> {
     this.source.length && this.props.onChange(this.source[index].value);
   };
 
-  rowRenderer = ({ index, isScrolling, isVisible, key, style }: any) => {
+  rowRenderer = ({ columnIndex, key, rowIndex, style }: any) => {
     return (
       <ListItem
         key={key}
-        onClick={() => this.handleOk(index)}
+        onClick={() => this.handleOk(rowIndex)}
         style={{ ...rowStyle, ...style }}
       >
         <ListItemIcon>
           <DeviceUnknownIcon />
         </ListItemIcon>
         <ListItemText>
-          {this.source[index].label}
+          {this.source[rowIndex].label}
         </ListItemText>
       </ListItem>
     );
@@ -91,7 +91,7 @@ class CompanyTokenField extends Component<Props> {
     const { open, filter } = this.state;
     const val = filter.toLowerCase();
     this.source = val ? source.filter((x: Source) => x.label && !!~x.label.toLowerCase().indexOf(val)) : source;
-    this.isLong = source.length > 10;
+    this.isLong = source.length > 2;
 
     if (!filter && !this.source.length) {
       return null;
@@ -161,22 +161,22 @@ class CompanyTokenField extends Component<Props> {
                   <AutoSizer>
                     {({ width, height }: any) => (
                       <div ref={registerChild}>
-                        <List>
-                          <ListVirtualized
-                            autoHeight
-                            height={height}
-                            isScrolling={isScrolling}
-                            onScroll={onChildScroll}
-                            overscanRowCount={2}
-                            rowCount={this.source.length}
-                            rowHeight={50}
-                            filter={filter}
-                            rowRenderer={this.rowRenderer}
-                            scrollTop={scrollTop}
-                            // scrollToIndex={scrollToIndex}
-                            width={width}
-                          />
-                        </List>
+                        <Grid
+                          cellRenderer={this.rowRenderer}
+                          columnWidth={() => 250}
+                          columnCount={1}
+                          height={height}
+                          overscanColumnCount={2}
+                          overscanRowCount={2}
+                          rowHeight={50}
+                          rowCount={this.source.length}
+                          scrollTop={scrollTop}
+                          width={width}
+                          isScrolling={isScrolling}
+                          onScroll={onChildScroll}
+                          filter={filter}
+                          // scrollToIndex={scrollToIndex}
+                        />
                       </div>
                     )}
                   </AutoSizer>
