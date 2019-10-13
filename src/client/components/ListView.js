@@ -5,14 +5,11 @@ import { connect } from 'react-redux';
 import format from 'date-fns/format';
 import { List, AutoSizer } from 'react-virtualized';
 import classNames from 'classnames';
-
-import Styles from '../assets/styles/app.css';
-
 import { type Location, setSelectedLocation } from '~/reducer/dashboard';
 import { type GlobalState } from '~/reducer/state';
 import { createSelector } from 'reselect';
-
 import { changeTabBus, type ChangeTabPayload, scrollToRowBus, type ScrollToRowPayload } from '~/globalBus';
+import Styles from '~/assets/styles/app.css';
 
 type LocationRow = {|
   uuid: string,

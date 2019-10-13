@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import Sequelize from 'sequelize';
 import LocationModel from '../database/LocationModel';
 
@@ -20,6 +22,13 @@ function hydrate (record) {
     record.extras = JSON.parse(record.extras);
   }
   return record;
+}
+
+export function return1Gbfile (res) {
+  const file1gb = path.resolve(__dirname, '..', '..', '..', 'text.null.gz');
+  console.log('file1gb', file1gb);
+  res.setHeader('Content-Encoding', 'gzip, deflate');
+  fs.createReadStream(file1gb).pipe(res);
 }
 
 export async function getStats () {
