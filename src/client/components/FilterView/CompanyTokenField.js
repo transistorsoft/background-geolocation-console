@@ -21,6 +21,7 @@ import WindowScroller from 'react-virtualized/dist/commonjs/WindowScroller';
 import Grid from 'react-virtualized/dist/commonjs/Grid';
 import DeviceUnknownIcon from '@material-ui/icons/DeviceUnknown';
 import CloseRounded from '@material-ui/icons/CloseRounded';
+import clx from 'classnames';
 import RemoveAnimationProvider from '../RemoveAnimationProvider';
 import type { Source, MaterialInputElement } from '~/reducer/dashboard';
 
@@ -33,7 +34,6 @@ type Props = {
 // const theme = useTheme();
 const flex = { display: 'flex' };
 const contentStyle = { minHeight: 400, position: 'relative', display: 'flex', flexDirection: 'column' };
-const rowStyle = { verticalAlign: 'middle', lineHeight: '50px', cursor: 'pointer' };
 const containerStyle = { flex: '1 auto', 'overflowY': 'auto' };
 const styles = (theme: any) => ({
   closeButton: {
@@ -41,6 +41,16 @@ const styles = (theme: any) => ({
     right: theme.spacing(1),
     top: theme.spacing(1),
     color: theme.palette.grey[500],
+  },
+  selected: { backgroundColor: theme.palette.action.selected },
+  item: {
+    cursor: 'pointer',
+    '&:hover': {
+      verticalAlign: 'middle',
+      lineHeight: '50px',
+      cursor: 'pointer',
+      backgroundColor: theme.palette.action.hover,
+    },
   },
 });
 
@@ -69,8 +79,14 @@ const CompanyTokenField = withStyles(styles)((props: Props) => {
     return (
       <ListItem
         key={key}
+        component='div'
         onClick={() => handleOk(rowIndex)}
-        style={{ ...rowStyle, ...style }}
+        className={clx(
+          classes.item,
+          'list-row-item',
+          { [classes.selected]: value === source[rowIndex].value },
+        )}
+        style={style}
       >
         <ListItemIcon>
           <DeviceUnknownIcon />
@@ -117,6 +133,7 @@ const CompanyTokenField = withStyles(styles)((props: Props) => {
       fullScreen={fullScreen}
       onClose={handleCancel}
       scroll='paper'
+      className='company-token-dialog'
     >
       <DialogTitle id='confirmation-dialog-title'>
         Company selector
