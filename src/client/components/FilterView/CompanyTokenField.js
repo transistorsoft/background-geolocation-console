@@ -71,10 +71,10 @@ const CompanyTokenField = withStyles(styles)((props: Props) => {
     }
     setOpen(true);
   };
-  const handleOk = (index: number) => {
+  const handleOk = React.useCallback((index: number) => {
     setOpen(false);
     !!source.length && onChange(source[index].value);
-  };
+  });
   const rowRenderer = ({ columnIndex, key, rowIndex, style }: any) => {
     return (
       <ListItem
@@ -179,7 +179,6 @@ const CompanyTokenField = withStyles(styles)((props: Props) => {
                       <Grid
                         // autoWidth
                         autoContainerWidth
-                        autoHeight
                         cellRenderer={rowRenderer}
                         columnWidth={500}
                         columnCount={1}
