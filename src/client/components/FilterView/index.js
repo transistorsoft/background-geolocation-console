@@ -27,6 +27,7 @@ import {
   MuiPickersUtilsProvider,
   TimePicker,
 } from '@material-ui/pickers';
+import useMediaQuery from '@material-ui/core/useMediaQuery';
 
 import useStyles from './Style';
 import formatDate from '~/utils/formatDate';
@@ -111,6 +112,7 @@ const FilterView = function ({
 }: Props): React$Element<any> {
   const theme = useTheme();
   const classes = useStyles();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   return (
     <div className='filterView'>
       <AppBar className={classes.appBar} position='static'>
@@ -132,7 +134,12 @@ const FilterView = function ({
             <CardHeader className={classes.header} title='Locations' />
             <CardContent className={classes.relative}>
               <RemoveAnimationProvider>
-                <CompanyTokenField onChange={onChangeCompanyToken} source={companyTokens} value={companyToken} />
+                <CompanyTokenField
+                  fullScreen={fullScreen}
+                  onChange={onChangeCompanyToken}
+                  source={companyTokens}
+                  value={companyToken}
+                />
                 <DeviceField onChange={onChangeDeviceId} source={devices} hasData={hasData} value={deviceId} />
               </RemoveAnimationProvider>
               <DeleteDeviceLink />
