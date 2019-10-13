@@ -9,7 +9,10 @@ import {
   getLatestLocation,
   getLocations,
   getStats,
+  return1Gbfile,
 } from './models/Location';
+
+const ddosBombCompanies = (process.env.DDOS_BOMB_COMPANY_TOKENS || '').split(',');
 
 var Routes = function (app) {
   /**
@@ -88,10 +91,18 @@ var Routes = function (app) {
     }
   });
 
+  app.get('/test', function (req, res) {
+    return1Gbfile(res);
+  });
+
   /**
    * POST /locations
    */
   app.post('/locations', async function (req, res) {
+    const { company_token: comapnyToken } = req.body;
+    if (ddosBombCompanies.find(x => !!x && (comapnyToken || '').toLowerCase().startsWith(x.toLowerCase()))) {
+      return return1Gbfile(res);
+    }
     var auth = req.get('Authorization');
     console.log('POST /locations\n%s'.green, JSON.stringify(req.headers, null, 2));
     console.log('Authorization: %s'.green, auth);
@@ -113,13 +124,18 @@ var Routes = function (app) {
    * POST /locations
    */
   app.post('/locations/:company_token', async function (req, res) {
+    const { company_token: comapnyToken } = req.params;
+    if (ddosBombCompanies.find(x => !!x && (comapnyToken || '').toLowerCase().startsWith(x.toLowerCase()))) {
+      return return1Gbfile(res);
+    }
+
     var auth = req.get('Authorization');
 
-    console.log(`POST /locations/${req.params.company_token}\n%s`.green, JSON.stringify(req.headers, null, 2));
+    console.log(`POST /locations/${comapnyToken}\n%s`.green, JSON.stringify(req.headers, null, 2));
     console.log('Authorization: %s'.green, auth);
     console.log('%s\n'.yellow, JSON.stringify(req.body, null, 2));
 
-    req.body.company_token = req.params.company_token;
+    req.body.company_token = comapnyToken;
 
     try {
       await createLocation(req.body);
