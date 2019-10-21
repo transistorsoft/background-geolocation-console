@@ -5,7 +5,7 @@ import { createSelector } from 'reselect';
 import isEqual from 'lodash/isEqual';
 
 import { connect } from 'react-redux';
-import { type Location, clickMarker } from '~/reducer/dashboard';
+import { type Location, type Marker, clickMarker } from '~/reducer/dashboard';
 import { type GlobalState } from '~/reducer/state';
 
 import GoogleMap from 'google-map-react';
@@ -50,7 +50,7 @@ class MapView extends Component<Props, MapState> {
   selectedMarker: any = null;
   geofenceMarkers: any = {};
   geofenceHitMarkers: any = [];
-  markers: any = [];
+  markers: Marker[] = [];
   gmap: any = null;
   polyline: any = null;
   currentLocationMarker: any = null;
@@ -113,6 +113,17 @@ class MapView extends Component<Props, MapState> {
     }
   };
 
+  onBoundChange = () => {
+    const bound = this.gmap.getBounds();
+    this.markers.forEach((x: Marker) => {
+      x.setMap(
+        bound.contains(x.getPosition())
+          ? this.gmap
+          : null
+      );
+    });
+  }
+
   onMapLoaded = (event: any) => {
     this.gmap = event.map;
     // Route polyline
@@ -161,6 +172,8 @@ class MapView extends Component<Props, MapState> {
       fillOpacity: 0.4,
       strokeOpacity: 0,
     });
+
+    google.maps.event.addListener(this.gmap, 'bounds_changed', this.onBoundChange);
 
     this.renderMarkers();
   };
@@ -518,7 +531,7 @@ class MapView extends Component<Props, MapState> {
   }
 
   clearMarkers () {
-    this.markers.forEach((marker: any) => {
+    this.markers.forEach((marker: Marker) => {
       google.maps.event.clearInstanceListeners(marker);
       marker.setMap(null);
     });

@@ -60,6 +60,8 @@ export type Location = {|
     },
   },
 |};
+export type Marker = {|
+|};
 
 export type DashboardState = {|
   companyTokenFromSearch: string,
