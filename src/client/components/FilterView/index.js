@@ -241,11 +241,11 @@ const FilterView = function ({
                 control={(
                   <Checkbox
                     color='primary'
-                    checked={enableClustering}
-                    onChange={(e: MaterialInputElement) => onChangeEnableClustering(e.target.checked)}
+                    checked={!enableClustering}
+                    onChange={(e: MaterialInputElement) => onChangeEnableClustering(!e.target.checked)}
                   />
                 )}
-                label='Enable Clustering'
+                label='Disable Clustering'
               />
               <TextField
                 fullWidth
