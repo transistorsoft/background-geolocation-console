@@ -119,7 +119,6 @@ class MapView extends Component<Props, MapState> {
   onBoundChange = (e: any) => {
     console.time('onBoundChange');
     const bound = this.gmap.getBounds();
-    console.info('onBoundChange', this.gmap.zoom);
     this.markers
       .filter((x: Marker) => !!x.getMap()/* && !!x.getVisible() */)
       .forEach((x: Marker) => {
@@ -201,7 +200,6 @@ class MapView extends Component<Props, MapState> {
     }
     console.time('clustering');
     !!this.markerCluster && this.markerCluster.clearMarkers();
-    console.info('MarkerClusterer', this.markers.length);
     this.markerCluster = new MarkerClusterer(
       this.gmap,
       this.markers,
