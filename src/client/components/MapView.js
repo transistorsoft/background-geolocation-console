@@ -1,8 +1,9 @@
+/* eslint-disable camelcase */
 // @flow
 
 import React, { Component } from 'react';
 import { createSelector } from 'reselect';
-import isEqual from 'lodash/isEqual';
+// import isEqual from 'lodash/isEqual';
 
 import { connect } from 'react-redux';
 import { type Location, type Marker, clickMarker } from '~/reducer/dashboard';
@@ -20,15 +21,16 @@ const maxMarkersWithoutClustering = 500;
 
 declare var google: any;
 type StateProps = {|
-  showMarkers: boolean,
-  showPolyline: boolean,
-  showGeofenceHits: boolean,
-  isWatching: boolean,
-  testMarkers: Object,
   currentLocation: ?Location,
+  enableClustering: boolean,
+  isActiveTab: boolean,
+  isWatching: boolean,
   locations: Location[],
   selectedLocation: ?Location,
-  isActiveTab: boolean,
+  showGeofenceHits: boolean,
+  showMarkers: boolean,
+  showPolyline: boolean,
+  testMarkers: Object,
 |};
 
 type DispatchProps = {|
@@ -192,14 +194,24 @@ class MapView extends Component<Props, MapState> {
     const markers = cluster.getMarkers();
     markers.forEach((x: Marker) => x.setMap(this.gmap) && x.setVisible(true));
     cluster.remove();
+  };
+
+  cleanClustering () {
+    !!this.markerCluster && this.markerCluster.resetViewport();
+    !!this.markerCluster && this.markerCluster.clearMarkers();
   }
 
   clustering () {
-    if (!this.gmap || this.markers.filter((x: Marker) => !!x.getMap()).length < maxMarkersWithoutClustering) {
+    const { enableClustering, showMarkers } = this.props;
+    if (
+      !showMarkers ||
+      !enableClustering ||
+      !this.gmap
+      // this.markers.filter((x: Marker) => !!x.getMap()).length < maxMarkersWithoutClustering
+    ) {
       return;
     }
     console.time('clustering');
-    !!this.markerCluster && this.markerCluster.clearMarkers();
     this.markerCluster = new MarkerClusterer(
       this.gmap,
       this.markers,
@@ -270,6 +282,7 @@ class MapView extends Component<Props, MapState> {
     }
     if (this.updateFlags.needsMarkersRedraw) {
       this.clearMarkers();
+      this.cleanClustering();
 
       const length = locations.length;
       console.info('draw markers: ' + length);
@@ -589,21 +602,24 @@ class MapView extends Component<Props, MapState> {
     this.motionChangePolylines = [];
   }
 
-  getSnapshotBeforeUpdate (nextProps: Props) {
+  UNSAFE_shouldComponentUpdate (nestState: StateProps, nextProps: Props) {
     // If the map was rendered - decide how we can only partially update markers
     // to significantly speed up the update
-    const previous = this.updateFlags;
+    // const previous = this.updateFlags;
     if (this.gmap) {
       this.updateFlags = {
         needsMarkersRedraw: nextProps.locations !== this.props.locations,
         needsTestMarkersRedraw: nextProps.testMarkers !== this.props.testMarkers,
-        needsShowMarkersUpdate: nextProps.showMarkers !== this.props.showMarkers,
+        needsShowMarkersUpdate: nextProps.showMarkers !== this.props.showMarkers ||
+          nextProps.enableClustering !== this.props.enableClustering,
         needsShowPolylineUpdate: nextProps.showPolyline !== this.props.showPolyline,
         needsShowGeofenceHitsUpdate: nextProps.showGeofenceHits !== this.props.showGeofenceHits,
       };
-      return isEqual(previous, this.updateFlags);
+      const result = Object.keys(this.updateFlags)
+        .find((x: string) => !!this.updateFlags[x]);
+      return !!result;
     }
-    return null;
+    return false;
   }
 
   render () {
@@ -669,6 +685,7 @@ const mapStateToProps = function (state: GlobalState) {
   return {
     locations: filteredLocationSelector(state),
     showMarkers: dashboard.showMarkers,
+    enableClustering: dashboard.enableClustering,
     showPolyline: dashboard.showPolyline,
     showGeofenceHits: dashboard.showGeofenceHits,
     isWatching: dashboard.isWatching,
