@@ -13,7 +13,10 @@ import GoogleMap from 'google-map-react';
 import { COLORS, MAX_POINTS } from '~/constants';
 import { changeTabBus, type ChangeTabPayload, fitBoundsBus, type FitBoundsPayload } from '~/globalBus';
 
+import MarkerClusterer from './MarkerClusterer';
+
 const API_KEY = window.GOOGLE_MAPS_API_KEY || 'AIzaSyA9j72oZA5SmsA8ugu57pqXwpxh9Sn4xuM';
+const maxMarkersWithoutClustering = 500;
 
 declare var google: any;
 type StateProps = {|
@@ -113,15 +116,23 @@ class MapView extends Component<Props, MapState> {
     }
   };
 
-  onBoundChange = () => {
+  onBoundChange = (e: any) => {
+    console.time('onBoundChange');
     const bound = this.gmap.getBounds();
-    this.markers.forEach((x: Marker) => {
-      x.setMap(
-        bound.contains(x.getPosition())
-          ? this.gmap
-          : null
-      );
-    });
+    console.info('onBoundChange', this.gmap.zoom);
+    this.markers
+      .filter((x: Marker) => !!x.getMap()/* && !!x.getVisible() */)
+      .forEach((x: Marker) => {
+        x.setVisible(bound.contains(x.getPosition()));
+        // x.setMap(
+        //   bound.contains(x.getPosition())
+        //     ? this.gmap
+        //     : null
+        // );
+      });
+    // const gridSize = this.gmap.getDiv().offsetWidth / 10;
+    // this.markerCluster && this.markerCluster.setGridSize(gridSize);
+    console.timeEnd('onBoundChange');
   }
 
   onMapLoaded = (event: any) => {
@@ -176,6 +187,35 @@ class MapView extends Component<Props, MapState> {
     google.maps.event.addListener(this.gmap, 'bounds_changed', this.onBoundChange);
 
     this.renderMarkers();
+  };
+
+  onClusterClick = (cluster: any) => {
+    const markers = cluster.getMarkers();
+    markers.forEach((x: Marker) => x.setMap(this.gmap) && x.setVisible(true));
+    cluster.remove();
+  }
+
+  clustering () {
+    if (!this.gmap || this.markers.filter((x: Marker) => !!x.getMap()).length < maxMarkersWithoutClustering) {
+      return;
+    }
+    console.time('clustering');
+    !!this.markerCluster && this.markerCluster.clearMarkers();
+    console.info('MarkerClusterer', this.markers.length);
+    this.markerCluster = new MarkerClusterer(
+      this.gmap,
+      this.markers,
+      {
+        maxZoom: 19,
+        ignoreHidden: true,
+        zoomOnClick: false,
+        minimumClusterSize: 7,
+        gridSize: 33,
+        imagePath: '/images/m',
+      }
+    );
+    google.maps.event.addListener(this.markerCluster, 'click', this.onClusterClick);
+    console.timeEnd('clustering');
   };
 
   // ensures that selected location is properly displayed
@@ -268,6 +308,7 @@ class MapView extends Component<Props, MapState> {
           }
         }
       }
+      this.clustering();
     } else {
       // keep existing markers - just update their visibility
       console.time('renderMarkers: Visibility');

@@ -3,7 +3,11 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 
+const copyAssets = new CopyPlugin([
+  { from: 'assets/images', to: 'images' },
+]);
 const isProduction = process.env.NODE_ENV === 'production';
 const htmlWebpackPlugin = new HtmlWebpackPlugin({
   template: 'index.ejs',
@@ -64,17 +68,17 @@ module.exports = {
           ie8: true,
           mangle: {
             ie8: true,
-            keep_fnames: true
+            keep_fnames: true,
           },
           compress: {
             ie8: true,
             drop_console: true,
           },
           output: {
-            comments: false
+            comments: false,
           },
-          comments: false
-        }
+          comments: false,
+        },
       }),
       new OptimizeCSSAssetsPlugin({}),
     ],
@@ -127,6 +131,7 @@ module.exports = {
         minimize: true,
         debug: false,
       }),
+      copyAssets,
       htmlWebpackPlugin,
     ]
     : [
@@ -134,6 +139,7 @@ module.exports = {
       new webpack.DefinePlugin({
         'process.env.SHARED_DASHBOARD': !!process.env.SHARED_DASHBOARD || '',
       }),
+      copyAssets,
       new webpack.HotModuleReplacementPlugin(),
       htmlWebpackPlugin,
     ],
