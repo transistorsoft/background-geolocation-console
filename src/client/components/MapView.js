@@ -3,21 +3,17 @@
 
 import React, { Component } from 'react';
 import { createSelector } from 'reselect';
-// import isEqual from 'lodash/isEqual';
 
 import { connect } from 'react-redux';
+import GoogleMap from 'google-map-react';
+import MarkerClusterer from '@google/markerclustererplus';
+
 import { type Location, type Marker, clickMarker } from '~/reducer/dashboard';
 import { type GlobalState } from '~/reducer/state';
-
-import GoogleMap from 'google-map-react';
-
 import { COLORS, MAX_POINTS } from '~/constants';
 import { changeTabBus, type ChangeTabPayload, fitBoundsBus, type FitBoundsPayload } from '~/globalBus';
 
-import MarkerClusterer from './MarkerClusterer';
-
 const API_KEY = window.GOOGLE_MAPS_API_KEY || 'AIzaSyA9j72oZA5SmsA8ugu57pqXwpxh9Sn4xuM';
-const maxMarkersWithoutClustering = 500;
 
 declare var google: any;
 type StateProps = {|
@@ -197,7 +193,6 @@ class MapView extends Component<Props, MapState> {
   };
 
   cleanClustering () {
-    !!this.markerCluster && this.markerCluster.resetViewport();
     !!this.markerCluster && this.markerCluster.clearMarkers();
   }
 
