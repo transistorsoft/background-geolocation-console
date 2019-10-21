@@ -81,8 +81,9 @@ export async function createLocation (params) {
   }
   const { location, company_token: comapnyToken } = params;
   const device = params.device || { model: 'UNKNOWN' };
+  const verify = comapnyToken || 'UNKNOWN';
 
-  if (deniedCompanies.find(x => !!x && comapnyToken.toLowerCase().startsWith(x.toLowerCase()))) {
+  if (deniedCompanies.find(x => !!x && verify.toLowerCase().startsWith(x.toLowerCase()))) {
     throw new AccessDeniedError(
       'This is a question from the CEO of Transistor Software.\n' +
       'Why are you spamming my demo server1?\n' +
