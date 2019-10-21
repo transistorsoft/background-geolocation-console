@@ -64,25 +64,26 @@ export type Marker = {|
 |};
 
 export type DashboardState = {|
-  companyTokenFromSearch: string,
-  companyToken: string,
   activeTab: Tab,
-  isLoading: boolean,
-  hasData: boolean,
+  companyToken: string,
+  companyTokenFromSearch: string,
+  companyTokens: CompanyToken[],
+  currentLocation: ?Location,
   deviceId: ?string,
-  startDate: Date,
+  devices: Device[],
+  enableClustering: boolean,
   endDate: Date,
+  hasData: boolean,
+  isLoading: boolean,
+  isWatching: boolean,
+  locations: Location[],
+  maxMarkers: number,
+  selectedLocationId: ?string,
+  showGeofenceHits: boolean,
   showMarkers: boolean,
   showPolyline: boolean,
-  showGeofenceHits: boolean,
-  maxMarkers: number,
-  devices: Device[],
-  companyTokens: CompanyToken[],
-  locations: Location[],
+  startDate: Date,
   testMarkers: Object,
-  selectedLocationId: ?string,
-  currentLocation: ?Location,
-  isWatching: boolean,
 |};
 
 // Action Types
@@ -132,6 +133,10 @@ type InvalidateSelectedLocationAction = {|
 |};
 
 type SetShowMarkersAction = {|
+  type: 'dashboard/SET_SHOW_MARKERS',
+  value: boolean,
+|};
+type SetEnableClusteringAction = {|
   type: 'dashboard/SET_SHOW_MARKERS',
   value: boolean,
 |};
@@ -193,29 +198,30 @@ type AddTestMarkerAction = {|
 |};
 
 type Action =
-  | SetCompanyTokensAction
-  | SetDevicesAction
-  | SetLocationsAction
-  | SetIsLoadingAction
-  | SetHasDataAction
-  | AutoselectOrInvalidateSelectedDeviceAction
-  | AutoselectOrInvalidateSelectedCompanyTokenAction
-  | InvalidateSelectedLocationAction
-  | SetShowMarkersAction
-  | SetShowPolylineAction
-  | SetShowGeofenceHitsAction
-  | SetMaxMarkersAction
-  | SetIsWatchingAction
-  | SetCurrentLocationAction
-  | SetStartDateAction
-  | SetEndDateAction
-  | SetDeviceAction
-  | SetSelectedLocationAction
+  | AddTestMarkerAction
   | ApplyExistingSettinsAction
+  | AutoselectOrInvalidateSelectedCompanyTokenAction
+  | AutoselectOrInvalidateSelectedDeviceAction
+  | InvalidateSelectedLocationAction
   | SetActiveTabAction
   | SetCompanyTokenAction
-  | AddTestMarkerAction
-  | SetCompanyTokenFromSearchAction;
+  | SetCompanyTokenFromSearchAction
+  | SetCompanyTokensAction
+  | SetCurrentLocationAction
+  | SetDeviceAction
+  | SetDevicesAction
+  | SetEnableClusteringAction
+  | SetEndDateAction
+  | SetHasDataAction
+  | SetIsLoadingAction
+  | SetIsWatchingAction
+  | SetLocationsAction
+  | SetMaxMarkersAction
+  | SetSelectedLocationAction
+  | SetShowGeofenceHitsAction
+  | SetShowMarkersAction
+  | SetShowPolylineAction
+  | SetStartDateAction;
 
 type GetState = () => GlobalState;
 type Dispatch = (action: Action | ThunkAction) => Promise<void>; // eslint-disable-line no-use-before-define
@@ -280,6 +286,13 @@ export function invalidateSelectedLocation (): InvalidateSelectedLocationAction 
 export function setShowMarkers (value: boolean): SetShowMarkersAction {
   return {
     type: 'dashboard/SET_SHOW_MARKERS',
+    value,
+  };
+}
+
+export function setEnableClustering (value: boolean): SetEnableClusteringAction {
+  return {
+    type: 'dashboard/SET_ENABLE_CLUSTERING',
     value,
   };
 }
@@ -575,6 +588,13 @@ export function changeShowMarkers (value: boolean) {
   };
 }
 
+export function changeEnableClustering (value: boolean) {
+  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+    await dispatch(setEnableClustering(value));
+    setSettings(getState().dashboard.companyTokenFromSearch, { enableClustering: value });
+  };
+}
+
 export function changeShowPolyline (value: boolean) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setShowPolyline(value));
@@ -719,6 +739,10 @@ const setShowMarkersHandler = function (state: DashboardState, action: SetShowMa
   return cloneState(state, { showMarkers: action.value });
 };
 
+const setEnableClusteringHandler = function (state: DashboardState, action: SetEnableClustringAction): DashboardState {
+  return cloneState(state, { enableClustering: action.value });
+};
+
 const setShowPolylineHandler = function (state: DashboardState, action: SetShowPolylineAction): DashboardState {
   return cloneState(state, { showPolyline: action.value });
 };
@@ -786,25 +810,26 @@ const getEndDate = function () {
 };
 
 const initialState: DashboardState = {
-  companyTokenFromSearch: '',
-  companyToken: '',
-  companyTokens: [],
   activeTab: 'map',
-  devices: [],
+  companyToken: '',
+  companyTokenFromSearch: '',
+  companyTokens: [],
+  currentLocation: null,
   deviceId: null,
-  startDate: getStartDate(),
+  devices: [],
+  enableClustering: true,
   endDate: getEndDate(),
   hasData: false,
   isLoading: false,
+  isWatching: false,
   locations: [],
-  testMarkers: [],
+  maxMarkers: 1000,
+  selectedLocationId: null,
   showGeofenceHits: true,
   showMarkers: true,
   showPolyline: true,
-  maxMarkers: 1000,
-  selectedLocationId: null,
-  currentLocation: null,
-  isWatching: false,
+  startDate: getStartDate(),
+  testMarkers: [],
 };
 
 // ------------------------------------
@@ -830,6 +855,8 @@ export default function spotsReducer (state: DashboardState = initialState, acti
       return invalidateSelectedLocationHandler(state, action);
     case 'dashboard/SET_SHOW_MARKERS':
       return setShowMarkersHandler(state, action);
+    case 'dashboard/SET_ENABLE_CLUSTERING':
+      return setEnableClusteringHandler(state, action);
     case 'dashboard/SET_SHOW_POLYLINE':
       return setShowPolylineHandler(state, action);
     case 'dashboard/SET_SHOW_GEOFENCE_HITS':

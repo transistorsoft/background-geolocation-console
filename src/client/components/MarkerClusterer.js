@@ -1410,6 +1410,10 @@ class MarkerClusterer {
     }
   }
 
+  resetViewport () {
+    this.resetViewport_(false);
+  }
+
   /**
    * Calculates the distance between two latlng locations in km.
    *
