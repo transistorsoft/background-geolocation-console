@@ -38,47 +38,50 @@ import CompanyTokenField from './CompanyTokenField';
 import CustomMarkers from './CustomMarkers';
 import { type GlobalState } from '~/reducer/state';
 import {
-  type Device,
   type CompanyToken,
-  type Source,
+  type Device,
   type MaterialInputElement,
-  reload,
-  changeDeviceId,
+  type Source,
   changeCompanyToken,
-  changeStartDate,
+  changeDeviceId,
+  changeEnableClustering,
   changeEndDate,
   changeIsWatching,
+  changeMaxMarkers,
+  changeShowGeofenceHits,
   changeShowMarkers,
   changeShowPolyline,
-  changeShowGeofenceHits,
-  changeMaxMarkers,
+  changeStartDate,
+  reload,
 } from '~/reducer/dashboard';
 const cardMargins = { marginBottom: '10px' };
 type StateProps = {|
-  hasData: boolean,
-  devices: Source[],
-  deviceId: string,
-  companyTokens: Source[],
   companyToken: string,
-  startDate: Date,
+  companyTokens: Source[],
+  deviceId: string,
+  devices: Source[],
+  enableClustering: boolean,
   endDate: Date,
+  hasData: boolean,
   isWatching: boolean,
-  showGeofenceHits: boolean,
-  showPolyline: boolean,
-  showMarkers: boolean,
   maxMarkers: number,
+  showGeofenceHits: boolean,
+  showMarkers: boolean,
+  showPolyline: boolean,
+  startDate: Date,
 |};
 type DispatchProps = {|
-  onReload: () => any,
-  onChangeDeviceId: (deviceId: string) => any,
   onChangeCompanyToken: (companyToken: string) => any,
-  onChangeStartDate: (date: Date) => any,
+  onChangeDeviceId: (deviceId: string) => any,
+  onChangeEnableClustering: (value: boolean) => any,
   onChangeEndDate: (date: Date) => any,
   onChangeIsWatching: (value: boolean) => any,
+  onChangeMaxMarkers: (value: number) => any,
+  onChangeShowGeofenceHits: (value: boolean) => any,
   onChangeShowMarkers: (value: boolean) => any,
   onChangeShowPolyline: (value: boolean) => any,
-  onChangeShowGeofenceHits: (value: boolean) => any,
-  onChangeMaxMarkers: (value: number) => any,
+  onChangeStartDate: (date: Date) => any,
+  onReload: () => any,
 |};
 type Props = {|
   ...StateProps,
@@ -86,29 +89,31 @@ type Props = {|
   setOpen: (open: boolean) => any,
 |};
 const FilterView = function ({
-  hasData,
-  devices,
-  deviceId,
-  companyTokens,
   companyToken,
-  startDate,
+  companyTokens,
+  deviceId,
+  devices,
+  enableClustering,
   endDate,
+  hasData,
   isWatching,
-  showGeofenceHits,
-  showPolyline,
-  showMarkers,
   maxMarkers,
-  onReload,
-  setOpen,
-  onChangeDeviceId,
   onChangeCompanyToken,
-  onChangeStartDate,
+  onChangeDeviceId,
+  onChangeEnableClustering,
   onChangeEndDate,
   onChangeIsWatching,
+  onChangeMaxMarkers,
+  onChangeShowGeofenceHits,
   onChangeShowMarkers,
   onChangeShowPolyline,
-  onChangeShowGeofenceHits,
-  onChangeMaxMarkers,
+  onChangeStartDate,
+  onReload,
+  setOpen,
+  showGeofenceHits,
+  showMarkers,
+  showPolyline,
+  startDate,
 }: Props): React$Element<any> {
   const theme = useTheme();
   const classes = useStyles();
@@ -232,6 +237,16 @@ const FilterView = function ({
                 )}
                 label='Show Geofences'
               />
+              <FormControlLabel
+                control={(
+                  <Checkbox
+                    color='primary'
+                    checked={!enableClustering}
+                    onChange={(e: MaterialInputElement) => onChangeEnableClustering(!e.target.checked)}
+                  />
+                )}
+                label='Disable Clustering'
+              />
               <TextField
                 fullWidth
                 type='text'
@@ -252,6 +267,7 @@ const mapStateToProps = function (state: GlobalState): StateProps {
   return {
     deviceId: state.dashboard.deviceId,
     companyToken: state.dashboard.companyToken,
+    enableClustering: state.dashboard.enableClustering,
     startDate: state.dashboard.startDate,
     endDate: state.dashboard.endDate,
     devices: state.dashboard.devices.map((device: Device) => ({ value: device.id, label: device.name })),
@@ -274,6 +290,7 @@ const mapDispatchToProps: DispatchProps = {
   onChangeCompanyToken: changeCompanyToken,
   onChangeStartDate: changeStartDate,
   onChangeEndDate: changeEndDate,
+  onChangeEnableClustering: changeEnableClustering,
   onChangeIsWatching: changeIsWatching,
   onChangeShowMarkers: changeShowMarkers,
   onChangeShowPolyline: changeShowPolyline,

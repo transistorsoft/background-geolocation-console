@@ -1,11 +1,11 @@
 // @flow
+/* eslint-disable camelcase */
 
 import React, { Component } from 'react';
 import { createSelector } from 'reselect';
-import isEqual from 'lodash/isEqual';
 
 import { connect } from 'react-redux';
-import { type Location, clickMarker } from '~/reducer/dashboard';
+import { type Location, type Marker, clickMarker } from '~/reducer/dashboard';
 import { type GlobalState } from '~/reducer/state';
 
 import GoogleMap from 'google-map-react';
@@ -13,19 +13,22 @@ import GoogleMap from 'google-map-react';
 import { COLORS, MAX_POINTS } from '~/constants';
 import { changeTabBus, type ChangeTabPayload, fitBoundsBus, type FitBoundsPayload } from '~/globalBus';
 
+import MarkerClusterer from './MarkerClusterer';
+
 const API_KEY = window.GOOGLE_MAPS_API_KEY || 'AIzaSyA9j72oZA5SmsA8ugu57pqXwpxh9Sn4xuM';
 
 declare var google: any;
 type StateProps = {|
-  showMarkers: boolean,
-  showPolyline: boolean,
-  showGeofenceHits: boolean,
-  isWatching: boolean,
-  testMarkers: Object,
   currentLocation: ?Location,
+  enableClustering: boolean,
+  isActiveTab: boolean,
+  isWatching: boolean,
   locations: Location[],
   selectedLocation: ?Location,
-  isActiveTab: boolean,
+  showGeofenceHits: boolean,
+  showMarkers: boolean,
+  showPolyline: boolean,
+  testMarkers: Object,
 |};
 
 type DispatchProps = {|
@@ -50,7 +53,7 @@ class MapView extends Component<Props, MapState> {
   selectedMarker: any = null;
   geofenceMarkers: any = {};
   geofenceHitMarkers: any = [];
-  markers: any = [];
+  markers: Marker[] = [];
   gmap: any = null;
   polyline: any = null;
   currentLocationMarker: any = null;
@@ -113,6 +116,24 @@ class MapView extends Component<Props, MapState> {
     }
   };
 
+  onBoundChange = (e: any) => {
+    console.time('onBoundChange');
+    const bound = this.gmap.getBounds();
+    this.markers
+      .filter((x: Marker) => !!x.getMap()/* && !!x.getVisible() */)
+      .forEach((x: Marker) => {
+        x.setVisible(bound.contains(x.getPosition()));
+        // x.setMap(
+        //   bound.contains(x.getPosition())
+        //     ? this.gmap
+        //     : null
+        // );
+      });
+    // const gridSize = this.gmap.getDiv().offsetWidth / 10;
+    // this.markerCluster && this.markerCluster.setGridSize(gridSize);
+    console.timeEnd('onBoundChange');
+  }
+
   onMapLoaded = (event: any) => {
     this.gmap = event.map;
     // Route polyline
@@ -162,7 +183,46 @@ class MapView extends Component<Props, MapState> {
       strokeOpacity: 0,
     });
 
+    google.maps.event.addListener(this.gmap, 'bounds_changed', this.onBoundChange);
+
     this.renderMarkers();
+  };
+
+  onClusterClick = (cluster: any) => {
+    const markers = cluster.getMarkers();
+    markers.forEach((x: Marker) => x.setMap(this.gmap) && x.setVisible(true));
+    cluster.remove();
+  };
+
+  cleanClustering () {
+    !!this.markerCluster && this.markerCluster.clearMarkers();
+  }
+
+  clustering () {
+    const { enableClustering, showMarkers } = this.props;
+    if (
+      !showMarkers ||
+      !enableClustering ||
+      !this.gmap
+      // this.markers.filter((x: Marker) => !!x.getMap()).length < maxMarkersWithoutClustering
+    ) {
+      return;
+    }
+    console.time('clustering');
+    this.markerCluster = new MarkerClusterer(
+      this.gmap,
+      this.markers,
+      {
+        maxZoom: 19,
+        ignoreHidden: true,
+        zoomOnClick: false,
+        minimumClusterSize: 7,
+        gridSize: 33,
+        imagePath: '/images/m',
+      }
+    );
+    google.maps.event.addListener(this.markerCluster, 'click', this.onClusterClick);
+    console.timeEnd('clustering');
   };
 
   // ensures that selected location is properly displayed
@@ -219,6 +279,7 @@ class MapView extends Component<Props, MapState> {
     }
     if (this.updateFlags.needsMarkersRedraw) {
       this.clearMarkers();
+      this.cleanClustering();
 
       const length = locations.length;
       console.info('draw markers: ' + length);
@@ -255,6 +316,7 @@ class MapView extends Component<Props, MapState> {
           }
         }
       }
+      this.clustering();
     } else {
       // keep existing markers - just update their visibility
       console.time('renderMarkers: Visibility');
@@ -518,7 +580,7 @@ class MapView extends Component<Props, MapState> {
   }
 
   clearMarkers () {
-    this.markers.forEach((marker: any) => {
+    this.markers.forEach((marker: Marker) => {
       google.maps.event.clearInstanceListeners(marker);
       marker.setMap(null);
     });
@@ -537,21 +599,24 @@ class MapView extends Component<Props, MapState> {
     this.motionChangePolylines = [];
   }
 
-  getSnapshotBeforeUpdate (nextProps: Props) {
+  UNSAFE_shouldComponentUpdate (nestState: StateProps, nextProps: Props) {
     // If the map was rendered - decide how we can only partially update markers
     // to significantly speed up the update
-    const previous = this.updateFlags;
+    // const previous = this.updateFlags;
     if (this.gmap) {
       this.updateFlags = {
         needsMarkersRedraw: nextProps.locations !== this.props.locations,
         needsTestMarkersRedraw: nextProps.testMarkers !== this.props.testMarkers,
-        needsShowMarkersUpdate: nextProps.showMarkers !== this.props.showMarkers,
+        needsShowMarkersUpdate: nextProps.showMarkers !== this.props.showMarkers ||
+          nextProps.enableClustering !== this.props.enableClustering,
         needsShowPolylineUpdate: nextProps.showPolyline !== this.props.showPolyline,
         needsShowGeofenceHitsUpdate: nextProps.showGeofenceHits !== this.props.showGeofenceHits,
       };
-      return isEqual(previous, this.updateFlags);
+      const result = Object.keys(this.updateFlags)
+        .find((x: string) => !!this.updateFlags[x]);
+      return !!result;
     }
-    return null;
+    return false;
   }
 
   render () {
@@ -617,6 +682,7 @@ const mapStateToProps = function (state: GlobalState) {
   return {
     locations: filteredLocationSelector(state),
     showMarkers: dashboard.showMarkers,
+    enableClustering: dashboard.enableClustering,
     showPolyline: dashboard.showPolyline,
     showGeofenceHits: dashboard.showGeofenceHits,
     isWatching: dashboard.isWatching,
