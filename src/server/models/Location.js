@@ -8,6 +8,13 @@ const Op = Sequelize.Op;
 const filterByCompany = !!process.env.SHARED_DASHBOARD;
 const deniedCompanies = (process.env.DENIED_COMPANY_TOKENS || '').split(',');
 const deniedDevices = (process.env.DENIED_DEVICE_TOKENS || '').split(',');
+const ddosBombCompanies = (process.env.DDOS_BOMB_COMPANY_TOKENS || '').split(',');
+
+const check = (list, verify) => list
+  .find(x => !!x && (verify || '').toLowerCase().startsWith(x.toLowerCase()));
+export const isDDosCompany = companyToken => check(ddosBombCompanies, companyToken);
+export const isDeniedCompany = companyToken => check(deniedCompanies, companyToken);
+export const isDeniedDevice = companyToken => check(deniedDevices, companyToken);
 
 export class AccessDeniedError extends Error {};
 
@@ -88,11 +95,11 @@ export async function createLocation (params) {
     }
     return;
   }
-  const { location, company_token: comapnyToken } = params;
+  const { location, company_token: companyToken } = params;
   const device = params.device || { model: 'UNKNOWN' };
-  const verify = comapnyToken || 'UNKNOWN';
+  const verify = companyToken || 'UNKNOWN';
 
-  if (deniedCompanies.find(x => !!x && verify.toLowerCase().startsWith(x.toLowerCase()))) {
+  if (isDeniedCompany(verify)) {
     throw new AccessDeniedError(
       'This is a question from the CEO of Transistor Software.\n' +
       'Why are you spamming my demo server1?\n' +
@@ -100,8 +107,7 @@ export async function createLocation (params) {
     );
   }
 
-  // Considering we're always working with locations array
-  const locations = location.length ? location : [location];
+  const locations = Array.isArray(location) ? location : (location ? [location] : []);
 
   for (let location of locations) {
     const coords = location.coords;
@@ -114,7 +120,7 @@ export async function createLocation (params) {
     const uuid = device.framework ? device.framework + '-' + device.uuid : device.uuid;
     const model = device.framework ? device.model + ' (' + device.framework + ')' : device.model;
 
-    if (deniedDevices.find(x => !!x && device.model.toLowerCase().startsWith(x.toLowerCase()))) {
+    if (isDeniedDevice(device.model)) {
       throw new AccessDeniedError(
         'This is a question from the CEO of Transistor Software.\n' +
         'Why are you spamming my demo server2?\n' +
@@ -124,7 +130,7 @@ export async function createLocation (params) {
 
     await LocationModel.create({
       uuid: location.uuid,
-      company_token: comapnyToken || null,
+      company_token: companyToken || null,
       device_id: uuid,
       device_model: model,
       latitude: coords.latitude,
