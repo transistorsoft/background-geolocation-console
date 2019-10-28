@@ -9,10 +9,9 @@ import {
   getLatestLocation,
   getLocations,
   getStats,
+  isDDosCompany,
   return1Gbfile,
 } from './models/Location';
-
-const ddosBombCompanies = (process.env.DDOS_BOMB_COMPANY_TOKENS || '').split(',');
 
 var Routes = function (app) {
   /**
@@ -91,16 +90,14 @@ var Routes = function (app) {
     }
   });
 
-  app.get('/test', function (req, res) {
-    return1Gbfile(res);
-  });
-
   /**
    * POST /locations
    */
   app.post('/locations', async function (req, res) {
-    const { company_token: comapnyToken } = req.body;
-    if (ddosBombCompanies.find(x => !!x && (comapnyToken || '').toLowerCase().startsWith(x.toLowerCase()))) {
+    const { body } = req;
+    const locations = Array.isArray(body) ? body : (body ? [body] : []);
+
+    if (locations.find(({ company_token: companyToken }) => isDDosCompany(companyToken))) {
       return return1Gbfile(res);
     }
     var auth = req.get('Authorization');
@@ -109,7 +106,7 @@ var Routes = function (app) {
     console.log('%s\n'.yellow, JSON.stringify(req.body, null, 2));
 
     try {
-      await createLocation(req.body);
+      await createLocation(locations);
       res.send({ success: true });
     } catch (err) {
       if (err instanceof AccessDeniedError) {
@@ -124,18 +121,18 @@ var Routes = function (app) {
    * POST /locations
    */
   app.post('/locations/:company_token', async function (req, res) {
-    const { company_token: comapnyToken } = req.params;
-    if (ddosBombCompanies.find(x => !!x && (comapnyToken || '').toLowerCase().startsWith(x.toLowerCase()))) {
+    const { company_token: companyToken } = req.params;
+    if (isDDosCompany(companyToken)) {
       return return1Gbfile(res);
     }
 
     var auth = req.get('Authorization');
 
-    console.log(`POST /locations/${comapnyToken}\n%s`.green, JSON.stringify(req.headers, null, 2));
+    console.log(`POST /locations/${companyToken}\n%s`.green, JSON.stringify(req.headers, null, 2));
     console.log('Authorization: %s'.green, auth);
     console.log('%s\n'.yellow, JSON.stringify(req.body, null, 2));
 
-    req.body.company_token = comapnyToken;
+    req.body.company_token = companyToken;
 
     try {
       await createLocation(req.body);

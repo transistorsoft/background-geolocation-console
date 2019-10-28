@@ -211,31 +211,31 @@ const FilterView = function ({
                 control={(
                   <Checkbox
                     color='primary'
-                    checked={showMarkers}
-                    onChange={(e: MaterialInputElement) => onChangeShowMarkers(e.target.checked)}
+                    checked={!showMarkers}
+                    onChange={(e: MaterialInputElement) => onChangeShowMarkers(!e.target.checked)}
                   />
                 )}
-                label='Show Markers'
+                label='Hide Markers'
               />
               <FormControlLabel
                 control={(
                   <Checkbox
                     color='primary'
-                    checked={showPolyline}
-                    onChange={(e: MaterialInputElement) => onChangeShowPolyline((e.target.checked))}
+                    checked={!showPolyline}
+                    onChange={(e: MaterialInputElement) => onChangeShowPolyline(!e.target.checked)}
                   />
                 )}
-                label='Show Polyline'
+                label='Hide Polyline'
               />
               <FormControlLabel
                 control={(
                   <Checkbox
                     color='primary'
-                    checked={showGeofenceHits}
-                    onChange={(e: MaterialInputElement) => onChangeShowGeofenceHits((e.target.checked))}
+                    checked={!showGeofenceHits}
+                    onChange={(e: MaterialInputElement) => onChangeShowGeofenceHits(!e.target.checked)}
                   />
                 )}
-                label='Show Geofences'
+                label='Hide Geofences'
               />
               <FormControlLabel
                 control={(
