@@ -37,8 +37,10 @@ export type Location = {|
   activity_type: string,
   battery_is_charging: boolean,
   battery_level: number,
+  company_id: number,
   created_at: string,
   device_id: string,
+  device_ref_id: number,
   event: string,
   heading: number,
   is_moving: string,
@@ -66,6 +68,7 @@ export type Marker = {|
 export type DashboardState = {|
   activeTab: Tab,
   companyToken: string,
+  companyId: number,
   companyTokenFromSearch: string,
   companyTokens: CompanyToken[],
   currentLocation: ?Location,
@@ -467,9 +470,9 @@ export function loadCompanyTokens (): ThunkAction {
     });
     const response = await fetch(`${API_URL}/company_tokens?${params}`);
     const records = await response.json();
-    const companyTokens: CompanyToken[] = records.map((companyToken: { company_token: string }) => ({
-      id: companyToken.company_token,
-      name: companyToken.company_token,
+    const companyTokens: CompanyToken[] = records.map((x: { company_token: string }) => ({
+      id: x.id,
+      name: x.company_token,
     }));
     dispatch(setCompanyTokens(companyTokens));
   };
@@ -477,28 +480,30 @@ export function loadCompanyTokens (): ThunkAction {
 
 export function loadDevices (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const { dashboard: { companyToken } } = getState();
+    const { dashboard: { companyId, companyToken } } = getState();
     const params = qs.stringify({
+      company_id: companyId,
       company_token: companyToken,
     });
     const response = await fetch(`${API_URL}/devices?${params}`);
     const records = await response.json();
-    const devices: Device[] = records.map((record: Object) => ({ id: record.device_id, name: record.device_model }));
+    const devices: Device[] = records.map((record: Object) => ({ id: record.id, name: record.device_model }));
     dispatch(setDevices(devices));
   };
 }
 
 export function loadLocations (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const { deviceId, companyToken, startDate, endDate, maxMarkers } = getState().dashboard;
+    const { deviceId, companyToken, companyId, startDate, endDate, maxMarkers } = getState().dashboard;
     GA.sendEvent('tracker', 'loadLocations', companyToken);
 
     const params = qs.stringify({
+      company_id: companyId,
       company_token: companyToken,
-      device_id: deviceId,
-      start_date: startDate.toISOString(),
+      device_ref_id: deviceId,
       end_date: endDate.toISOString(),
       limit: maxMarkers,
+      start_date: startDate.toISOString(),
     });
     const response = await fetch(`${API_URL}/locations?${params}`);
     const records = await response.json();
@@ -508,10 +513,11 @@ export function loadLocations (): ThunkAction {
 
 export function loadCurrentLocation (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const { deviceId, companyToken } = getState().dashboard;
+    const { deviceId, companyId, company_token: companyToken } = getState().dashboard;
     if (deviceId) {
       const params = qs.stringify({
-        device_id: deviceId,
+        device_ref_id: deviceId,
+        company_id: companyId,
         company_token: companyToken,
       });
       const response = await fetch(`${API_URL}/locations/latest?${params}`);
@@ -532,6 +538,7 @@ export function changeStartDate (value: Date) {
       startDate: dashboard.startDate,
       endDate: dashboard.endDate,
       deviceId: dashboard.deviceId,
+      companyId: dashboard.companyId,
       companyTokenFromSearch: dashboard.companyTokenFromSearch,
     });
     await dispatch(reload({ loadUsers: false }));
@@ -546,6 +553,7 @@ export function changeEndDate (value: Date) {
       startDate: dashboard.startDate,
       endDate: dashboard.endDate,
       deviceId: dashboard.deviceId,
+      companyId: dashboard.companyId,
       companyTokenFromSearch: dashboard.companyTokenFromSearch,
     });
     await dispatch(reload({ loadUsers: false }));
@@ -555,7 +563,7 @@ export function changeEndDate (value: Date) {
 export function changeCompanyToken (value: string) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setCompanyToken(value));
-    setSettings(getState().dashboard.companyTokenFromSearch, { companyToken: value });
+    setSettings(getState().dashboard.companyTokenFromSearch, { companyId: value });
     await dispatch(reload({ loadUsers: false }));
   };
 }
@@ -568,6 +576,7 @@ export function changeDeviceId (value: string) {
       startDate: dashboard.startDate,
       endDate: dashboard.endDate,
       deviceId: dashboard.deviceId,
+      companyId: dashboard.companyId,
       companyTokenFromSearch: dashboard.companyTokenFromSearch,
     });
     await dispatch(reload({ loadUsers: false }));
@@ -668,17 +677,17 @@ const autoselectOrInvalidateSelectedCompanyTokenHandler = function (
   state: DashboardState,
   action: AutoselectOrInvalidateSelectedCompanyTokenAction
 ): DashboardState {
-  const { companyTokens, companyToken } = state;
+  const { companyTokens, companyId } = state;
   if (companyTokens.length === 0) {
-    return cloneState(state, { companyToken: 'bogus' });
+    return cloneState(state, { companyId: 1 });
   }
   if (companyTokens.length === 1) {
-    return cloneState(state, { companyToken: companyTokens[0].id });
+    return cloneState(state, { companyId: companyTokens[0].id });
   }
   if (companyTokens.length > 1) {
-    const existingCompanyToken = companyTokens && companyTokens.find((x: Device) => x.id === companyToken);
+    const existingCompanyToken = companyTokens && companyTokens.find((x: Device) => x.id === companyId);
     if (!existingCompanyToken) {
-      return cloneState(state, { companyToken: companyTokens[0].id });
+      return cloneState(state, { companyId: companyTokens[0].id });
     } else {
       return state;
     }
@@ -780,7 +789,7 @@ const setActiveTabHandler = function (state: DashboardState, action: SetActiveTa
   return cloneState(state, { activeTab: action.tab });
 };
 const setCompanyTokenHandler = function (state: DashboardState, action: SetCompanyTokenAction) {
-  return cloneState(state, { companyToken: action.value });
+  return cloneState(state, { companyId: action.value });
 };
 const setCompanyTokenFromSearchHandler = function (state: DashboardState, action: SetCompanyTokenFromSearchAction) {
   return cloneState(state, { companyTokenFromSearch: action.value });
