@@ -76,9 +76,15 @@ BEGIN
        and company_token is not null
     group by company_token;
 
+    with comps as (
+	select id, company_token from public.companies
+    )
     update public.locations l
-       set company_id = (select id from public.companies c where c.company_token=l.company_token limit 1)
-    where company_id is null and company_token is not null;
+       set company_id = c.id
+    from comps c
+    where c.company_token=l.company_token
+      and l.company_id is null
+      and l.company_token is not null;
 
   end if;
 
