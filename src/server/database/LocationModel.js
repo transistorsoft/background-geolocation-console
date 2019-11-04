@@ -28,7 +28,9 @@ const LocationModel = definedSequelizeDb.define(
     recorded_at: { type: Sequelize.DATE },
     created_at: { type: Sequelize.DATE },
     company_id: { type: Sequelize.INTEGER },
+    // , references: { model: 'companies' }
     device_ref_id: { type: Sequelize.INTEGER },
+    // , references: { model: 'devices' }
   },
   {
     timestamps: false,

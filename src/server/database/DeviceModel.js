@@ -10,9 +10,9 @@ const DeviceModel = definedSequelizeDb.define(
       type: Sequelize.INTEGER,
       autoIncrement: true,
       primaryKey: true,
-      // references: { model: 'locations', key: 'device_ref_id' },
     },
-    company_id: { type: Sequelize.INTEGER, references: { model: 'companies' } },
+    company_id: { type: Sequelize.INTEGER },
+    // , references: { model: 'companies' }
     company_token: { type: Sequelize.TEXT },
     device_id: { type: Sequelize.TEXT },
     device_model: { type: Sequelize.TEXT },
@@ -35,9 +35,19 @@ const DeviceModel = definedSequelizeDb.define(
         const step = 50000;
         for (let i = 0; i < locationsCount; i += step) {
           const devices = await LocationModel.findAll({
-            attributes: ['company_id', 'device_id', 'device_model', 'company_token'],
+            attributes: [
+              'company_id',
+              'device_id',
+              'device_model',
+              'company_token',
+            ],
             where: { device_ref_id: null },
-            group: ['company_id', 'device_id', 'device_model', 'company_token'],
+            group: [
+              'company_id',
+              'device_id',
+              'device_model',
+              'company_token',
+            ],
             order: [['company_id'], ['device_id']],
             limit: step,
             offset: step * i,

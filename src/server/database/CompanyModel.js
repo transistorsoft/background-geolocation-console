@@ -10,7 +10,6 @@ const CompanyModel = definedSequelizeDb.define(
       type: Sequelize.INTEGER,
       autoIncrement: true,
       primaryKey: true,
-      // references: { model: 'companies', key: 'company_id' },
     },
     company_token: { type: Sequelize.TEXT },
     created_at: { type: Sequelize.DATE },

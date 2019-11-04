@@ -17,6 +17,8 @@ export async function getCompanyTokens (params) {
     where: whereConditions,
     attributes: ['id', 'company_token'],
     order: [['created_at', 'DESC']],
+    raw: true,
+
   });
   return result;
 }

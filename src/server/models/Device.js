@@ -14,6 +14,7 @@ export async function getDevices (params) {
     where: whereConditions,
     attributes: ['id', 'device_id', 'device_model', 'company_id', 'company_token'],
     order: [['created_at', 'DESC']],
+    raw: true,
   });
   return result;
 }

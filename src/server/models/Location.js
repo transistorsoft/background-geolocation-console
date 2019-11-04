@@ -68,6 +68,7 @@ export async function getLocations (params) {
     where: whereConditions,
     order: [['recorded_at', 'DESC']],
     limit: params.limit,
+    raw: true,
   });
 
   const locations = rows.map(hydrate);
