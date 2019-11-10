@@ -133,11 +133,11 @@ export async function createLocation (params) {
       );
     }
 
-    const company = CompanyModel.findOrCreate({
+    const [company] = await CompanyModel.findOrCreate({
       where: { company_token: companyName },
       defaults: { created_at: now, company_token: companyName },
     });
-    const device = DeviceModel.findOrCreate({
+    const [device] = await DeviceModel.findOrCreate({
       where: { company_id: company.id, device_model: model },
       defaults: {
         company_id: company.id,
