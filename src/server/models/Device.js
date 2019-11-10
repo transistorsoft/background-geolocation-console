@@ -1,8 +1,12 @@
-import DeviceModel from '../database/DeviceModel';
-import LocationModel from '../database/LocationModel';
 import { Op } from 'sequelize';
 
-const filterByCompany = !!process.env.SHARED_DASHBOARD;
+import CompanyModel from '../database/CompanyModel';
+import DeviceModel from '../database/DeviceModel';
+import LocationModel from '../database/LocationModel';
+import {
+  checkCompany,
+  filterByCompany,
+} from '../libs/utils';
 
 export async function getDevices (params) {
   const whereConditions = {};
@@ -46,3 +50,32 @@ export async function deleteDevice ({
   }
   return result;
 }
+
+export const findOrCreate = async (companyToken = 'UNKNOWN', { model, id, framework, version }) => {
+  const device = { model: model || 'UNKNOWN', id };
+  const now = new Date();
+
+  checkCompany({ companyToken, model: device.model });
+
+  const [company] = await CompanyModel.findOrCreate({
+    where: { company_token: companyToken },
+    defaults: { created_at: now, company_token: companyToken },
+    raw: true,
+  });
+  console.log('company', company);
+  const [row] = await DeviceModel.findOrCreate({
+    where: { company_id: company.id },
+    defaults: {
+      company_id: company.id,
+      company_token: companyToken,
+      device_id: device.id,
+      device_model: device.model,
+      created_at: now,
+      framework,
+      version,
+    },
+    raw: true,
+  });
+
+  return row;
+};

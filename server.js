@@ -1,11 +1,16 @@
 import initializeDatabase from './src/server/database/initializeDatabase';
 import express from 'express';
+import morgan from 'morgan';
 import bodyParser from 'body-parser';
 import path from 'path';
 import compress from 'compression';
 import 'colors';
 import opn from 'opn';
 import request from 'request';
+
+import obsoleteApi from './src/server/routes/obsolete-api';
+import { makeKeys } from './src/server/libs/jwt';
+import api from './src/server/routes/api-v2';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -21,18 +26,32 @@ const isProduction = process.env.NODE_ENV === 'production';
 const app = express();
 const port = process.env.PORT || 9000;
 
-process.on('uncaughtException', function (error) {
-  console.error('Uncaught error : ', error);
-});
+process
+  .on('uncaughtException', (err) => {
+    // eslint-disable-next-line no-console
+    console.error('<!> Exception %s: ', err.message, err.stack);
+  });
+
+process
+  .on('message', (msg) => {
+    // eslint-disable-next-line no-console
+    console.log('Server %s process.on( message = %s )', this.name, msg);
+  });
 
 (async function () {
   app.disable('etag');
+  app.use(morgan(isProduction ? 'short' : 'dev'));
   app.use(compress());
   app.use(bodyParser.json({ limit: '50mb', extended: true }));
   app.use(bodyParser.raw({ limit: '50mb', extended: true }));
 
   await initializeDatabase();
-  require('./src/server/routes.js')(app);
+  await makeKeys();
+
+  // default old api
+  app.use(obsoleteApi);
+  // v2 with jwt auth support
+  app.use('/v2', api);
 
   if (isProduction) {
     app.use(express.static('./build'));
@@ -74,6 +93,10 @@ process.on('uncaughtException', function (error) {
     } else {
       next();
     }
+    app.use((err, req, res, next) => {
+      console.error(err.message, err.stack);
+      res.status(500).send({ message: err.message || 'Something broke!' });
+    });
   });
 
   app.listen(port, function () {

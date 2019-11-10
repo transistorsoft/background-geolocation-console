@@ -1,45 +1,15 @@
-import fs from 'fs';
-import path from 'path';
-import Sequelize from 'sequelize';
+import { Op } from 'sequelize';
 import Promise from 'bluebird';
 import CompanyModel from '../database/CompanyModel';
 import DeviceModel from '../database/DeviceModel';
 import LocationModel from '../database/LocationModel';
-
-const Op = Sequelize.Op;
-
-const filterByCompany = !!process.env.SHARED_DASHBOARD;
-const deniedCompanies = (process.env.DENIED_COMPANY_TOKENS || '').split(',');
-const deniedDevices = (process.env.DENIED_DEVICE_TOKENS || '').split(',');
-const ddosBombCompanies = (process.env.DDOS_BOMB_COMPANY_TOKENS || '').split(',');
-
-const check = (list, verify) => list
-  .find(x => !!x && (verify || '').toLowerCase().startsWith(x.toLowerCase()));
-export const isDDosCompany = companyToken => check(ddosBombCompanies, companyToken);
-export const isDeniedCompany = companyToken => check(deniedCompanies, companyToken);
-export const isDeniedDevice = companyToken => check(deniedDevices, companyToken);
-
-export class AccessDeniedError extends Error {};
-
-function hydrate (record) {
-  if (record.geofence) {
-    record.geofence = JSON.parse(record.geofence);
-  }
-  if (record.provider) {
-    record.provider = JSON.parse(record.provider);
-  }
-  if (record.extras) {
-    record.extras = JSON.parse(record.extras);
-  }
-  return record;
-}
-
-export function return1Gbfile (res) {
-  const file1gb = path.resolve(__dirname, '..', '..', '..', 'text.null.gz');
-  console.log('file1gb', file1gb);
-  res.setHeader('Content-Encoding', 'gzip, deflate');
-  fs.createReadStream(file1gb).pipe(res);
-}
+import {
+  AccessDeniedError,
+  filterByCompany,
+  hydrate,
+  isDeniedCompany,
+  isDeniedDevice,
+} from '../libs/utils';
 
 export async function getStats () {
   const minDate = await LocationModel.min('created_at');
@@ -87,10 +57,12 @@ export async function getLatestLocation (params) {
   const row = await LocationModel.findOne({
     where: whereConditions,
     order: [['recorded_at', 'DESC']],
+    raw: true,
   });
   const result = row ? hydrate(row) : null;
   return result;
 }
+
 export async function createLocation (params) {
   if (Array.isArray(params)) {
     for (let location of params) {
@@ -145,9 +117,11 @@ export async function createLocation (params) {
       defaults: {
         company_id: company.id,
         company_token: companyName,
+        created_at: now,
         device_id: uuid,
         device_model: model,
-        created_at: now,
+        framework: deviceInfo.framework,
+        version: deviceInfo.version,
       },
       raw: true,
     });

@@ -17,6 +17,8 @@ const DeviceModel = definedSequelizeDb.define(
     device_id: { type: Sequelize.TEXT },
     device_model: { type: Sequelize.TEXT },
     created_at: { type: Sequelize.DATE },
+    framework: { type: Sequelize.TEXT },
+    version: { type: Sequelize.TEXT },
   },
   {
     timestamps: false,
