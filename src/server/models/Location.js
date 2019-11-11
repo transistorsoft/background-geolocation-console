@@ -136,6 +136,7 @@ export async function createLocation (params) {
     const [company] = await CompanyModel.findOrCreate({
       where: { company_token: companyName },
       defaults: { created_at: now, company_token: companyName },
+      raw: true,
     });
     const [device] = await DeviceModel.findOrCreate({
       where: { company_id: company.id, device_model: model },
@@ -146,6 +147,7 @@ export async function createLocation (params) {
         device_model: model,
         created_at: now,
       },
+      raw: true,
     });
 
     await LocationModel.create({
