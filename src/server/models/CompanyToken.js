@@ -1,5 +1,4 @@
-import LocationModel from '../database/LocationModel';
-import sequelize from 'sequelize';
+import CompanyModel from '../database/CompanyModel';
 
 const filterByCompany = !!process.env.SHARED_DASHBOARD;
 const adminCompanyToken = process.env.ADMIN_TOKEN;
@@ -14,11 +13,12 @@ export async function getCompanyTokens (params) {
   }
   const isAdmin = params.company_token === adminCompanyToken && adminCompanyToken;
   const whereConditions = isAdmin ? {} : { company_token: params.company_token };
-  const result = await LocationModel.findAll({
+  const result = await CompanyModel.findAll({
     where: whereConditions,
-    attributes: ['company_token'],
-    group: ['company_token'],
-    order: [[sequelize.fn('max', sequelize.col('created_at')), 'DESC']],
+    attributes: ['id', 'company_token'],
+    order: [['created_at', 'DESC']],
+    raw: true,
+
   });
   return result;
 }

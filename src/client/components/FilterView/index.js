@@ -56,7 +56,7 @@ import {
 } from '~/reducer/dashboard';
 const cardMargins = { marginBottom: '10px' };
 type StateProps = {|
-  companyToken: string,
+  companyId: string,
   companyTokens: Source[],
   deviceId: string,
   devices: Source[],
@@ -89,7 +89,7 @@ type Props = {|
   setOpen: (open: boolean) => any,
 |};
 const FilterView = function ({
-  companyToken,
+  companyId,
   companyTokens,
   deviceId,
   devices,
@@ -143,7 +143,7 @@ const FilterView = function ({
                   fullScreen={fullScreen}
                   onChange={onChangeCompanyToken}
                   source={companyTokens}
-                  value={companyToken}
+                  value={companyId}
                 />
                 <DeviceField onChange={onChangeDeviceId} source={devices} hasData={hasData} value={deviceId} />
               </RemoveAnimationProvider>
@@ -265,14 +265,14 @@ const FilterView = function ({
 
 const mapStateToProps = function (state: GlobalState): StateProps {
   return {
-    deviceId: state.dashboard.deviceId,
-    companyToken: state.dashboard.companyToken,
+    deviceId: '' + state.dashboard.deviceId,
+    companyId: '' + state.dashboard.companyId,
     enableClustering: state.dashboard.enableClustering,
     startDate: state.dashboard.startDate,
     endDate: state.dashboard.endDate,
-    devices: state.dashboard.devices.map((device: Device) => ({ value: device.id, label: device.name })),
+    devices: state.dashboard.devices.map((device: Device) => ({ value: '' + device.id, label: device.name })),
     companyTokens: state.dashboard.companyTokens.map((companyToken: CompanyToken) => ({
-      value: companyToken.id,
+      value: '' + companyToken.id,
       label: companyToken.name,
     })),
     hasData: state.dashboard.hasData,

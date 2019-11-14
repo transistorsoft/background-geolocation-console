@@ -97,7 +97,7 @@ const CompanyTokenField = withStyles(styles)((props: Props) => {
       </ListItem>
     );
   };
-  const isLong = s.length > 2;
+  const isLong = s.length > 10;
   const contentRef = React.createRef();
   const val = filter.toLowerCase();
   const source = val
