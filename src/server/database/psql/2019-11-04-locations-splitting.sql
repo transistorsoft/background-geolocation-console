@@ -4,6 +4,15 @@ please stop application first
 
 */
 
+
+CREATE SEQUENCE if not exists public.devices_id_seq;
+CREATE SEQUENCE if not exists public.companies_id_seq;
+
+ALTER SEQUENCE public.devices_id_seq OWNER TO main;
+ALTER SEQUENCE public.devices_id_seq OWNER TO dev;
+ALTER SEQUENCE public.companies_id_seq OWNER TO main;
+ALTER SEQUENCE public.companies_id_seq OWNER TO dev;
+
 CREATE TABLE IF NOT EXISTS public.companies
 (
   id integer NOT NULL DEFAULT nextval('companies_id_seq'::regclass),
@@ -76,8 +85,12 @@ BEGIN
        and company_token is not null
     group by company_token;
 
+  end if;
+
+  if not exists(select 1 from public.locations where company_id is not null limit 1) then
+
     with comps as (
-	select id, company_token from public.companies
+	    select id, company_token from public.companies
     )
     update public.locations l
        set company_id = c.id
