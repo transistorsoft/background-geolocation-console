@@ -42,8 +42,8 @@ process
   app.disable('etag');
   app.use(morgan(isProduction ? 'short' : 'dev'));
   app.use(compress());
-  app.use(bodyParser.json({ limit: '50mb', extended: true }));
-  app.use(bodyParser.raw({ limit: '50mb', extended: true }));
+  app.use(bodyParser.json({ limit: '1mb', extended: true }));
+  app.use(bodyParser.raw({ limit: '1mb', extended: true }));
 
   await initializeDatabase();
   await makeKeys();
