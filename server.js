@@ -28,8 +28,8 @@ process.on('uncaughtException', function (error) {
 (async function () {
   app.disable('etag');
   app.use(compress());
-  app.use(bodyParser.json());
-  app.use(bodyParser.raw());
+  app.use(bodyParser.json({ limit: '50mb', extended: true }));
+  app.use(bodyParser.raw({ limit: '50mb', extended: true }));
 
   await initializeDatabase();
   require('./src/server/routes.js')(app);
