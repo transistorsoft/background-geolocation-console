@@ -682,12 +682,12 @@ const autoselectOrInvalidateSelectedCompanyTokenHandler = function (
     return cloneState(state, { companyId: 1 });
   }
   if (companyTokens.length === 1) {
-    return cloneState(state, { companyId: companyTokens[0].id });
+    return cloneState(state, { companyId: `${companyTokens[0].id}` });
   }
   if (companyTokens.length > 1) {
-    const existingCompanyToken = companyTokens && companyTokens.find((x: Device) => x.id === companyId);
+    const existingCompanyToken = companyTokens && companyTokens.find((x: Device) => x.id === +companyId);
     if (!existingCompanyToken) {
-      return cloneState(state, { companyId: companyTokens[0].id });
+      return cloneState(state, { companyId: `${companyTokens[0].id}` });
     } else {
       return state;
     }
@@ -704,7 +704,7 @@ const autoselectOrInvalidateSelectedDeviceHandler = function (
     return cloneState(state, { deviceId: null });
   }
   if (devices.length === 1) {
-    return cloneState(state, { deviceId: devices[0].id });
+    return cloneState(state, { deviceId: `${devices[0].id}` });
   }
   if (devices.length > 1) {
     const existingDevice = devices && devices.find((x: Device) => x.id === +deviceId);
