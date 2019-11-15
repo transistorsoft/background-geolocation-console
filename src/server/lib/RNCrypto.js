@@ -51,11 +51,11 @@ export default class RNCrypto {
 		console.log('╚═════════════════════════════════════════════'.green);
 
 		// Create aes-256-cbc Decryption instance.
-		var decipher = crypto.createDecipheriv('aes-256-cbc', encryptionKey, iv);
+		let decipher = crypto.createDecipheriv('aes-256-cbc', encryptionKey, iv);
 
 		try {
 		  // Decrypt the binary data in cipher
-		  var json = decipher.update(cipher, 'binary', 'utf-8');
+		  let json = decipher.update(cipher, 'binary', 'utf-8');
 		  json += decipher.final('utf-8');
 		  return JSON.parse(json);
 		} catch(e) {
