@@ -109,7 +109,8 @@ DECLARE
   _iterator int := 0;
   _step int := 100000;
 BEGIN
-
+  --  4125400
+  -- 29718808
   _count := max(id)
     from public.locations
   where device_ref_id is null;
