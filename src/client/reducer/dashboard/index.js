@@ -707,9 +707,9 @@ const autoselectOrInvalidateSelectedDeviceHandler = function (
     return cloneState(state, { deviceId: devices[0].id });
   }
   if (devices.length > 1) {
-    const existingDevice = devices && devices.find((x: Device) => x.id === deviceId);
+    const existingDevice = devices && devices.find((x: Device) => x.id === +deviceId);
     if (!existingDevice) {
-      return cloneState(state, { deviceId: devices[0].id });
+      return cloneState(state, { deviceId: `${devices[0].id}` });
     } else {
       return state;
     }
