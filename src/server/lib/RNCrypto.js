@@ -57,8 +57,7 @@ export default class RNCrypto {
 		  // Decrypt the binary data in cipher
 		  var json = decipher.update(cipher, 'binary', 'utf-8');
 		  json += decipher.final('utf-8');
-		  var data = JSON.parse(json);
-		  return Array.isArray(data) ? data : [data];
+		  return JSON.parse(json);
 		} catch(e) {
 		  console.error('[decrypt] ERROR: ', e);
 		  return null;
