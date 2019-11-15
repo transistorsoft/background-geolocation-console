@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import RNCrypto from '../lib/RNCrypto';
 
 import { findOrCreate, getDevices, deleteDevice } from '../models/Device';
 import { getCompanyTokens } from '../models/CompanyToken';
@@ -187,7 +188,10 @@ router.post('/locations', checkAuth, async function (req, res) {
     company: companyToken,
   } = req.jwt;
   const { body } = req;
-  const locations = (Array.isArray(body) ? body : (body ? [body] : []))
+  const data = RNCrypto.isEncryptedRequest(req)
+    ? RNCrypto.decrypt(body.toString())
+    : body;
+  const locations = (Array.isArray(data) ? data : (data ? [data] : []))
     .map(x => ({
       ...x,
       company_id: companyId,
@@ -222,9 +226,14 @@ router.post('/locations/:company_token', checkAuth, async function (req, res) {
     return return1Gbfile(res);
   }
 
+  const data = (RNCrypto.isEncryptedRequest(req))
+    ? RNCrypto.decrypt(req.body.toString())
+    : req.body;
+  data.company_token = companyToken;
+
   try {
     await createLocation({
-      ...req.body,
+      ...data,
       company_id: companyId,
       company_token: companyToken,
     });

@@ -101,11 +101,10 @@ router.get('/locations', async function (req, res) {
 router.post('/locations', async function (req, res) {
   const { body } = req;
 
-  let locations = body;
-  if (RNCrypto.isEncryptedRequest(req)) {
-    locations = RNCrypto.decrypt(body.toString());
-  }
-  locations = Array.isArray(locations) ? locations : (locations ? [locations] : []);
+  const data = RNCrypto.isEncryptedRequest(req)
+    ? RNCrypto.decrypt(body.toString())
+    : body;
+  const locations = Array.isArray(data) ? data : (data ? [data] : []);
 
   if (locations.find(({ company_token: companyToken }) => isDDosCompany(companyToken))) {
     return return1Gbfile(res);
@@ -136,9 +135,9 @@ router.post('/locations/:company_token', async function (req, res) {
     return return1Gbfile(res);
   }
 
-  var auth = req.get('Authorization');
+  const auth = req.get('Authorization');
 
-  let data = (RNCrypto.isEncryptedRequest(req)) ? RNCrypto.decrypt(req.body.toString()) : req.body;
+  const data = (RNCrypto.isEncryptedRequest(req)) ? RNCrypto.decrypt(req.body.toString()) : req.body;
   data.company_token = companyToken;
 
   console.log(`POST /locations/${companyToken}\n%s`.green, JSON.stringify(req.headers, null, 2));
