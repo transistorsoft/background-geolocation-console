@@ -143,7 +143,7 @@ var Routes = function (app) {
     console.log('%s\n'.yellow, JSON.stringify(data, null, 2));
 
     try {
-      await createLocation(req.body);
+      await createLocation(data);
       res.send({ success: true });
     } catch (err) {
       if (err instanceof AccessDeniedError) {
