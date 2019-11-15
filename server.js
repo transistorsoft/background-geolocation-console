@@ -29,6 +29,7 @@ process.on('uncaughtException', function (error) {
   app.disable('etag');
   app.use(compress());
   app.use(bodyParser.json());
+  app.use(bodyParser.raw());
 
   await initializeDatabase();
   require('./src/server/routes.js')(app);

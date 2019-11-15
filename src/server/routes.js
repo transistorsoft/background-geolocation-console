@@ -2,6 +2,8 @@ import fs from 'fs';
 import { stringify } from 'querystring';
 import { getDevices, deleteDevice } from './models/Device';
 import { getCompanyTokens } from './models/CompanyToken';
+import RNCrypto from './lib/RNCrypto';
+
 import {
   AccessDeniedError,
   createLocation,
@@ -95,7 +97,8 @@ var Routes = function (app) {
    */
   app.post('/locations', async function (req, res) {
     const { body } = req;
-    const locations = Array.isArray(body) ? body : (body ? [body] : []);
+
+    const locations = (RNCrypto.isEncryptedRequest(req)) ? RNCrypto.decrypt(body.toString()) : Array.isArray(body) ? body : (body ? [body] : []);
 
     if (locations.find(({ company_token: companyToken }) => isDDosCompany(companyToken))) {
       return return1Gbfile(res);
@@ -103,7 +106,7 @@ var Routes = function (app) {
     var auth = req.get('Authorization');
     console.log('POST /locations\n%s'.green, JSON.stringify(req.headers, null, 2));
     console.log('Authorization: %s'.green, auth);
-    console.log('%s\n'.yellow, JSON.stringify(req.body, null, 2));
+    console.log('%s\n'.yellow, JSON.stringify(locations, null, 2));
 
     try {
       await createLocation(locations);
