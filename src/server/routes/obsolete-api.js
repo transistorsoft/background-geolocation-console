@@ -1,5 +1,7 @@
 import fs from 'fs';
+import { stringify } from 'querystring';
 import { Router } from 'express';
+import RNCrypto from '../lib/RNCrypto';
 import {
   AccessDeniedError,
 } from '../libs/utils';
@@ -16,15 +18,17 @@ import {
 } from '../models/Location';
 
 const router = new Router();
+
 /**
  * GET /company_tokens
  */
 router.get('/company_tokens', async function (req, res) {
   try {
+    console.log('GET /company_tokens\n'.green);
     const companyTokens = await getCompanyTokens(req.query);
     res.send(companyTokens);
   } catch (err) {
-    console.error('/company_tokens', err);
+    console.info('err: ', err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -34,41 +38,44 @@ router.get('/company_tokens', async function (req, res) {
  */
 router.get('/devices', async function (req, res) {
   try {
+    console.log('GET /devices\n'.green);
     const devices = await getDevices(req.query);
     res.send(devices);
   } catch (err) {
-    console.error('/devices', err);
+    console.info('err: ', err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
 
 router.delete('/devices/:id', async function (req, res) {
-  const { id } = req.params;
   try {
-    await deleteDevice({ ...req.query, id });
+    console.log(`DELETE /devices/${req.params.id}?${stringify(req.query)}\n`.green);
+    await deleteDevice({ ...req.query, id: req.params.id });
     res.send({ success: true });
   } catch (err) {
-    console.error(`/devices/${id}`, req.query, err);
+    console.info('err: ', err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
 
 router.get('/stats', async function (req, res) {
   try {
+    console.log('GET /stats\n'.green);
     const stats = await getStats();
     res.send(stats);
   } catch (err) {
-    console.error('/stats', err);
+    console.info('err: ', err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
 
 router.get('/locations/latest', async function (req, res) {
+  console.log('GET /locations %s'.green, JSON.stringify(req.query));
   try {
     const latest = await getLatestLocation(req.query);
     res.send(latest);
   } catch (err) {
-    console.error('/locations/latest', req.query, err);
+    console.info('err: ', err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -77,11 +84,13 @@ router.get('/locations/latest', async function (req, res) {
  * GET /locations
  */
 router.get('/locations', async function (req, res) {
+  console.log('GET /locations %s'.green, JSON.stringify(req.query));
+
   try {
     const locations = await getLocations(req.query);
     res.send(locations);
   } catch (err) {
-    console.error('/locations', req.query, err);
+    console.info('err: ', err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -91,15 +100,20 @@ router.get('/locations', async function (req, res) {
  */
 router.post('/locations', async function (req, res) {
   const { body } = req;
-  const locations = Array.isArray(body) ? body : (body ? [body] : []);
+
+  let locations = body;
+  if (RNCrypto.isEncryptedRequest(req)) {
+    locations = RNCrypto.decrypt(body.toString());
+  }
+  locations = Array.isArray(locations) ? locations : (locations ? [locations] : []);
 
   if (locations.find(({ company_token: companyToken }) => isDDosCompany(companyToken))) {
     return return1Gbfile(res);
   }
-  const auth = req.get('Authorization');
+  var auth = req.get('Authorization');
   console.log('POST /locations\n%s'.green, JSON.stringify(req.headers, null, 2));
   console.log('Authorization: %s'.green, auth);
-  console.log('%s\n'.yellow, JSON.stringify(req.body, null, 2));
+  console.log('%s\n'.yellow, JSON.stringify(locations, null, 2));
 
   try {
     await createLocation(locations);
@@ -108,7 +122,7 @@ router.post('/locations', async function (req, res) {
     if (err instanceof AccessDeniedError) {
       return res.status(403).send({ error: err.toString() });
     }
-    console.error('POST /locations', body, err);
+    console.error('err: ', err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -124,20 +138,21 @@ router.post('/locations/:company_token', async function (req, res) {
 
   var auth = req.get('Authorization');
 
+  let data = (RNCrypto.isEncryptedRequest(req)) ? RNCrypto.decrypt(req.body.toString()) : req.body;
+  data.company_token = companyToken;
+
   console.log(`POST /locations/${companyToken}\n%s`.green, JSON.stringify(req.headers, null, 2));
   console.log('Authorization: %s'.green, auth);
-  console.log('%s\n'.yellow, JSON.stringify(req.body, null, 2));
-
-  req.body.company_token = companyToken;
+  console.log('%s\n'.yellow, JSON.stringify(data, null, 2));
 
   try {
-    await createLocation(req.body);
+    await createLocation(data);
     res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
       return res.status(403).send({ error: err.toString() });
     }
-    console.error(`POST /locations${companyToken}`, err);
+    console.error('err: ', err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -148,8 +163,9 @@ router.delete('/locations', async function (req, res) {
   try {
     await deleteLocations(req.query);
     res.send({ success: true });
+    res.status(500).send({ error: 'Something failed!' });
   } catch (err) {
-    console.info('DELETE /locations', req.query, err);
+    console.info('err: ', err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
