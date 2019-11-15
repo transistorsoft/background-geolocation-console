@@ -59,7 +59,9 @@ export async function getLocations (params) {
   }
 
   params.device_id && (whereConditions.device_ref_id = +params.device_id);
+  params.device_ref_id && (whereConditions.device_ref_id = +params.device_ref_id);
   if (filterByCompany) {
+    params.company_id && (whereConditions.company_id = +params.company_id);
     params.companyId && (whereConditions.company_id = +params.companyId);
     params.company_token && (whereConditions.company_token = params.company_token);
   }
