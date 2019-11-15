@@ -98,7 +98,11 @@ var Routes = function (app) {
   app.post('/locations', async function (req, res) {
     const { body } = req;
 
-    const locations = (RNCrypto.isEncryptedRequest(req)) ? RNCrypto.decrypt(body.toString()) : Array.isArray(body) ? body : (body ? [body] : []);
+    let locations = body;
+    if (RNCrypto.isEncryptedRequest(req)) {
+      locations = RNCrypto.decrypt(body.toString());
+    }
+    locations = Array.isArray(locations) ? locations : (locations ? [locations] : []);
 
     if (locations.find(({ company_token: companyToken }) => isDDosCompany(companyToken))) {
       return return1Gbfile(res);
@@ -131,11 +135,12 @@ var Routes = function (app) {
 
     var auth = req.get('Authorization');
 
+    let data = (RNCrypto.isEncryptedRequest(req)) ? RNCrypto.decrypt(req.body.toString()) : req.body;
+    data.company_token = companyToken;
+
     console.log(`POST /locations/${companyToken}\n%s`.green, JSON.stringify(req.headers, null, 2));
     console.log('Authorization: %s'.green, auth);
-    console.log('%s\n'.yellow, JSON.stringify(req.body, null, 2));
-
-    req.body.company_token = companyToken;
+    console.log('%s\n'.yellow, JSON.stringify(data, null, 2));
 
     try {
       await createLocation(req.body);
