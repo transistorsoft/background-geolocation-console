@@ -40,7 +40,6 @@ export type Location = {|
   company_id: number,
   created_at: string,
   device_id: string,
-  device_ref_id: number,
   event: string,
   heading: number,
   is_moving: string,
@@ -500,7 +499,7 @@ export function loadLocations (): ThunkAction {
     const params = qs.stringify({
       company_id: companyId,
       company_token: companyToken,
-      device_ref_id: deviceId,
+      device_id: deviceId,
       end_date: endDate.toISOString(),
       limit: maxMarkers,
       start_date: startDate.toISOString(),
@@ -516,7 +515,7 @@ export function loadCurrentLocation (): ThunkAction {
     const { deviceId, companyId, company_token: companyToken } = getState().dashboard;
     if (deviceId) {
       const params = qs.stringify({
-        device_ref_id: deviceId,
+        device_id: deviceId,
         company_id: companyId,
         company_token: companyToken,
       });

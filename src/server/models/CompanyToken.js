@@ -1,9 +1,8 @@
 import {
+  isAdmin,
   filterByCompany,
 } from '../libs/utils';
 import CompanyModel from '../database/CompanyModel';
-
-const adminCompanyToken = process.env.ADMIN_TOKEN;
 
 export async function getCompanyTokens ({ company_token: companyToken }) {
   if (!filterByCompany) {
@@ -13,14 +12,23 @@ export async function getCompanyTokens ({ company_token: companyToken }) {
       },
     ];
   }
-  const isAdmin = !!adminCompanyToken && companyToken === adminCompanyToken;
-  const whereConditions = isAdmin ? {} : { company_token: companyToken };
+  const whereConditions = isAdmin(companyToken) ? {} : { company_token: companyToken };
   const result = await CompanyModel.findAll({
     where: whereConditions,
     attributes: ['id', 'company_token'],
-    order: [['created_at', 'DESC']],
+    order: [['updated_at', 'DESC']],
     raw: true,
 
   });
   return result;
 }
+
+export async function findOrCreate ({ company_token: companyToken }) {
+  const now = new Date();
+  const [company] = await CompanyModel.findOrCreate({
+    where: { company_token: companyToken },
+    defaults: { created_at: now, company_token: companyToken, updated_at: now },
+    raw: true,
+  });
+  return company;
+};

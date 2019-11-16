@@ -13,6 +13,9 @@ const check = (list, item) => list
 export const isDDosCompany = companyToken => check(ddosBombCompanies, companyToken);
 export const isDeniedCompany = companyToken => check(deniedCompanies, companyToken);
 export const isDeniedDevice = companyToken => check(deniedDevices, companyToken);
+export const isAdmin = companyToken => !!filterByCompany &
+  !!process.env.ADMIN_TOKEN &&
+  companyToken === process.env.ADMIN_TOKEN;
 
 export class AccessDeniedError extends Error {};
 

@@ -19,6 +19,7 @@ const DeviceModel = definedSequelizeDb.define(
     created_at: { type: Sequelize.DATE },
     framework: { type: Sequelize.TEXT },
     version: { type: Sequelize.TEXT },
+    updated_at: { type: Sequelize.DATE },
   },
   {
     timestamps: false,
@@ -43,7 +44,7 @@ const DeviceModel = definedSequelizeDb.define(
               'device_model',
               'company_token',
             ],
-            where: { device_ref_id: null },
+            where: { device_id: null },
             group: [
               'company_id',
               'device_id',
@@ -59,7 +60,7 @@ const DeviceModel = definedSequelizeDb.define(
           const result = await DeviceModel.bulkCreate(devices, { returning: true, raw: true });
           const queries = result.map(x => LocationModel.update(
             {
-              device_ref_id: x.id,
+              device_id: x.id,
             },
             {
               where: {

@@ -100,7 +100,6 @@ router.get('/locations', async function (req, res) {
  */
 router.post('/locations', async function (req, res) {
   const { body } = req;
-
   const data = RNCrypto.isEncryptedRequest(req)
     ? RNCrypto.decrypt(body.toString())
     : body;
@@ -131,6 +130,7 @@ router.post('/locations', async function (req, res) {
  */
 router.post('/locations/:company_token', async function (req, res) {
   const { company_token: companyToken } = req.params;
+
   if (isDDosCompany(companyToken)) {
     return return1Gbfile(res);
   }
@@ -146,6 +146,7 @@ router.post('/locations/:company_token', async function (req, res) {
 
   try {
     await createLocation(data);
+
     res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
@@ -159,8 +160,10 @@ router.post('/locations/:company_token', async function (req, res) {
 router.delete('/locations', async function (req, res) {
   console.log('---------------------------------------------------------------------');
   console.log('- DELETE /locations', JSON.stringify(req.query));
+
   try {
     await deleteLocations(req.query);
+
     res.send({ success: true });
     res.status(500).send({ error: 'Something failed!' });
   } catch (err) {
@@ -171,6 +174,7 @@ router.delete('/locations', async function (req, res) {
 
 router.post('/locations_template', async function (req, res) {
   console.log('POST /locations_template\n%s\n'.green, JSON.stringify(req.body, null, 2));
+
   res.set('Retry-After', 5);
   res.send({ success: true });
 });

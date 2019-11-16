@@ -1,6 +1,6 @@
 import { Op } from 'sequelize';
 
-import CompanyModel from '../database/CompanyModel';
+import { findOrCreate as findOrCreateCompany } from './CompanyToken';
 import DeviceModel from '../database/DeviceModel';
 import LocationModel from '../database/LocationModel';
 import {
@@ -12,12 +12,11 @@ export async function getDevices (params) {
   const whereConditions = {};
   if (filterByCompany) {
     params.company_id && (whereConditions.company_id = +params.company_id);
-    params.company_token && (whereConditions.company_token = params.company_token);
   }
   const result = await DeviceModel.findAll({
     where: whereConditions,
     attributes: ['id', 'device_id', 'device_model', 'company_id', 'company_token'],
-    order: [['created_at', 'DESC']],
+    order: [['updated_at', 'DESC']],
     raw: true,
   });
   return result;
@@ -31,7 +30,7 @@ export async function deleteDevice ({
 }) {
   const whereByDevice = {
     company_id: companyId,
-    device_ref_id: deviceId,
+    device_id: deviceId,
   };
   const where = { ...whereByDevice };
   if (startDate && endDate && new Date(startDate) && new Date(endDate)) {
@@ -57,11 +56,7 @@ export const findOrCreate = async (companyToken = 'UNKNOWN', { model, id, framew
 
   checkCompany({ companyToken, model: device.model });
 
-  const [company] = await CompanyModel.findOrCreate({
-    where: { company_token: companyToken },
-    defaults: { created_at: now, company_token: companyToken },
-    raw: true,
-  });
+  const company = await findOrCreateCompany({ company_token: companyToken });
   console.log('company', company);
   const [row] = await DeviceModel.findOrCreate({
     where: { company_id: company.id },

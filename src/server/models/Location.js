@@ -3,6 +3,7 @@ import Promise from 'bluebird';
 import CompanyModel from '../database/CompanyModel';
 import DeviceModel from '../database/DeviceModel';
 import LocationModel from '../database/LocationModel';
+import { findOrCreate } from './Device';
 import {
   AccessDeniedError,
   filterByCompany,
@@ -28,12 +29,9 @@ export async function getLocations (params) {
     whereConditions.recorded_at = { [Op.between]: [new Date(params.start_date), new Date(params.end_date)] };
   }
 
-  params.device_id && (whereConditions.device_ref_id = +params.device_id);
-  params.device_ref_id && (whereConditions.device_ref_id = +params.device_ref_id);
+  params.device_id && (whereConditions.device_id = +params.device_id);
   if (filterByCompany) {
     params.company_id && (whereConditions.company_id = +params.company_id);
-    params.companyId && (whereConditions.company_id = +params.companyId);
-    params.company_token && (whereConditions.company_token = params.company_token);
   }
 
   const rows = await LocationModel.findAll({
@@ -49,10 +47,9 @@ export async function getLocations (params) {
 
 export async function getLatestLocation (params) {
   var whereConditions = {};
-  params.device_id && (whereConditions.device_ref_id = +params.device_id);
+  params.device_id && (whereConditions.device_id = +params.device_id);
   if (filterByCompany) {
     params.companyId && (whereConditions.company_id = +params.companyId);
-    params.company_token && (whereConditions.company_token = params.company_token);
   }
   const row = await LocationModel.findOne({
     where: whereConditions,
@@ -107,30 +104,26 @@ export async function createLocation (params) {
       );
     }
 
-    const [company] = await CompanyModel.findOrCreate({
-      where: { company_token: companyName },
-      defaults: { created_at: now, company_token: companyName },
-      raw: true,
-    });
+    const company = await findOrCreate(companyName);
     const [device] = await DeviceModel.findOrCreate({
       where: { company_id: company.id, device_model: model },
       defaults: {
         company_id: company.id,
-        company_token: companyName,
         created_at: now,
         device_id: uuid,
         device_model: model,
         framework: deviceInfo.framework,
         version: deviceInfo.version,
+        updated_at: now,
       },
       raw: true,
     });
 
+    CompanyModel.update({ updated_at: now }, { where: { id: company.id } });
+    DeviceModel.update({ updated_at: now }, { where: { id: device.id } });
+
     await LocationModel.create({
       uuid: location.uuid,
-      company_token: companyToken || null,
-      device_id: uuid,
-      device_model: model,
       latitude: coords.latitude,
       longitude: coords.longitude,
       accuracy: parseInt(coords.accuracy, 10),
@@ -150,7 +143,7 @@ export async function createLocation (params) {
       recorded_at: location.timestamp,
       created_at: now,
       company_id: company.id,
-      device_ref_id: device.id,
+      device_id: device.id,
     });
   }
 }
@@ -164,8 +157,8 @@ export async function deleteLocations (params) {
     verify.company_id = +params.companyId;
   }
   if (params && params.deviceId) {
-    whereConditions.device_ref_id = +params.deviceId;
-    verify.device_ref_id = +params.deviceId;
+    whereConditions.device_id = +params.deviceId;
+    verify.device_id = +params.deviceId;
   }
   if (params && params.start_date && params.end_date) {
     whereConditions.recorded_at = { $between: [params.start_date, params.end_date] };
@@ -183,18 +176,18 @@ export async function deleteLocations (params) {
     });
     if (!locationsCount) {
       await DeviceModel.destroy({
-        where: { id: verify.device_ref_id },
+        where: { id: verify.device_id },
       });
     }
   } else {
     const devices = await LocationModel.findAll({
-      attributes: ['company_id', 'device_ref_id'],
+      attributes: ['company_id', 'device_id'],
       where: verify,
-      group: ['company_id', 'device_ref_id'],
+      group: ['company_id', 'device_id'],
       raw: true,
     });
     const group = {};
-    devices.forEach(x => (group[x.company_id] = (group[x.company_id] || []).concat([x.device_ref_id])));
+    devices.forEach(x => (group[x.company_id] = (group[x.company_id] || []).concat([x.device_id])));
     const queries = Object.keys(group)
       .map(companyId => DeviceModel.destroy({
         where: {
