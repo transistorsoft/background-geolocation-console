@@ -3,12 +3,14 @@ import Sequelize from 'sequelize';
 import definition from './LocationDefinition';
 import definedSequelizeDb from './define-sequelize-db';
 
-if (process.env.DATABASE_URL) {
-  definition.provider =
-    definition.geofence =
-      definition.extras = {
-        type: Sequelize.JSONB,
-      };
+import {
+  isPostgres,
+} from '../libs/utils';
+
+if (isPostgres) {
+  definition.data = {
+    type: Sequelize.JSONB,
+  };
 }
 
 const LocationModel = definedSequelizeDb.define(

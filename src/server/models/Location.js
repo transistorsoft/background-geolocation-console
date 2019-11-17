@@ -51,6 +51,7 @@ export async function getLatestLocation (params) {
   params.device_id && (whereConditions.device_id = +params.device_id);
   if (filterByCompany) {
     params.companyId && (whereConditions.company_id = +params.companyId);
+    params.company_id && (whereConditions.company_id = +params.company_id);
   }
   const row = await LocationModel.findOne({
     where: whereConditions,
@@ -90,9 +91,6 @@ export async function createLocation (params) {
     const coords = location.coords;
     const battery = location.battery || { level: null, is_charging: null };
     const activity = location.activity || { type: null, confidence: null };
-    const geofence = jsonb(location.geofence);
-    const provider = jsonb(location.provider);
-    const extras = jsonb(location.extras);
     const now = new Date();
     const uuid = deviceInfo.framework ? deviceInfo.framework + '-' + deviceInfo.uuid : deviceInfo.uuid;
     const model = deviceInfo.framework ? deviceInfo.model + ' (' + deviceInfo.framework + ')' : deviceInfo.model;
@@ -124,23 +122,25 @@ export async function createLocation (params) {
     DeviceModel.update({ updated_at: now }, { where: { id: device.id } });
 
     await LocationModel.create({
-      uuid: location.uuid,
       latitude: coords.latitude,
       longitude: coords.longitude,
-      accuracy: parseInt(coords.accuracy, 10),
-      altitude: coords.altitude,
-      speed: coords.speed,
-      heading: coords.heading,
-      odometer: location.odometer,
-      event: location.event,
-      activity_type: activity.type,
-      activity_confidence: activity.confidence,
-      battery_level: battery.level,
-      battery_is_charging: battery.is_charging,
-      is_moving: location.is_moving,
-      geofence: geofence,
-      provider: provider,
-      extras: extras,
+      data: jsonb({
+        uuid: location.uuid,
+        accuracy: parseInt(coords.accuracy, 10),
+        altitude: coords.altitude,
+        speed: coords.speed,
+        heading: coords.heading,
+        odometer: location.odometer,
+        event: location.event,
+        activity_type: activity.type,
+        activity_confidence: activity.confidence,
+        battery_level: battery.level,
+        battery_is_charging: battery.is_charging,
+        is_moving: location.is_moving,
+        geofence: location.geofence,
+        provider: location.provider,
+        extras: location.extras,
+      }),
       recorded_at: location.timestamp,
       created_at: now,
       company_id: company.id,
@@ -152,14 +152,16 @@ export async function createLocation (params) {
 export async function deleteLocations (params) {
   const whereConditions = {};
   const verify = {};
+  const companyId = params && (params.companyId || params.company_id);
+  const deviceId = params && (params.deviceId || params.device_id);
 
-  if (filterByCompany) {
-    whereConditions.company_id = +params.companyId;
-    verify.company_id = +params.companyId;
+  if (filterByCompany && !!companyId) {
+    whereConditions.company_id = +companyId;
+    verify.company_id = +companyId;
   }
-  if (params && params.deviceId) {
-    whereConditions.device_id = +params.deviceId;
-    verify.device_id = +params.deviceId;
+  if (params && deviceId) {
+    whereConditions.device_id = +deviceId;
+    verify.device_id = +deviceId;
   }
   if (params && params.start_date && params.end_date) {
     whereConditions.recorded_at = { $between: [params.start_date, params.end_date] };

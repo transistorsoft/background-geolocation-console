@@ -18,6 +18,8 @@ export const isAdmin = companyToken => !!filterByCompany &
   !!process.env.ADMIN_TOKEN &&
   companyToken === process.env.ADMIN_TOKEN;
 
+export const jsonb = data => isPostgres ? (data || null) : JSON.stringify(data);
+
 export class AccessDeniedError extends Error {};
 
 export const raiseError = (res, message, error) => {
@@ -27,7 +29,7 @@ export const raiseError = (res, message, error) => {
 };
 
 export function hydrate (record) {
-  ['geofence', 'provider', 'extras']
+  ['data']
     .filter(x => typeof record[x] === 'string')
     .forEach(x => {
       if (typeof record[x] === 'string') {
@@ -39,7 +41,13 @@ export function hydrate (record) {
         }
       }
     });
-  return record;
+  const result = {
+    ...record,
+    ...record.data,
+    data: undefined,
+  };
+  delete result.data;
+  return result;
 }
 
 export function return1Gbfile (res) {
@@ -53,7 +61,7 @@ export const checkAuth = (req, res, next) => {
   const auth = (req.get('Authorization') || '').split(' ');
 
   if (auth.length < 2 || auth[0] !== 'Bearer') {
-    return next(new AccessDeniedError('Authorization Bearer now found'));
+    return next(new AccessDeniedError('Authorization Bearer not found'));
   }
   const [, jwt] = auth;
   try {
