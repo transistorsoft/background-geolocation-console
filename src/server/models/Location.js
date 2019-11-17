@@ -10,6 +10,7 @@ import {
   hydrate,
   isDeniedCompany,
   isDeniedDevice,
+  jsonb,
 } from '../libs/utils';
 
 export async function getStats () {
@@ -89,9 +90,9 @@ export async function createLocation (params) {
     const coords = location.coords;
     const battery = location.battery || { level: null, is_charging: null };
     const activity = location.activity || { type: null, confidence: null };
-    const geofence = location.geofence ? JSON.stringify(location.geofence) : null;
-    const provider = location.provider ? JSON.stringify(location.provider) : null;
-    const extras = location.extras ? JSON.stringify(location.extras) : null;
+    const geofence = jsonb(location.geofence);
+    const provider = jsonb(location.provider);
+    const extras = jsonb(location.extras);
     const now = new Date();
     const uuid = deviceInfo.framework ? deviceInfo.framework + '-' + deviceInfo.uuid : deviceInfo.uuid;
     const model = deviceInfo.framework ? deviceInfo.model + ' (' + deviceInfo.framework + ')' : deviceInfo.model;

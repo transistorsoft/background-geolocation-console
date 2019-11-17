@@ -1,9 +1,11 @@
 import fs from 'fs';
 import { stringify } from 'querystring';
 import { Router } from 'express';
-import RNCrypto from '../lib/RNCrypto';
+import RNCrypto from '../libs/RNCrypto';
 import {
   AccessDeniedError,
+  isDDosCompany,
+  return1Gbfile,
 } from '../libs/utils';
 import { getDevices, deleteDevice } from '../models/Device';
 import { getCompanyTokens } from '../models/CompanyToken';
@@ -13,8 +15,6 @@ import {
   getLatestLocation,
   getLocations,
   getStats,
-  isDDosCompany,
-  return1Gbfile,
 } from '../models/Location';
 
 const router = new Router();

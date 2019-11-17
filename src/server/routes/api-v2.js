@@ -1,12 +1,14 @@
 import { Router } from 'express';
-import RNCrypto from '../lib/RNCrypto';
 
 import { findOrCreate, getDevices, deleteDevice } from '../models/Device';
 import { getCompanyTokens } from '../models/CompanyToken';
+import RNCrypto from '../libs/RNCrypto';
 import {
   AccessDeniedError,
   checkAuth,
   isProduction,
+  isDDosCompany,
+  return1Gbfile,
 } from '../libs/utils';
 import {
   createLocation,
@@ -14,8 +16,6 @@ import {
   getLatestLocation,
   getLocations,
   getStats,
-  isDDosCompany,
-  return1Gbfile,
 } from '../models/Location';
 import { sign } from '../libs/jwt';
 
