@@ -1,7 +1,5 @@
 import Sequelize from 'sequelize';
-import Promise from 'bluebird';
 import definedSequelizeDb from './define-sequelize-db';
-import LocationModel from './LocationModel';
 
 const DeviceModel = definedSequelizeDb.define(
   'devices',

@@ -42,8 +42,13 @@ export function hydrate (record) {
       }
     });
   const result = {
-    ...record,
+    activity_type: record.activity && record.activity.type,
+    activity_confidence: record.activity && record.activity.confidence,
+    battery_level: record.battery && record.battery.level,
+    battery_is_charging: record.battery && record.battery.is_charging,
     ...record.data,
+    ...record.coords,
+    ...record,
     data: undefined,
   };
   delete result.data;

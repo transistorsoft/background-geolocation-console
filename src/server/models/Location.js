@@ -76,6 +76,7 @@ export async function createLocation (params) {
   const { location, company_token: companyToken } = params;
   const deviceInfo = params.device || { model: 'UNKNOWN' };
   const companyName = companyToken || 'UNKNOWN';
+  const now = new Date();
 
   if (isDeniedCompany(companyName)) {
     throw new AccessDeniedError(
@@ -88,10 +89,6 @@ export async function createLocation (params) {
   const locations = Array.isArray(location) ? location : (location ? [location] : []);
 
   for (let location of locations) {
-    const coords = location.coords;
-    const battery = location.battery || { level: null, is_charging: null };
-    const activity = location.activity || { type: null, confidence: null };
-    const now = new Date();
     const uuid = deviceInfo.framework ? deviceInfo.framework + '-' + deviceInfo.uuid : deviceInfo.uuid;
     const model = deviceInfo.framework ? deviceInfo.model + ' (' + deviceInfo.framework + ')' : deviceInfo.model;
 
@@ -103,47 +100,18 @@ export async function createLocation (params) {
       );
     }
 
-    const company = await findOrCreate(companyName);
-    const [device] = await DeviceModel.findOrCreate({
-      where: { company_id: company.id, device_model: model },
-      defaults: {
-        company_id: company.id,
-        created_at: now,
-        device_id: uuid,
-        device_model: model,
-        framework: deviceInfo.framework,
-        version: deviceInfo.version,
-        updated_at: now,
-      },
-      raw: true,
-    });
+    const device = await findOrCreate(companyName, { ...deviceInfo, model, id: uuid });
 
-    CompanyModel.update({ updated_at: now }, { where: { id: company.id } });
+    CompanyModel.update({ updated_at: now }, { where: { id: device.company_id } });
     DeviceModel.update({ updated_at: now }, { where: { id: device.id } });
 
     await LocationModel.create({
-      latitude: coords.latitude,
-      longitude: coords.longitude,
-      data: jsonb({
-        uuid: location.uuid,
-        accuracy: parseInt(coords.accuracy, 10),
-        altitude: coords.altitude,
-        speed: coords.speed,
-        heading: coords.heading,
-        odometer: location.odometer,
-        event: location.event,
-        activity_type: activity.type,
-        activity_confidence: activity.confidence,
-        battery_level: battery.level,
-        battery_is_charging: battery.is_charging,
-        is_moving: location.is_moving,
-        geofence: location.geofence,
-        provider: location.provider,
-        extras: location.extras,
-      }),
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+      data: jsonb(location),
       recorded_at: location.timestamp,
       created_at: now,
-      company_id: company.id,
+      company_id: device.company_id,
       device_id: device.id,
     });
   }

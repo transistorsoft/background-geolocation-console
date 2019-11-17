@@ -57,9 +57,8 @@ export const findOrCreate = async (companyToken = 'UNKNOWN', { model, id, framew
   checkCompany({ companyToken, model: device.model });
 
   const company = await findOrCreateCompany({ company_token: companyToken });
-  console.log('company', company);
   const [row] = await DeviceModel.findOrCreate({
-    where: { company_id: company.id },
+    where: { company_id: company.id, model: device.model },
     defaults: {
       company_id: company.id,
       company_token: companyToken,
