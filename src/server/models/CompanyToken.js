@@ -8,6 +8,7 @@ export async function getCompanyTokens ({ company_token: companyToken }) {
   if (!filterByCompany) {
     return [
       {
+        id: 1,
         company_token: 'bogus',
       },
     ];
