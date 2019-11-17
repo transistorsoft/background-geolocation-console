@@ -18,4 +18,9 @@ const CompanyModel = definedSequelizeDb.define(
   }
 );
 
+CompanyModel.associate = (models) => {
+  models.Company.hasMany(models.Device, { foreignKey: 'company_id' });
+  models.Company.hasMany(models.Location, { foreignKey: 'company_id' });
+};
+
 export default CompanyModel;

@@ -28,7 +28,8 @@ export const raiseError = (res, message, error) => {
   return error || result;
 };
 
-export function hydrate (record) {
+export function hydrate (row) {
+  const record = row.toJSON();
   ['data']
     .filter(x => typeof record[x] === 'string')
     .forEach(x => {
@@ -42,6 +43,7 @@ export function hydrate (record) {
       }
     });
   const result = {
+    ...record.device,
     activity_type: record.activity && record.activity.type,
     activity_confidence: record.activity && record.activity.confidence,
     battery_level: record.battery && record.battery.level,
@@ -52,6 +54,8 @@ export function hydrate (record) {
     data: undefined,
   };
   delete result.data;
+  delete result.device;
+
   return result;
 }
 

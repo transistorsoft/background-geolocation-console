@@ -9,7 +9,7 @@ const DeviceModel = definedSequelizeDb.define(
       autoIncrement: true,
       primaryKey: true,
     },
-    company_id: { type: Sequelize.INTEGER },
+    company_id: { type: Sequelize.INTEGER, references: { model: 'companies', key: 'id' } },
     // , references: { model: 'companies' }
     company_token: { type: Sequelize.TEXT },
     device_id: { type: Sequelize.TEXT },
@@ -28,5 +28,9 @@ const DeviceModel = definedSequelizeDb.define(
     ],
   }
 );
+
+DeviceModel.associate = (models) => {
+  models.Device.hasMany(models.Location, { foreignKey: 'device_id' });
+};
 
 export default DeviceModel;

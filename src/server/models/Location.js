@@ -13,6 +13,8 @@ import {
   jsonb,
 } from '../libs/utils';
 
+const include = [{ model: DeviceModel, as: 'device' }];
+
 export async function getStats () {
   const minDate = await LocationModel.min('created_at');
   const maxDate = await LocationModel.max('created_at');
@@ -39,7 +41,7 @@ export async function getLocations (params) {
     where: whereConditions,
     order: [['recorded_at', 'DESC']],
     limit: params.limit,
-    raw: true,
+    include,
   });
 
   const locations = rows.map(hydrate);
@@ -56,7 +58,7 @@ export async function getLatestLocation (params) {
   const row = await LocationModel.findOne({
     where: whereConditions,
     order: [['recorded_at', 'DESC']],
-    raw: true,
+    include,
   });
   const result = row ? hydrate(row) : null;
   return result;

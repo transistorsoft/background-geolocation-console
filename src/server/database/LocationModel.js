@@ -26,4 +26,9 @@ const LocationModel = definedSequelizeDb.define(
   }
 );
 
+LocationModel.associate = (models) => {
+  models.Location.belongsTo(models.Device, { foreignKey: 'device_id' });
+  models.Location.belongsTo(models.Company, { foreignKey: 'company_id' });
+};
+
 export default LocationModel;
