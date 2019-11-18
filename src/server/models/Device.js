@@ -8,6 +8,16 @@ import {
   filterByCompany,
 } from '../libs/utils';
 
+export async function getDevice ({ id }) {
+  const whereConditions = { id };
+  const result = await DeviceModel.findOne({
+    where: whereConditions,
+    attributes: ['id', 'device_id', 'device_model', 'company_id', 'company_token'],
+    raw: true,
+  });
+  return result;
+}
+
 export async function getDevices (params) {
   const whereConditions = {};
   if (filterByCompany) {
@@ -16,7 +26,7 @@ export async function getDevices (params) {
   const result = await DeviceModel.findAll({
     where: whereConditions,
     attributes: ['id', 'device_id', 'device_model', 'company_id', 'company_token'],
-    order: [['updated_at', 'DESC']],
+    order: [['updated_at', 'DESC'], ['created_at', 'DESC']],
     raw: true,
   });
   return result;

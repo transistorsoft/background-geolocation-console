@@ -1,6 +1,6 @@
 import { Router } from 'express';
 
-import { findOrCreate, getDevices, deleteDevice } from '../models/Device';
+import { findOrCreate, getDevices, getDevice, deleteDevice } from '../models/Device';
 import { getCompanyTokens } from '../models/CompanyToken';
 import RNCrypto from '../libs/RNCrypto';
 import {
@@ -26,14 +26,14 @@ const router = new Router();
 router.post('/register', async function (req, res) {
   const {
     company_token: companyToken,
-    device_id: deviceId,
+    device_id: deviceUuid,
     device_model: model = 'UNKNOWN',
     framework = null,
     version = null,
   } = req.body;
   const jwtInfo = {
-    company: companyToken,
-    deviceId: deviceId,
+    // company: companyToken,
+    deviceUuid: deviceUuid,
     model: model,
   };
 
@@ -41,7 +41,7 @@ router.post('/register', async function (req, res) {
     return res.status(500).send({ message: 'Company Name is empty' });
   }
 
-  if (!deviceId) {
+  if (!deviceUuid) {
     return res.status(500).send({ message: 'Device Id is empty' });
   }
 
@@ -50,13 +50,13 @@ router.post('/register', async function (req, res) {
       companyToken,
       {
         model,
-        id: deviceId,
+        id: deviceUuid,
         framework,
         version,
       }
     );
-    jwtInfo.companyId = device.company_id;
-    jwtInfo.deviceRefId = device.id;
+    // jwtInfo.companyId = device.company_id;
+    jwtInfo.deviceId = device.id;
     const jwt = sign(jwtInfo);
 
     return res.send({
@@ -87,13 +87,10 @@ router.get('/company_tokens', checkAuth, async function (req, res) {
 
 router.get('/devices', checkAuth, async function (req, res) {
   try {
-    const {
-      company: companyToken,
-      companyId,
-    } = req.jwt;
+    const { deviceId } = req.jwt;
+    const device = await getDevice({ id: deviceId });
     const devices = await getDevices({
-      company_id: companyId,
-      company_token: companyToken,
+      company_id: device.company_id,
     });
     res.send(devices);
   } catch (err) {
@@ -103,9 +100,8 @@ router.get('/devices', checkAuth, async function (req, res) {
 });
 
 router.delete('/devices/:id', checkAuth, async function (req, res) {
-  const {
-    companyId,
-  } = req.jwt;
+  const { deviceId } = req.jwt;
+  const device = await getDevice({ id: deviceId });
   const {
     id,
     end_date: endDate,
@@ -114,7 +110,7 @@ router.delete('/devices/:id', checkAuth, async function (req, res) {
   try {
     await deleteDevice({
       id,
-      company_id: companyId,
+      company_id: device.company_id,
       end_date: endDate,
       start_date: startDate,
     });
@@ -136,16 +132,15 @@ router.get('/stats', checkAuth, async function (req, res) {
 });
 
 router.get('/locations/latest', checkAuth, async function (req, res) {
+  const { deviceId } = req.jwt;
+  const device = await getDevice({ id: deviceId });
   const {
-    companyId,
-  } = req.jwt;
-  const {
-    device_id: deviceRefId,
+    device_id: id,
   } = req.query;
   try {
     const latest = await getLatestLocation({
-      device_id: deviceRefId,
-      companyId,
+      device_id: id,
+      company_id: device.company_id,
 
     });
     res.send(latest);
@@ -159,9 +154,8 @@ router.get('/locations/latest', checkAuth, async function (req, res) {
  * GET /locations
  */
 router.get('/locations', checkAuth, async function (req, res) {
-  const {
-    companyId,
-  } = req.jwt;
+  const { deviceId } = req.jwt;
+  const device = await getDevice({ id: deviceId });
   const {
     end_date: endDate,
     start_date: startDate,
@@ -170,7 +164,7 @@ router.get('/locations', checkAuth, async function (req, res) {
     const locations = await getLocations({
       start_date: startDate,
       end_date: endDate,
-      company_id: companyId,
+      company_id: device.company_id,
     });
     res.send(locations);
   } catch (err) {
@@ -183,27 +177,26 @@ router.get('/locations', checkAuth, async function (req, res) {
  * POST /locations
  */
 router.post('/locations', checkAuth, async function (req, res) {
-  const {
-    companyId,
-    company: companyToken,
-  } = req.jwt;
+  const { deviceId } = req.jwt;
   const { body } = req;
+  const device = await getDevice({ id: deviceId });
   const data = RNCrypto.isEncryptedRequest(req)
     ? RNCrypto.decrypt(body.toString())
     : body;
   const locations = (Array.isArray(data) ? data : (data ? [data] : []))
     .map(x => ({
       ...x,
-      company_id: companyId,
-      company_token: companyToken,
+      company_id: device.company_id,
+      device_id: deviceId,
+      company_token: device.company_token,
     }));
 
-  if (isDDosCompany(companyToken)) {
+  if (isDDosCompany(device.company_token)) {
     return return1Gbfile(res);
   }
 
   try {
-    await createLocation(locations);
+    await createLocation(locations, device);
     res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
@@ -218,51 +211,49 @@ router.post('/locations', checkAuth, async function (req, res) {
  * POST /locations
  */
 router.post('/locations/:company_token', checkAuth, async function (req, res) {
-  const {
-    companyId,
-    company: companyToken,
-  } = req.jwt;
-  if (isDDosCompany(companyToken)) {
+  const { deviceId } = req.jwt;
+  const device = await getDevice({ id: deviceId });
+  if (isDDosCompany(device.company_token)) {
     return return1Gbfile(res);
   }
 
   const data = (RNCrypto.isEncryptedRequest(req))
     ? RNCrypto.decrypt(req.body.toString())
     : req.body;
-  data.company_token = companyToken;
+  data.company_token = device.company_token;
 
   try {
-    await createLocation({
-      ...data,
-      company_id: companyId,
-      company_token: companyToken,
-    });
+    await createLocation(
+      {
+        ...data,
+        company_id: device.company_id,
+        company_token: device.company_token,
+      },
+      device
+    );
     res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
       return res.status(403).send({ error: err.toString() });
     }
-    console.error(`POST /locations${companyToken}`, err);
+    console.error(`POST /locations${device.company_token}`, err);
     res.status(500).send({ error: err.message });
   }
 });
 
 router.delete('/locations', checkAuth, async function (req, res) {
   try {
+    const { deviceId } = req.jwt;
+    const device = await getDevice({ id: deviceId });
     const {
-      companyId,
-      company: companyToken,
-    } = req.jwt;
-    const {
-      deviceId,
+      deviceId: id,
       start_date: startDate,
       end_date: endDate,
     } = req.query;
 
     await deleteLocations({
-      company_token: companyToken,
-      companyId: companyId,
-      deviceId,
+      companyId: device.company_id,
+      deviceId: id,
       end_date: endDate,
       start_date: startDate,
     });

@@ -64,20 +64,21 @@ export async function getLatestLocation (params) {
   return result;
 }
 
-export async function createLocation (params) {
+export async function createLocation (params, device = {}) {
   if (Array.isArray(params)) {
     for (let location of params) {
       try {
-        await createLocation(location);
+        await createLocation(location, device);
       } catch (e) {
         throw e;
       }
     }
     return;
   }
-  const { location, company_token: companyToken } = params;
+  const { company_token: companyToken, id } = device;
+  const { location, company_token: token } = params;
   const deviceInfo = params.device || { model: 'UNKNOWN' };
-  const companyName = companyToken || 'UNKNOWN';
+  const companyName = companyToken || token || 'UNKNOWN';
   const now = new Date();
 
   if (isDeniedCompany(companyName)) {
@@ -91,8 +92,12 @@ export async function createLocation (params) {
   const locations = Array.isArray(location) ? location : (location ? [location] : []);
 
   for (let location of locations) {
-    const uuid = deviceInfo.framework ? deviceInfo.framework + '-' + deviceInfo.uuid : deviceInfo.uuid;
-    const model = deviceInfo.framework ? deviceInfo.model + ' (' + deviceInfo.framework + ')' : deviceInfo.model;
+    const uuid = deviceInfo.framework
+      ? deviceInfo.framework + '-' + deviceInfo.uuid
+      : deviceInfo.uuid;
+    const model = deviceInfo.framework
+      ? deviceInfo.model + ' (' + deviceInfo.framework + ')'
+      : deviceInfo.model;
 
     if (isDeniedDevice(deviceInfo.model)) {
       throw new AccessDeniedError(
@@ -102,10 +107,18 @@ export async function createLocation (params) {
       );
     }
 
-    const device = await findOrCreate(companyName, { ...deviceInfo, model, id: uuid });
+    const currentDevice = id
+      ? device
+      : await findOrCreate(companyName, { ...deviceInfo, model, id: uuid });
 
-    CompanyModel.update({ updated_at: now }, { where: { id: device.company_id } });
-    DeviceModel.update({ updated_at: now }, { where: { id: device.id } });
+    CompanyModel.update(
+      { updated_at: now },
+      { where: { id: device.company_id } }
+    );
+    DeviceModel.update(
+      { updated_at: now },
+      { where: { id: device.id } }
+    );
 
     await LocationModel.create({
       latitude: location.coords.latitude,
@@ -113,8 +126,8 @@ export async function createLocation (params) {
       data: jsonb(location),
       recorded_at: location.timestamp,
       created_at: now,
-      company_id: device.company_id,
-      device_id: device.id,
+      company_id: currentDevice.company_id,
+      device_id: currentDevice.id,
     });
   }
 }
