@@ -30,9 +30,9 @@ export default async function initializeDatabase () {
   //   return;
   // }
   try {
-    await Location.sync(syncOptions);
     await Company.sync(syncOptions);
     await Device.sync(syncOptions);
+    await Location.sync(syncOptions);
   } catch (err) {
     console.log('Unable to sync database:', err);
   }
