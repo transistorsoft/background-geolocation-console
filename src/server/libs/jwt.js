@@ -45,7 +45,7 @@ export const sign = (payload, { issuer, subject, audience } = signOptions) => {
   const options = {
     issuer,
     subject,
-    audience: payload.audience || payload.company,
+    audience: payload.audience || payload.org,
     // expiresIn: '782d',
     algorithm: 'RS256',
   };
