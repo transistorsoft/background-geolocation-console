@@ -42,9 +42,9 @@ export function hydrate (row) {
         }
       }
     });
-  const { data } = record;
+  const { data, device } = record;
   const result = {
-    ...record.device,
+    ...device,
     activity_type: data.activity && data.activity.type,
     activity_confidence: data.activity && data.activity.confidence,
     battery_level: data.battery && data.battery.level,
@@ -52,6 +52,7 @@ export function hydrate (row) {
     ...data,
     ...data.coords,
     ...record,
+    uuid: data.uuid,
   };
   [
     'data',
