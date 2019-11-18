@@ -8,6 +8,6 @@ export default {
   data: { type: Sequelize.TEXT },
   recorded_at: { type: Sequelize.DATE },
   created_at: { type: Sequelize.DATE },
-  company_id: { type: Sequelize.INTEGER, references: { model: 'companies', key: 'id' } },
-  device_id: { type: Sequelize.INTEGER, references: { model: 'devices', key: 'id' } },
+  company_id: { type: Sequelize.INTEGER },
+  device_id: { type: Sequelize.INTEGER },
 };
