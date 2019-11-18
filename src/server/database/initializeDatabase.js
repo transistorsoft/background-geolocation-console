@@ -15,7 +15,6 @@ const syncOptions = {
  * Init / create location table
  */
 export default async function initializeDatabase () {
-
   Device.associate({ Location, Device, Company });
   Company.associate({ Location, Device, Company });
   Location.associate({ Location, Device, Company });
