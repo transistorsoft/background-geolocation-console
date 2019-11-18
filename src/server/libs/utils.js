@@ -42,19 +42,24 @@ export function hydrate (row) {
         }
       }
     });
+  const { data } = record;
   const result = {
     ...record.device,
-    activity_type: record.activity && record.activity.type,
-    activity_confidence: record.activity && record.activity.confidence,
-    battery_level: record.battery && record.battery.level,
-    battery_is_charging: record.battery && record.battery.is_charging,
-    ...record.data,
-    ...record.coords,
+    activity_type: data.activity && data.activity.type,
+    activity_confidence: data.activity && data.activity.confidence,
+    battery_level: data.battery && data.battery.level,
+    battery_is_charging: data.battery && data.battery.is_charging,
+    ...data,
+    ...data.coords,
     ...record,
-    data: undefined,
   };
-  delete result.data;
-  delete result.device;
+  [
+    'data',
+    'device',
+    'activity',
+    'battery',
+    'coords',
+  ].forEach(x => delete result[x]);
 
   return result;
 }
