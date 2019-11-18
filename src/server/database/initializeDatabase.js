@@ -6,9 +6,6 @@ import Company from './CompanyModel';
 const isProduction = process.env.NODE_ENV === 'production';
 const syncOptions = {
   logging: true,
-  hooks: true,
-  force: false,
-  alter: true,
 };
 
 /**
