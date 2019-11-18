@@ -60,18 +60,19 @@ export async function deleteDevice ({
   return result;
 }
 
-export const findOrCreate = async (companyToken = 'UNKNOWN', { model, id, framework, version }) => {
+export const findOrCreate = async (org = 'UNKNOWN', { model, id, framework, version }) => {
   const device = { model: model || 'UNKNOWN', id };
+
   const now = new Date();
 
-  checkCompany({ companyToken, model: device.model });
+  checkCompany({ org, model: device.model });
 
-  const company = await findOrCreateCompany({ company_token: companyToken });
+  const company = await findOrCreateCompany({ company_token: org });
   const [row] = await DeviceModel.findOrCreate({
-    where: { company_id: company.id, model: device.model },
+    where: { company_id: company.id, device_model: device.model },
     defaults: {
       company_id: company.id,
-      company_token: companyToken,
+      company_token: org,
       device_id: device.id,
       device_model: device.model,
       created_at: now,

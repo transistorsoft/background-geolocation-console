@@ -25,32 +25,33 @@ const router = new Router();
 //  -H 'Content-Type: application/json'
 router.post('/register', async function (req, res) {
   const {
-    company_token: companyToken,
-    device_id: deviceUuid,
-    device_model: model = 'UNKNOWN',
+    org: org,
+    uuid: uuid,
+    model: model,
     framework = null,
     version = null,
   } = req.body;
+
   const jwtInfo = {
-    // company: companyToken,
-    deviceUuid: deviceUuid,
+    org: org,
+    deviceUuid: uuid,
     model: model,
   };
 
-  if (!companyToken) {
+  if (!org) {
     return res.status(500).send({ message: 'Company Name is empty' });
   }
 
-  if (!deviceUuid) {
+  if (!uuid) {
     return res.status(500).send({ message: 'Device Id is empty' });
   }
 
   try {
     const device = await findOrCreate(
-      companyToken,
+      org,
       {
         model,
-        id: deviceUuid,
+        id: uuid,
         framework,
         version,
       }
@@ -60,8 +61,10 @@ router.post('/register', async function (req, res) {
     const jwt = sign(jwtInfo);
 
     return res.send({
-      jwt,
-      device,
+      accessToken: jwt,
+      renewalToken: null, // TODO
+      expires: null      // TODO
+
     });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
