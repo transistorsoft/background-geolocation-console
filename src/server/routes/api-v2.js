@@ -2,7 +2,7 @@ import { Router } from 'express';
 
 import { findOrCreate, getDevices, getDevice, deleteDevice } from '../models/Device';
 import { getCompanyTokens } from '../models/CompanyToken';
-import RNCrypto from '../libs/RNCrypto';
+import { isEncryptedRequest, decrypt } from '../libs/RNCrypto';
 import {
   AccessDeniedError,
   checkAuth,
@@ -180,8 +180,8 @@ router.post('/locations', checkAuth, async function (req, res) {
   const { deviceId } = req.jwt;
   const { body } = req;
   const device = await getDevice({ id: deviceId });
-  const data = RNCrypto.isEncryptedRequest(req)
-    ? RNCrypto.decrypt(body.toString())
+  const data = isEncryptedRequest(req)
+    ? decrypt(body.toString())
     : body;
   const locations = (Array.isArray(data) ? data : (data ? [data] : []))
     .map(x => ({
@@ -217,8 +217,8 @@ router.post('/locations/:company_token', checkAuth, async function (req, res) {
     return return1Gbfile(res);
   }
 
-  const data = (RNCrypto.isEncryptedRequest(req))
-    ? RNCrypto.decrypt(req.body.toString())
+  const data = (isEncryptedRequest(req))
+    ? decrypt(req.body.toString())
     : req.body;
   data.company_token = device.company_token;
 

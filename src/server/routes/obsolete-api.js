@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { stringify } from 'querystring';
 import { Router } from 'express';
-import RNCrypto from '../libs/RNCrypto';
+import { isEncryptedRequest, decrypt } from '../libs/RNCrypto';
 import {
   AccessDeniedError,
   isDDosCompany,
@@ -100,8 +100,8 @@ router.get('/locations', async function (req, res) {
  */
 router.post('/locations', async function (req, res) {
   const { body } = req;
-  const data = RNCrypto.isEncryptedRequest(req)
-    ? RNCrypto.decrypt(body.toString())
+  const data = isEncryptedRequest(req)
+    ? decrypt(body.toString())
     : body;
   const locations = Array.isArray(data) ? data : (data ? [data] : []);
 
@@ -137,7 +137,7 @@ router.post('/locations/:company_token', async function (req, res) {
 
   const auth = req.get('Authorization');
 
-  const data = (RNCrypto.isEncryptedRequest(req)) ? RNCrypto.decrypt(req.body.toString()) : req.body;
+  const data = (isEncryptedRequest(req)) ? decrypt(req.body.toString()) : req.body;
   data.company_token = companyToken;
 
   console.log(`POST /locations/${companyToken}\n%s`.green, JSON.stringify(req.headers, null, 2));
