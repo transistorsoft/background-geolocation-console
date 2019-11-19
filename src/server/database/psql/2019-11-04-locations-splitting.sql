@@ -9,9 +9,7 @@ CREATE SEQUENCE if not exists public.devices_id_seq;
 CREATE SEQUENCE if not exists public.companies_id_seq;
 
 ALTER SEQUENCE public.devices_id_seq OWNER TO main;
-ALTER SEQUENCE public.devices_id_seq OWNER TO dev;
 ALTER SEQUENCE public.companies_id_seq OWNER TO main;
-ALTER SEQUENCE public.companies_id_seq OWNER TO dev;
 
 CREATE TABLE IF NOT EXISTS public.companies
 (
