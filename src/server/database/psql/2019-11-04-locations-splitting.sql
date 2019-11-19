@@ -11,6 +11,9 @@ CREATE SEQUENCE if not exists public.companies_id_seq;
 ALTER SEQUENCE public.devices_id_seq OWNER TO main;
 ALTER SEQUENCE public.companies_id_seq OWNER TO main;
 
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO dev;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO main;
+
 CREATE TABLE IF NOT EXISTS public.companies
 (
   id integer NOT NULL DEFAULT nextval('companies_id_seq'::regclass),
