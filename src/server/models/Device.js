@@ -25,7 +25,7 @@ export async function getDevices (params) {
   }
   const result = await DeviceModel.findAll({
     where: whereConditions,
-    attributes: ['id', 'device_id', 'device_model', 'company_id', 'company_token'],
+    attributes: ['id', 'device_id', 'device_model', 'company_id', 'company_token', 'framework'],
     order: [['updated_at', 'DESC'], ['created_at', 'DESC']],
     raw: true,
   });
@@ -34,12 +34,10 @@ export async function getDevices (params) {
 
 export async function deleteDevice ({
   id: deviceId,
-  company_id: companyId,
   start_date: startDate,
   end_date: endDate,
 }) {
   const whereByDevice = {
-    company_id: companyId,
     device_id: deviceId,
   };
   const where = { ...whereByDevice };
@@ -51,8 +49,7 @@ export async function deleteDevice ({
   if (!locationsCount) {
     await DeviceModel.destroy({
       where: {
-        id: deviceId,
-        company_id: companyId,
+        id: deviceId
       },
       cascade: true,
     });
@@ -60,8 +57,9 @@ export async function deleteDevice ({
   return result;
 }
 
-export const findOrCreate = async (org = 'UNKNOWN', { model, id, framework, version }) => {
-  const device = { model: model || 'UNKNOWN', id };
+export const findOrCreate = async (org = 'UNKNOWN', { model, uuid, framework, version }) => {
+
+  const device = { device_id: uuid, model: model || 'UNKNOWN', uuid };
 
   const now = new Date();
 
@@ -69,7 +67,7 @@ export const findOrCreate = async (org = 'UNKNOWN', { model, id, framework, vers
 
   const company = await findOrCreateCompany({ company_token: org });
   const [row] = await DeviceModel.findOrCreate({
-    where: { company_id: company.id, device_model: device.model },
+    where: { company_id: company.id, device_id: device.device_id },
     defaults: {
       company_id: company.id,
       company_token: org,
