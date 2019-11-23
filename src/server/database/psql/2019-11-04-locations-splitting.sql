@@ -9,9 +9,10 @@ CREATE SEQUENCE if not exists public.devices_id_seq;
 CREATE SEQUENCE if not exists public.companies_id_seq;
 
 ALTER SEQUENCE public.devices_id_seq OWNER TO main;
-ALTER SEQUENCE public.devices_id_seq OWNER TO dev;
 ALTER SEQUENCE public.companies_id_seq OWNER TO main;
-ALTER SEQUENCE public.companies_id_seq OWNER TO dev;
+
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO dev;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO main;
 
 CREATE TABLE IF NOT EXISTS public.companies
 (
@@ -109,7 +110,8 @@ DECLARE
   _iterator int := 0;
   _step int := 100000;
 BEGIN
-
+  --  4125400
+  -- 29718808
   _count := max(id)
     from public.locations
   where device_ref_id is null;

@@ -1,19 +1,32 @@
-import DeviceModel from '../database/DeviceModel';
-import LocationModel from '../database/LocationModel';
 import { Op } from 'sequelize';
 
-const filterByCompany = !!process.env.SHARED_DASHBOARD;
+import { findOrCreate as findOrCreateCompany } from './CompanyToken';
+import DeviceModel from '../database/DeviceModel';
+import LocationModel from '../database/LocationModel';
+import {
+  checkCompany,
+  filterByCompany,
+} from '../libs/utils';
+
+export async function getDevice ({ id }) {
+  const whereConditions = { id };
+  const result = await DeviceModel.findOne({
+    where: whereConditions,
+    attributes: ['id', 'device_id', 'device_model', 'company_id', 'company_token'],
+    raw: true,
+  });
+  return result;
+}
 
 export async function getDevices (params) {
   const whereConditions = {};
   if (filterByCompany) {
     params.company_id && (whereConditions.company_id = +params.company_id);
-    params.company_token && (whereConditions.company_token = params.company_token);
   }
   const result = await DeviceModel.findAll({
     where: whereConditions,
-    attributes: ['id', 'device_id', 'device_model', 'company_id', 'company_token'],
-    order: [['created_at', 'DESC']],
+    attributes: ['id', 'device_id', 'device_model', 'company_id', 'company_token', 'framework'],
+    order: [['updated_at', 'DESC'], ['created_at', 'DESC']],
     raw: true,
   });
   return result;
@@ -21,13 +34,11 @@ export async function getDevices (params) {
 
 export async function deleteDevice ({
   id: deviceId,
-  company_id: companyId,
   start_date: startDate,
   end_date: endDate,
 }) {
   const whereByDevice = {
-    company_id: companyId,
-    device_ref_id: deviceId,
+    device_id: deviceId,
   };
   const where = { ...whereByDevice };
   if (startDate && endDate && new Date(startDate) && new Date(endDate)) {
@@ -38,11 +49,36 @@ export async function deleteDevice ({
   if (!locationsCount) {
     await DeviceModel.destroy({
       where: {
-        id: deviceId,
-        company_id: companyId,
+        id: deviceId
       },
       cascade: true,
     });
   }
   return result;
 }
+
+export const findOrCreate = async (org = 'UNKNOWN', { model, uuid, framework, version }) => {
+
+  const device = { device_id: uuid, model: model || 'UNKNOWN', uuid };
+
+  const now = new Date();
+
+  checkCompany({ org, model: device.model });
+
+  const company = await findOrCreateCompany({ company_token: org });
+  const [row] = await DeviceModel.findOrCreate({
+    where: { company_id: company.id, device_id: device.device_id },
+    defaults: {
+      company_id: company.id,
+      company_token: org,
+      device_id: device.id,
+      device_model: device.model,
+      created_at: now,
+      framework,
+      version,
+    },
+    raw: true,
+  });
+
+  return row;
+};

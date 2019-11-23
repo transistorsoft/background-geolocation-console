@@ -10,10 +10,11 @@
     "react",
     "promise",
     "immutable",
-    "flowtype"
+    "flowtype",
   ],
   "env": {
-    "browser" : true
+    "browser" : true,
+    "jest": true
   },
   "globals": {
     "__line" : false,

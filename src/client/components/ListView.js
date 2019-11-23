@@ -20,7 +20,6 @@ type LocationRow = {|
   coordinate: string,
   created_at: string,
   device_id: string,
-  device_ref_id: number,
   event: string,
   is_moving: string,
   odometer: number,
@@ -44,13 +43,16 @@ const getRowData = (location: Location): LocationRow => {
   let event = location.event || '';
   switch (location.event) {
     case 'geofence':
-      event = location.event + ': ' + location.geofence.action + ' ' + location.geofence.identifier;
+      event = location.event + ': ' + (
+        location.geofence
+          ? location.geofence.action + ' ' + location.geofence.identifier
+          : 'empty'
+      );
       break;
   }
   return {
     uuid: location.uuid,
-    device_id: location.device_id,
-    device_ref_id: location.device_ref_id,
+    device_id: +location.device_id,
     company_id: location.company_id,
     coordinate: location.latitude.toFixed(6) + ', ' + location.longitude.toFixed(6),
     recorded_at: format(new Date(location.recorded_at), 'MM-dd HH:mm:ss:SSS'),

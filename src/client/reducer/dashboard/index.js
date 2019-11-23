@@ -40,7 +40,6 @@ export type Location = {|
   company_id: number,
   created_at: string,
   device_id: string,
-  device_ref_id: number,
   event: string,
   heading: number,
   is_moving: string,
@@ -456,9 +455,13 @@ export function deleteActiveDevice (deleteOptions: ?DeleteOptions): ThunkAction 
         end_date: deleteOptions.endDate.toISOString(),
       })}`
       : '';
-    await fetch(`${API_URL}/devices/${deviceId}${params}`, { method: 'delete' });
-    await dispatch(reload({ loadUsers: false }));
-    GA.sendEvent('tracker', 'delete device:' + deviceId);
+    try {
+      await fetch(`${API_URL}/devices/${deviceId}${params}`, { method: 'delete' });
+      await dispatch(reload({ loadUsers: false }));
+      GA.sendEvent('tracker', 'delete device:' + deviceId);
+    } catch (e) {
+      console.error('deleteActiveDevice', e);
+    }
   };
 }
 
@@ -468,13 +471,17 @@ export function loadCompanyTokens (): ThunkAction {
     const params = qs.stringify({
       company_token: companyTokenFromSearch,
     });
-    const response = await fetch(`${API_URL}/company_tokens?${params}`);
-    const records = await response.json();
-    const companyTokens: CompanyToken[] = records.map((x: { company_token: string }) => ({
-      id: x.id,
-      name: x.company_token,
-    }));
-    dispatch(setCompanyTokens(companyTokens));
+    try {
+      const response = await fetch(`${API_URL}/company_tokens?${params}`);
+      const records = await response.json();
+      const companyTokens: CompanyToken[] = records.map((x: { company_token: string }) => ({
+        id: x.id,
+        name: x.company_token,
+      }));
+      return dispatch(setCompanyTokens(companyTokens));
+    } catch (e) {
+      console.error('loadCompanyTokens', e);
+    }
   };
 }
 
@@ -485,10 +492,14 @@ export function loadDevices (): ThunkAction {
       company_id: companyId,
       company_token: companyToken,
     });
-    const response = await fetch(`${API_URL}/devices?${params}`);
-    const records = await response.json();
-    const devices: Device[] = records.map((record: Object) => ({ id: record.id, name: record.device_model }));
-    dispatch(setDevices(devices));
+    try {
+      const response = await fetch(`${API_URL}/devices?${params}`);
+      const records = await response.json();
+      const devices: Device[] = records.map((record: Object) => ({ id: record.id, name: record.device_id + '(' + record.framework + ')' }));
+      return dispatch(setDevices(devices));
+    } catch (e) {
+      console.error('loadDevices', e);
+    }
   };
 }
 
@@ -500,14 +511,18 @@ export function loadLocations (): ThunkAction {
     const params = qs.stringify({
       company_id: companyId,
       company_token: companyToken,
-      device_ref_id: deviceId,
+      device_id: deviceId,
       end_date: endDate.toISOString(),
       limit: maxMarkers,
       start_date: startDate.toISOString(),
     });
-    const response = await fetch(`${API_URL}/locations?${params}`);
-    const records = await response.json();
-    dispatch(setLocations(records));
+    try {
+      const response = await fetch(`${API_URL}/locations?${params}`);
+      const records = await response.json();
+      return dispatch(setLocations(records));
+    } catch (e) {
+      console.error('loadLocations', e);
+    }
   };
 }
 
@@ -516,16 +531,20 @@ export function loadCurrentLocation (): ThunkAction {
     const { deviceId, companyId, company_token: companyToken } = getState().dashboard;
     if (deviceId) {
       const params = qs.stringify({
-        device_ref_id: deviceId,
+        device_id: deviceId,
         company_id: companyId,
         company_token: companyToken,
       });
-      const response = await fetch(`${API_URL}/locations/latest?${params}`);
-      const currentLocation = await response.json();
-      await dispatch(setCurrentLocation(currentLocation));
-    } else {
-      await dispatch(setCurrentLocation(null));
+      try {
+        const response = await fetch(`${API_URL}/locations/latest?${params}`);
+        const currentLocation = await response.json();
+        return await dispatch(setCurrentLocation(currentLocation));
+      } catch (e) {
+        console.error('loadCurrentLocation', deviceId, e);
+      }
     }
+
+    await dispatch(setCurrentLocation(null));
   };
 }
 
