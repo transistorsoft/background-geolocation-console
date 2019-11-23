@@ -495,7 +495,7 @@ export function loadDevices (): ThunkAction {
     try {
       const response = await fetch(`${API_URL}/devices?${params}`);
       const records = await response.json();
-      const devices: Device[] = records.map((record: Object) => ({ id: record.id, name: record.device_model }));
+      const devices: Device[] = records.map((record: Object) => ({ id: record.id, name: record.device_id + '(' + record.framework + ')' }));
       return dispatch(setDevices(devices));
     } catch (e) {
       console.error('loadDevices', e);

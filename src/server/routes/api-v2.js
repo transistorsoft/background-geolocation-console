@@ -20,6 +20,7 @@ import {
 import { sign } from '../libs/jwt';
 
 const router = new Router();
+
 // curl -v -X POST http://localhost:9000/v2/register \
 //  -d '{"company_token":"test","device_id":"test"}' \
 //  -H 'Content-Type: application/json'
@@ -28,36 +29,35 @@ router.post('/register', async function (req, res) {
     org: org,
     uuid: uuid,
     model: model,
-    framework = null,
-    version = null,
+    manufacturer: manufacturer,
+    version = version,
+    framework = framework
   } = req.body;
 
-  const jwtInfo = {
-    org: org,
-    deviceUuid: uuid,
-    model: model,
-  };
+  console.log("POST /register %s".green, JSON.stringify(req.body, null, 2));
 
   if (!org) {
-    return res.status(500).send({ message: 'Company Name is empty' });
+    return res.status(500).send({ message: 'Organization identifier empty' });
   }
 
-  if (!uuid) {
-    return res.status(500).send({ message: 'Device Id is empty' });
+  if (!uuid || !model || !manufacturer || !version) {
+    return res.status(500).send({ message: 'Device info is missing' });
   }
 
   try {
-    const device = await findOrCreate(
-      org,
-      {
-        model,
-        id: uuid,
-        framework,
-        version,
-      }
-    );
-    // jwtInfo.companyId = device.company_id;
-    jwtInfo.deviceId = device.id;
+    const device = await findOrCreate(org, {
+      uuid,
+      model,
+      framework,
+      version
+    });
+
+    const jwtInfo = {
+      org: org,
+      deviceId: device.id,
+      model: model,
+    };
+
     const jwt = sign(jwtInfo);
 
     return res.send({
@@ -113,7 +113,6 @@ router.delete('/devices/:id', checkAuth, async function (req, res) {
   try {
     await deleteDevice({
       id,
-      company_id: device.company_id,
       end_date: endDate,
       start_date: startDate,
     });
@@ -158,6 +157,7 @@ router.get('/locations/latest', checkAuth, async function (req, res) {
  */
 router.get('/locations', checkAuth, async function (req, res) {
   const { deviceId } = req.jwt;
+
   const device = await getDevice({ id: deviceId });
   const {
     end_date: endDate,
@@ -186,6 +186,13 @@ router.post('/locations', checkAuth, async function (req, res) {
   const data = isEncryptedRequest(req)
     ? decrypt(body.toString())
     : body;
+
+  // Can happen if Device is deleted from Dashboard but a JWT is still posting locations for it.
+  if (device == null) {
+    console.error('Device ID %s not found.  Was it deleted from dashboard?'.red, deviceId);
+    return res.status(410).send({error: 'DEVICE_ID_NOT_FOUND'});
+  }
+
   const locations = (Array.isArray(data) ? data : (data ? [data] : []))
     .map(x => ({
       ...x,
@@ -197,6 +204,8 @@ router.post('/locations', checkAuth, async function (req, res) {
   if (isDDosCompany(device.company_token)) {
     return return1Gbfile(res);
   }
+
+  console.log('%s\n'.yellow, JSON.stringify(data, null, 2));
 
   try {
     await createLocation(locations, device);

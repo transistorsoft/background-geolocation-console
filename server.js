@@ -45,6 +45,18 @@ process
   app.use(bodyParser.json({ limit: '1mb', extended: true }));
   app.use(bodyParser.raw({ limit: '1mb', extended: true }));
 
+  /**
+  * Enable CORS for /v2/register from XMLHttpRequest in Ionic webview.
+  * Required by cordova-background-geolocation method BackgroundGeolocation.getTransistorAuthorizationToken.
+  */
+  app.use(function(req, res, next) {
+    if (req.url.includes('/v2/register')) {
+      res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
+      res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    }
+    next();
+  });
+
   await initializeDatabase();
   await makeKeys();
 
@@ -84,7 +96,6 @@ process
 
   app.use((req, res, next) => {
     var ext = path.extname(req.url);
-    console.info(ext, req.url);
     if ((ext === '' || ext === '.html') && req.url !== '/') {
       console.info('returning the index.html here');
       console.info(req.url);
