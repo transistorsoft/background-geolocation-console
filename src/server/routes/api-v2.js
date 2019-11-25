@@ -5,6 +5,7 @@ import { getCompanyTokens } from '../models/CompanyToken';
 import { isEncryptedRequest, decrypt } from '../libs/RNCrypto';
 import {
   AccessDeniedError,
+  RegistrationRequiredError,
   checkAuth,
   isProduction,
   isDDosCompany,
@@ -62,9 +63,8 @@ router.post('/register', async function (req, res) {
 
     return res.send({
       accessToken: jwt,
-      renewalToken: null, // TODO
-      expires: null      // TODO
-
+      refreshToken: "TODO_RENEWAL_TOKEN", // TODO
+      expires: -1      // TODO
     });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
@@ -190,7 +190,7 @@ router.post('/locations', checkAuth, async function (req, res) {
   // Can happen if Device is deleted from Dashboard but a JWT is still posting locations for it.
   if (device == null) {
     console.error('Device ID %s not found.  Was it deleted from dashboard?'.red, deviceId);
-    return res.status(410).send({error: 'DEVICE_ID_NOT_FOUND'});
+    return res.status(410).send({error: 'DEVICE_ID_NOT_FOUND', background_geolocation: ['stop']});
   }
 
   const locations = (Array.isArray(data) ? data : (data ? [data] : []))
@@ -213,11 +213,13 @@ router.post('/locations', checkAuth, async function (req, res) {
   } catch (err) {
     if (err instanceof AccessDeniedError) {
       return res.status(403).send({ error: err.toString() });
+    } else if (err instanceof RegistrationRequiredError) {
+      return res.status(406).send({ error: err.toString() });
     }
     console.error('POST /locations', body, err);
     res.status(500).send({ error: err.message });
   }
-});
+})
 
 /**
  * POST /locations
