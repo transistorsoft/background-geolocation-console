@@ -13,6 +13,7 @@ import WrappedViewport from './components/WrappedViewport';
 // view in browser at same url.  This is incorrect.
 const path = window.location.pathname;
 const pathQuery = path.match(/^\/locations\/(.*)$/);
+
 if (pathQuery) {
   // Redirect /locations/username -> /username
   window.location.pathname = pathQuery[1];

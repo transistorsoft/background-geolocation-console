@@ -25,15 +25,15 @@ const router = new Router();
 //  -H 'Content-Type: application/json'
 router.post('/register', async function (req, res) {
   const {
-    org: org,
-    uuid: uuid,
-    model: model,
+    org,
+    uuid,
+    model,
     framework = null,
     version = null,
   } = req.body;
 
   const jwtInfo = {
-    org: org,
+    org,
     deviceUuid: uuid,
     model: model,
   };
@@ -62,8 +62,9 @@ router.post('/register', async function (req, res) {
 
     return res.send({
       accessToken: jwt,
-      renewalToken: null, // TODO
-      expires: null      // TODO
+      // TODO
+      renewalToken: null,
+      expires: null,
 
     });
   } catch (err) {
@@ -78,9 +79,9 @@ router.post('/register', async function (req, res) {
 //   -H 'Authorization: Bearer ey...Pg'
 //
 router.get('/company_tokens', checkAuth, async function (req, res) {
-  const { company: companyToken } = req.jwt;
+  const { org } = req.jwt;
   try {
-    const companyTokens = await getCompanyTokens({ company_token: companyToken });
+    const companyTokens = await getCompanyTokens({ company_token: org });
     res.send(companyTokens);
   } catch (err) {
     console.error('/company_tokens', err);

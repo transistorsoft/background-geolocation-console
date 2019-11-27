@@ -1,30 +1,21 @@
-import initializeDatabase from './src/server/database/initializeDatabase';
+import initializeDatabase from './database/initializeDatabase';
 import express from 'express';
 import morgan from 'morgan';
 import bodyParser from 'body-parser';
-import path from 'path';
+import { resolve, extname } from 'path';
 import compress from 'compression';
 import 'colors';
 import opn from 'opn';
-import request from 'request';
 
-import obsoleteApi from './src/server/routes/obsolete-api';
-import { makeKeys } from './src/server/libs/jwt';
-import api from './src/server/routes/api-v2';
+import obsoleteApi from './routes/obsolete-api';
+import { makeKeys } from './libs/jwt';
+import api from './routes/api-v2';
 
 const isProduction = process.env.NODE_ENV === 'production';
-
-// if (!isProduction) {
-//   if (!require('piping')({
-//     hook: true,
-//     ignore: /(\/\.|~$|\.json$)/i,
-//   })) {
-//     return;
-//   }
-// }
-
-const app = express();
 const port = process.env.PORT || 9000;
+const dyno = process.env.DYNO;
+const app = express();
+const buildPath = resolve(__dirname, '..', '..', 'build');
 
 process
   .on('uncaughtException', (err) => {
@@ -35,7 +26,7 @@ process
 process
   .on('message', (msg) => {
     // eslint-disable-next-line no-console
-    console.log('Server %s process.on( message = %s )', this.name, msg);
+    console.log('Server %s process.on( message = %s )', msg);
   });
 
 (async function () {
@@ -50,46 +41,19 @@ process
 
   // default old api
   app.use(obsoleteApi);
+  app.use('/v1', obsoleteApi);
   // v2 with jwt auth support
   app.use('/v2', api);
 
   if (isProduction) {
-    app.use(express.static('./build'));
-  } else {
-    console.info('adding webpack');
-    const webpack = require('webpack');
-    const webpackDevMiddleware = require('webpack-dev-middleware');
-    const webpackHotMiddleware = require('webpack-hot-middleware');
-    const webpackConfig = require('./webpack.config.babel');
-    const compiler = webpack(webpackConfig);
-
-    const middleware = [
-      webpackDevMiddleware(compiler, {
-        publicPath: '/', // Same as `output.publicPath` in most cases.
-        contentBase: path.join(__dirname, 'src', 'client'),
-        hot: true,
-        stats: {
-          colors: true,
-        },
-      }),
-      webpackHotMiddleware(compiler, {
-        log: console.log, // eslint-disable-line no-console
-        heartbeat: 2000,
-        path: '/__webpack_hmr',
-      }),
-    ];
-
-    app.use(middleware);
+    app.use(express.static(buildPath));
   }
 
   app.use((req, res, next) => {
-    var ext = path.extname(req.url);
-    console.info(ext, req.url);
-    if ((ext === '' || ext === '.html') && req.url !== '/') {
-      console.info('returning the index.html here');
-      console.info(req.url);
-      console.info(`http://localhost:${port}/`);
-      req.pipe(request(`http://localhost:${port}/`)).pipe(res);
+    var ext = extname(req.url);
+    console.info(ext, isProduction, resolve(buildPath, 'index.html'), (ext === '' || ext === '.html') && req.url !== '/', req.url);
+    if ((!ext || ext === '.html') && req.url !== '/') {
+      res.sendFile(resolve(buildPath, 'index.html'));
     } else {
       next();
     }
@@ -99,15 +63,17 @@ process
     });
   });
 
-  app.listen(port, function () {
+  app.listen(port, () => {
     console.log('╔═══════════════════════════════════════════════════════════'.green.bold);
     console.log('║ Background Geolocation Server | port: %s'.green.bold, port);
     console.log('╚═══════════════════════════════════════════════════════════'.green.bold);
 
     // Spawning dedicated process on opened port.. only if not deployed on heroku
-    if (!process.env.DYNO) {
+    if (!dyno) {
       opn(`http://localhost:${port}`)
         .catch(error => console.log('Optional site open failed:', error));
     }
   });
 })();
+
+module.exports = app;

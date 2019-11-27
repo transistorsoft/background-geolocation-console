@@ -5,9 +5,11 @@
   "main": "index.js",
   "scripts": {
     "lint": "eslint src/ && flow",
-    "build": "webpack",
-    "start": "babel-node server.js",
-    "server": "babel-node server.js",
+    "build": "NODE_ENV=production webpack",
+    "start": "better-npm-run start",
+    "dev": "better-npm-run dev",
+    "test": "jest",
+    "server": "node server.js",
     "heroku-postbuild": "rm -rf build/ && webpack -p --progress",
     "migrate": "babel-node ./src/server/database/migrate.js"
   },
@@ -17,6 +19,25 @@
   "author": "Chris Scott, Transistor Software",
   "license": "MIT",
   "repository": "https://github.com/transistorsoft/background-geolocation-console",
+  "betterScripts": {
+    "dev": {
+      "command": "concurrently --kill-others \"BABEL_ENV=node node --inspect=9229 ./bin/server.js\" \"BABEL_ENV=webpack node ./bin/dev.js\"",
+      "env": {
+        "TZ": "UTC",
+        "NODE_PATH": "./src/server/",
+        "DYNO": "1"
+      }
+    },
+    "start": {
+      "command": "node ./bin/server.js",
+      "env": {
+        "TZ": "UTC",
+        "NODE_PATH": "./src/server/",
+        "DYNO": "1",
+        "NODE_ENV": "production"
+      }
+    }
+  },
   "dependencies": {
     "@babel/cli": "^7.6.0",
     "@babel/node": "^7.6.1",
@@ -41,6 +62,7 @@
     "babel-plugin-transform-require-ignore": "0.0.2",
     "bluebird": "^3.7.1",
     "body-parser": "^1.17.1",
+    "better-npm-run": "^0.1.1",
     "classnames": "^2.2.5",
     "colors": "^1.1.2",
     "compression": "^1.6.2",
@@ -74,7 +96,9 @@
     "request": "^2.81.0",
     "reselect": "^3.0.1",
     "rsa-key-gen": "^0.6.1",
-    "sequelize": "^5.2.7"
+    "sequelize": "^5.2.7",
+    "webpack": "^4.39.3",
+    "webpack-cli": "^3.3.8"
   },
   "devDependencies": {
     "@babel/core": "^7.7.2",
@@ -83,6 +107,7 @@
     "babel-jest": "^24.9.0",
     "chai": "^4.2.0",
     "chai-http": "^4.3.0",
+    "concurrently": "^5.0.0",
     "copy-webpack-plugin": "^5.0.4",
     "css-loader": "^0.26.1",
     "ejs-loader": "^0.3.0",
@@ -118,8 +143,6 @@
     "style-loader": "^0.13.1",
     "uglifyjs-webpack-plugin": "^2.2.0",
     "url-loader": "^2.1.0",
-    "webpack": "^4.39.3",
-    "webpack-cli": "^3.3.8",
     "webpack-dev-middleware": "^3.7.1",
     "webpack-dev-server": "^3.8.0",
     "webpack-hot-middleware": "^2.25.0"

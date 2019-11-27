@@ -91,8 +91,8 @@ export const checkAuth = (req, res, next) => {
   }
 };
 
-export const checkCompany = ({ companyToken, model }) => {
-  if (isDeniedCompany(companyToken)) {
+export const checkCompany = ({ org, model }) => {
+  if (isDeniedCompany(org)) {
     throw new AccessDeniedError(
       'This is a question from the CEO of Transistor Software.\n' +
       'Why are you spamming my demo server1/v2?\n' +
