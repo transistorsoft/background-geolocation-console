@@ -5,7 +5,7 @@ import chaiHttp from 'chai-http';
 chai.use(chaiHttp);
 chai.should();
 
-const { expect, assert } = chai;
+const { expect } = chai;
 const server = 'http://localhost:9000';
 let token;
 

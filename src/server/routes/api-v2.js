@@ -5,6 +5,7 @@ import { getCompanyTokens } from '../models/CompanyToken';
 import { isEncryptedRequest, decrypt } from '../libs/RNCrypto';
 import {
   AccessDeniedError,
+  RegistrationRequiredError,
   checkAuth,
   isProduction,
   isDDosCompany,
@@ -20,6 +21,7 @@ import {
 import { sign } from '../libs/jwt';
 
 const router = new Router();
+
 // curl -v -X POST http://localhost:9000/v2/register \
 //  -d '{"company_token":"test","device_id":"test"}' \
 //  -H 'Content-Type: application/json'
@@ -28,44 +30,42 @@ router.post('/register', async function (req, res) {
     org,
     uuid,
     model,
-    framework = null,
-    version = null,
+    manufacturer,
+    version,
+    framework,
   } = req.body;
 
-  const jwtInfo = {
-    org,
-    deviceUuid: uuid,
-    model: model,
-  };
+  console.log('POST /register %s'.green, JSON.stringify(req.body, null, 2));
 
   if (!org) {
-    return res.status(500).send({ message: 'Company Name is empty' });
+    return res.status(500).send({ message: 'Organization identifier empty' });
   }
 
-  if (!uuid) {
-    return res.status(500).send({ message: 'Device Id is empty' });
+  if (!uuid || !model || !manufacturer || !version) {
+    return res.status(500).send({ message: 'Device info is missing' });
   }
 
   try {
-    const device = await findOrCreate(
-      org,
-      {
-        model,
-        id: uuid,
-        framework,
-        version,
-      }
-    );
-    // jwtInfo.companyId = device.company_id;
-    jwtInfo.deviceId = device.id;
+    const device = await findOrCreate(org, {
+      uuid,
+      model,
+      framework,
+      version,
+    });
+
+    const jwtInfo = {
+      org: org,
+      deviceId: device.id,
+      model: model,
+    };
+
     const jwt = sign(jwtInfo);
 
     return res.send({
       accessToken: jwt,
       // TODO
-      renewalToken: null,
-      expires: null,
-
+      refreshToken: 'TODO_RENEWAL_TOKEN',
+      expires: -1,
     });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
@@ -105,7 +105,7 @@ router.get('/devices', checkAuth, async function (req, res) {
 
 router.delete('/devices/:id', checkAuth, async function (req, res) {
   const { deviceId } = req.jwt;
-  const device = await getDevice({ id: deviceId });
+  // const device = await getDevice({ id: deviceId });
   const {
     id,
     end_date: endDate,
@@ -113,14 +113,13 @@ router.delete('/devices/:id', checkAuth, async function (req, res) {
   } = req.params;
   try {
     await deleteDevice({
-      id,
-      company_id: device.company_id,
+      id: deviceId,
       end_date: endDate,
       start_date: startDate,
     });
     res.send({ success: true });
   } catch (err) {
-    console.error(`/devices/${id}`, req.query, err);
+    console.error(`/devices/${id}`, deviceId, req.query, err);
     res.status(500).send({ error: err.message });
   }
 });
@@ -159,6 +158,7 @@ router.get('/locations/latest', checkAuth, async function (req, res) {
  */
 router.get('/locations', checkAuth, async function (req, res) {
   const { deviceId } = req.jwt;
+
   const device = await getDevice({ id: deviceId });
   const {
     end_date: endDate,
@@ -187,6 +187,13 @@ router.post('/locations', checkAuth, async function (req, res) {
   const data = isEncryptedRequest(req)
     ? decrypt(body.toString())
     : body;
+
+  // Can happen if Device is deleted from Dashboard but a JWT is still posting locations for it.
+  if (device == null) {
+    console.error('Device ID %s not found.  Was it deleted from dashboard?'.red, deviceId);
+    return res.status(410).send({ error: 'DEVICE_ID_NOT_FOUND', background_geolocation: ['stop'] });
+  }
+
   const locations = (Array.isArray(data) ? data : (data ? [data] : []))
     .map(x => ({
       ...x,
@@ -199,12 +206,16 @@ router.post('/locations', checkAuth, async function (req, res) {
     return return1Gbfile(res);
   }
 
+  console.log('%s\n'.yellow, JSON.stringify(data, null, 2));
+
   try {
     await createLocation(locations, device);
     res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
       return res.status(403).send({ error: err.toString() });
+    } else if (err instanceof RegistrationRequiredError) {
+      return res.status(406).send({ error: err.toString() });
     }
     console.error('POST /locations', body, err);
     res.status(500).send({ error: err.message });

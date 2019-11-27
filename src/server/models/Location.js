@@ -92,12 +92,8 @@ export async function createLocation (params, device = {}) {
   const locations = Array.isArray(location) ? location : (location ? [location] : []);
 
   for (let location of locations) {
-    const uuid = deviceInfo.framework
-      ? deviceInfo.framework + '-' + deviceInfo.uuid
-      : deviceInfo.uuid;
-    const model = deviceInfo.framework
-      ? deviceInfo.model + ' (' + deviceInfo.framework + ')'
-      : deviceInfo.model;
+    const uuid = deviceInfo.uuid;
+    const model = deviceInfo.model;
 
     if (isDeniedDevice(deviceInfo.model)) {
       throw new AccessDeniedError(
@@ -113,11 +109,11 @@ export async function createLocation (params, device = {}) {
 
     CompanyModel.update(
       { updated_at: now },
-      { where: { id: device.company_id } }
+      { where: { id: currentDevice.company_id } }
     );
     DeviceModel.update(
       { updated_at: now },
-      { where: { id: device.id } }
+      { where: { id: currentDevice.id } }
     );
 
     await LocationModel.create({
