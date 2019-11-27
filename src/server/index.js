@@ -6,6 +6,7 @@ import { resolve, extname } from 'path';
 import compress from 'compression';
 import 'colors';
 import opn from 'opn';
+import cors from 'cors';
 
 import obsoleteApi from './routes/obsolete-api';
 import { makeKeys } from './libs/jwt';
@@ -35,18 +36,11 @@ process
   app.use(compress());
   app.use(bodyParser.json({ limit: '1mb', extended: true }));
   app.use(bodyParser.raw({ limit: '1mb', extended: true }));
-
   /**
   * Enable CORS for /v2/register from XMLHttpRequest in Ionic webview.
   * Required by cordova-background-geolocation method BackgroundGeolocation.getTransistorAuthorizationToken.
   */
-  app.use(function(req, res, next) {
-    if (req.url.includes('/v2/register')) {
-      res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
-      res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-    }
-    next();
-  });
+  app.use(cors());
 
   await initializeDatabase();
   await makeKeys();
