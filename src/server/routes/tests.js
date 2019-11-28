@@ -18,7 +18,7 @@ router.post('/test/register', async function (req, res) {
 
 router.post('/test/status/:status', async function (req, res) {
   const { status } = req.params;
-  res.status(+status).send({ message: 'Dummy error response' });
+  res.status(+status).send({ message: `Dummy error response with ${status}`, status });
 });
 
 router.post('/test/error/403/AccessDeniedError', async function (req, res) {
