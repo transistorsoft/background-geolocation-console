@@ -6,11 +6,11 @@ import { resolve, extname } from 'path';
 import compress from 'compression';
 import 'colors';
 import opn from 'opn';
-import cors from 'cors';
 
-import obsoleteApi from './routes/obsolete-api';
 import { makeKeys } from './libs/jwt';
+import obsoleteApi from './routes/obsolete-api';
 import api from './routes/api-v2';
+import tests from './routes/tests';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const port = process.env.PORT || 9000;
@@ -36,11 +36,6 @@ process
   app.use(compress());
   app.use(bodyParser.json({ limit: '1mb', extended: true }));
   app.use(bodyParser.raw({ limit: '1mb', extended: true }));
-  /**
-  * Enable CORS for /v2/register from XMLHttpRequest in Ionic webview.
-  * Required by cordova-background-geolocation method BackgroundGeolocation.getTransistorAuthorizationToken.
-  */
-  app.use(cors());
 
   await initializeDatabase();
   await makeKeys();
@@ -50,6 +45,7 @@ process
   app.use('/v1', obsoleteApi);
   // v2 with jwt auth support
   app.use('/v2', api);
+  app.use('/v2', tests);
 
   if (isProduction) {
     app.use(express.static(buildPath));

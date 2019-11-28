@@ -49,7 +49,7 @@ export async function deleteDevice ({
   if (!locationsCount) {
     await DeviceModel.destroy({
       where: {
-        id: deviceId
+        id: deviceId,
       },
       cascade: true,
     });
@@ -57,8 +57,14 @@ export async function deleteDevice ({
   return result;
 }
 
-export const findOrCreate = async (org = 'UNKNOWN', { model, uuid, framework, version }) => {
-
+export const findOrCreate = async (
+  org = 'UNKNOWN', {
+    model,
+    uuid,
+    framework,
+    version,
+  }
+) => {
   const device = { device_id: uuid, model: model || 'UNKNOWN', uuid };
 
   const now = new Date();

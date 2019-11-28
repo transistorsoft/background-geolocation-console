@@ -2,10 +2,13 @@ import { createReadStream } from 'fs';
 import { resolve } from 'path';
 import { verify } from './jwt';
 
-// If client registration fails due to not being connected to network, an accessToken: "DUMMY_TOKEN" is provided to the SDK.
-// If the server receives this token, send an HTTP response status "406 Not Acceptable".  This signal will be detected by the client
+// If client registration fails due to not being connected to network,
+// an accessToken: "DUMMY_TOKEN" is provided to the SDK.
+// If the server receives this token,
+// send an HTTP response status "406 Not Acceptable".
+// This signal will be detected by the client
 // and it will hit /v2/registration once again.
-const DUMMY_TOKEN = "DUMMY_TOKEN";
+const DUMMY_TOKEN = 'DUMMY_TOKEN';
 
 export const filterByCompany = !!process.env.SHARED_DASHBOARD;
 export const deniedCompanies = (process.env.DENIED_COMPANY_TOKENS || '').split(',');
@@ -86,10 +89,10 @@ export const checkAuth = (req, res, next) => {
   }
   const [, jwt] = auth;
 
-  if (jwt == DUMMY_TOKEN) {
-    //
-    const error = new RegistrationRequiredError('Registration required');
-    // TODO would rather throw error here but I couldn't figure out where these thrown errors end up.
+  if (jwt === DUMMY_TOKEN) {
+    // const error = new RegistrationRequiredError('Registration required');
+    // TODO would rather throw error here but
+    // I couldn't figure out where these thrown errors end up.
     // Ideally some global error handler would check instanceof RegistrationRequiredError and res.status(406).
     // @see const DUMMY_TOKEN above for more information.
     return res.status(406).send();
