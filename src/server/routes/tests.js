@@ -16,7 +16,7 @@ router.post('/test/register', async function (req, res) {
   res.status(200).send({ accessToken: 'Dummy access token' });
 });
 
-router.post('/test/error/:status', async function (req, res) {
+router.post('/test/status/:status', async function (req, res) {
   const { status } = req.params;
   res.status(+status).send({ message: 'Dummy error response' });
 });
