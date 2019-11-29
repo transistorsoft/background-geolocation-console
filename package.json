@@ -10,7 +10,7 @@
     "dev": "better-npm-run dev",
     "test": "jest",
     "server": "node server.js",
-    "heroku-postbuild": "rm -rf build/ && webpack -p --progress && npm prune --production",
+    "heroku-postbuild": "rm -rf build/ && webpack -p --progress && NPM_CONFIG_PRODUCTION=true npm prune --production",
     "migrate": "babel-node ./src/server/database/migrate.js"
   },
   "engines": {
@@ -39,6 +39,8 @@
     }
   },
   "dependencies": {
+    "@babel/core": "^7.7.2",
+    "@babel/preset-env": "^7.7.1",
     "@babel/cli": "^7.6.0",
     "@babel/node": "^7.6.1",
     "@babel/plugin-proposal-class-properties": "^7.5.5",
@@ -101,8 +103,6 @@
     "webpack-cli": "^3.3.8"
   },
   "devDependencies": {
-    "@babel/core": "^7.7.2",
-    "@babel/preset-env": "^7.7.1",
     "babel-eslint": "^10.0.3",
     "babel-jest": "^24.9.0",
     "chai": "^4.2.0",
