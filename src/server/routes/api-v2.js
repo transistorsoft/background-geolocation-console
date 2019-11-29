@@ -63,7 +63,7 @@ router.post('/register', async function (req, res) {
 
     return res.send({
       accessToken: jwt,
-      refreshToken: "TODO_RENEWAL_TOKEN", // TODO
+      refreshToken: "AAAAbbbbCCCCddddEEEEffffGGGGhhhhiiiiJJJJ", // TODO
       expires: -1      // TODO
     });
   } catch (err) {
@@ -74,9 +74,7 @@ router.post('/register', async function (req, res) {
     return res.status(500).send(!isProduction ? err : err.message);
   }
 });
-// curl -v http://localhost:9000/v2/company_tokens \
-//   -H 'Authorization: Bearer ey...Pg'
-//
+
 router.get('/company_tokens', checkAuth, async function (req, res) {
   const { company: companyToken } = req.jwt;
   try {
@@ -159,6 +157,7 @@ router.get('/locations', checkAuth, async function (req, res) {
   const { deviceId } = req.jwt;
 
   const device = await getDevice({ id: deviceId });
+
   const {
     end_date: endDate,
     start_date: startDate,
@@ -175,6 +174,36 @@ router.get('/locations', checkAuth, async function (req, res) {
     res.status(500).send({ error: err.message });
   }
 });
+
+router.post('/test/unauthorized', checkAuth, async function(req, res) {
+  console.log('Simulate unauthorized'.green);
+  return res.status(401).send();
+});
+
+router.post('/tokens', async function (req, res) {
+  console.log('Refresh token %s'.green);
+  console.log('[headers] %s'.green, JSON.stringify(req.headers, null, 2));
+
+  var form = {};
+  req.busboy.on('field', (name, value) => {
+    console.log('- name: ', name, value);
+    form[name] = value;
+  });
+  req.busboy.on('finish', () => {
+    console.log('[form] %s'.green, JSON.stringify(form, null, 0));
+
+    let payload = {
+      accessToken: {
+        token: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJvcmciOiJUU0xvY2F0aW9uTWFuYWdlclRlc3RzIiwiZGV2aWNlSWQiOjc5LCJtb2RlbCI6ImlQaG9uZTEyLDMoeDg2XzY0KSIsImlhdCI6MTU3NDc4NjQ5MCwiYXVkIjoiVFNMb2NhdGlvbk1hbmFnZXJUZXN0cyIsImlzcyI6InRyYW5zaXN0b3Jzb2Z0Iiwic3ViIjoiaW5mb0B0cmFuc2lzdG9yc29mdC5jb20ifQ.XCN28PMTgnM22nbF2pmoC0nbskE__Hz6Sr82TRBHH3Y-uaDqJxol4UxeqK6t9ygyFigwHauWvwn-MrIIk9wxJ36TwA2bvbPIk5ASf_qkApDM0G3MiFIFuPRCdACT8LZOJb6PIN0pZ105J_aRno_8WpFX1xC1FKX4bVSCxfO9ldzd3hGXqC5wThH36CwKdwl1CJImq9iOmjEpJH7YAZDLI9bw2STB8OI4QSN0QauacIPUBXtEBHjlFx7cgnavTjyQzFeMh4AbUZoQt9JbaxcWAG19Cy_Xj8YDUO-aGxQz5shmB9HB0cPGJY3skNaCTDS8Nu8P1OSaVpqLbtyROyv4fw',
+        expires: 3600
+      },
+      theRefreshTokenWithOddKey: 'fdb8fdbecf1d03ce5e6125c067733c0d51de209c'
+    };
+    console.log('[payload] %s'.green, JSON.stringify(payload, null, 2));
+    res.status(200).send(payload);
+  });
+});
+
 
 /**
  * POST /locations

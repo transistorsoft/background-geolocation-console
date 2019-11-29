@@ -2,6 +2,8 @@ import initializeDatabase from './src/server/database/initializeDatabase';
 import express from 'express';
 import morgan from 'morgan';
 import bodyParser from 'body-parser';
+import busboy from 'connect-busboy';
+
 import path from 'path';
 import compress from 'compression';
 import 'colors';
@@ -42,6 +44,14 @@ process
   app.disable('etag');
   app.use(morgan(isProduction ? 'short' : 'dev'));
   app.use(compress());
+  // handle file-uploads for BackgroundGeolocation.uploadLog; forms for JWT refresh-tokens
+  app.use(busboy({
+    immediate: true,
+    limits: {
+      fileSize: 10 * 1024 * 1024 // 10M
+    }
+  }));
+
   app.use(bodyParser.json({ limit: '1mb', extended: true }));
   app.use(bodyParser.raw({ limit: '1mb', extended: true }));
 
