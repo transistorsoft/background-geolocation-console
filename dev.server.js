@@ -60,8 +60,7 @@ const middleware = [
 app.use(middleware);
 
 [
-  { address: `http://localhost:${port}/v1`, path: '/v1' },
-  { address: `http://localhost:${port}/v2`, path: '/v2' },
+  { address: `http://localhost:${port}/api`, path: '/api' },
 ].forEach(cfg => {
   const proxy = make(cfg.address);
   app.on('stop', () => proxy.close());

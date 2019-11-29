@@ -10,7 +10,7 @@ export type StoredSettings = {|
   endDate: Date,
   isWatching: boolean,
   deviceId: ?string,
-  companyToken: string,
+  orgToken: string,
   showGeofenceHits: boolean,
   showPolyline: boolean,
   showMarkers: boolean,
@@ -109,10 +109,10 @@ export function setUrlSettings (settings: {|
   deviceId: ?string,
   startDate: ?Date,
   endDate: ?Date,
-  companyTokenFromSearch: string,
+  orgTokenFromSearch: string,
 |}) {
-  const { companyTokenFromSearch, startDate, endDate, deviceId } = settings;
-  const mainPart = companyTokenFromSearch ? `/${companyTokenFromSearch}` : '';
+  const { orgTokenFromSearch, startDate, endDate, deviceId } = settings;
+  const mainPart = orgTokenFromSearch ? `/${orgTokenFromSearch}` : '';
   const search = {
     device: deviceId,
     end: encodeEndDate(endDate),

@@ -19,12 +19,12 @@ export const isPostgres = !!process.env.DATABASE_URL;
 
 const check = (list, item) => list
   .find(x => !!x && (item || '').toLowerCase().startsWith(x.toLowerCase()));
-export const isDDosCompany = companyToken => check(ddosBombCompanies, companyToken);
-export const isDeniedCompany = companyToken => check(deniedCompanies, companyToken);
-export const isDeniedDevice = companyToken => check(deniedDevices, companyToken);
-export const isAdmin = companyToken => !!filterByCompany &
+export const isDDosCompany = orgToken => check(ddosBombCompanies, orgToken);
+export const isDeniedCompany = orgToken => check(deniedCompanies, orgToken);
+export const isDeniedDevice = orgToken => check(deniedDevices, orgToken);
+export const isAdmin = orgToken => !!filterByCompany &
   !!process.env.ADMIN_TOKEN &&
-  companyToken === process.env.ADMIN_TOKEN;
+  orgToken === process.env.ADMIN_TOKEN;
 
 export const jsonb = data => isPostgres ? (data || null) : JSON.stringify(data);
 

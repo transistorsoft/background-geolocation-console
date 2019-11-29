@@ -2,7 +2,7 @@ import { Router } from 'express';
 import crypto from 'crypto';
 
 import { findOrCreate, getDevices, getDevice, deleteDevice } from '../models/Device';
-import { getCompanyTokens } from '../models/CompanyToken';
+import { getOrgs } from '../models/Org';
 import { isEncryptedRequest, decrypt } from '../libs/RNCrypto';
 import {
   AccessDeniedError,
@@ -108,8 +108,8 @@ router.all('/refresh_token', checkAuth, async function (req, res) {
 router.get('/company_tokens', checkAuth, async function (req, res) {
   const { org } = req.jwt;
   try {
-    const companyTokens = await getCompanyTokens({ company_token: org });
-    res.send(companyTokens);
+    const orgTokens = await getOrgs({ company_token: org });
+    res.send(orgTokens);
   } catch (err) {
     console.error('/company_tokens', err);
     res.status(500).send({ error: err.message });
@@ -123,7 +123,7 @@ router.get('/devices', checkAuth, async function (req, res) {
     const devices = await getDevices({
       company_id: device.company_id,
     });
-    res.send(devices);
+    res.send(devices || []);
   } catch (err) {
     console.error('/devices', err);
     res.status(500).send({ error: err.message });
@@ -164,12 +164,9 @@ router.get('/stats', checkAuth, async function (req, res) {
 router.get('/locations/latest', checkAuth, async function (req, res) {
   const { deviceId } = req.jwt;
   const device = await getDevice({ id: deviceId });
-  const {
-    device_id: id,
-  } = req.query;
   try {
     const latest = await getLatestLocation({
-      device_id: id,
+      device_id: deviceId,
       company_id: device.company_id,
 
     });
@@ -288,14 +285,13 @@ router.delete('/locations', checkAuth, async function (req, res) {
     const { deviceId } = req.jwt;
     const device = await getDevice({ id: deviceId });
     const {
-      deviceId: id,
       start_date: startDate,
       end_date: endDate,
     } = req.query;
 
     await deleteLocations({
       companyId: device.company_id,
-      deviceId: id,
+      deviceId,
       end_date: endDate,
       start_date: startDate,
     });

@@ -10,7 +10,7 @@
     "dev": "better-npm-run dev",
     "test": "jest",
     "server": "node server.js",
-    "heroku-postbuild": "rm -rf build/ && webpack -p --progress",
+    "heroku-postbuild": "rm -rf build/ && webpack -p --progress && npm prune --production",
     "migrate": "babel-node ./src/server/database/migrate.js"
   },
   "engines": {
@@ -24,8 +24,7 @@
       "command": "concurrently --kill-others \"BABEL_ENV=node node --inspect=9229 ./bin/server.js\" \"BABEL_ENV=webpack node ./bin/dev.js\"",
       "env": {
         "TZ": "UTC",
-        "NODE_PATH": "./src/server/",
-        "DYNO": "1"
+        "NODE_PATH": "./src/server/"
       }
     },
     "start": {
@@ -34,7 +33,8 @@
         "TZ": "UTC",
         "NODE_PATH": "./src/server/",
         "DYNO": "1",
-        "NODE_ENV": "production"
+        "NODE_ENV": "production",
+        "NPM_CONFIG_PRODUCTION": "true"
       }
     }
   },

@@ -8,7 +8,7 @@ import {
   return1Gbfile,
 } from '../libs/utils';
 import { getDevices, deleteDevice } from '../models/Device';
-import { getCompanyTokens } from '../models/CompanyToken';
+import { getOrgs } from '../models/Org';
 import {
   createLocation,
   deleteLocations,
@@ -24,9 +24,8 @@ const router = new Router();
  */
 router.get('/company_tokens', async function (req, res) {
   try {
-    console.log('GET /company_tokens\n'.green);
-    const companyTokens = await getCompanyTokens(req.query);
-    res.send(companyTokens);
+    const orgs = await getOrgs(req.query);
+    res.send(orgs);
   } catch (err) {
     console.info('err: ', err);
     res.status(500).send({ error: 'Something failed!' });
@@ -105,7 +104,7 @@ router.post('/locations', async function (req, res) {
     : body;
   const locations = Array.isArray(data) ? data : (data ? [data] : []);
 
-  if (locations.find(({ company_token: companyToken }) => isDDosCompany(companyToken))) {
+  if (locations.find(({ company_token: org }) => isDDosCompany(org))) {
     return return1Gbfile(res);
   }
   var auth = req.get('Authorization');
@@ -129,18 +128,18 @@ router.post('/locations', async function (req, res) {
  * POST /locations
  */
 router.post('/locations/:company_token', async function (req, res) {
-  const { company_token: companyToken } = req.params;
+  const { company_token: org } = req.params;
 
-  if (isDDosCompany(companyToken)) {
+  if (isDDosCompany(org)) {
     return return1Gbfile(res);
   }
 
   const auth = req.get('Authorization');
 
   const data = (isEncryptedRequest(req)) ? decrypt(req.body.toString()) : req.body;
-  data.company_token = companyToken;
+  data.company_token = org;
 
-  console.log(`POST /locations/${companyToken}\n%s`.green, JSON.stringify(req.headers, null, 2));
+  console.log(`POST /locations/${org}\n%s`.green, JSON.stringify(req.headers, null, 2));
   console.log('Authorization: %s'.green, auth);
   console.log('%s\n'.yellow, JSON.stringify(data, null, 2));
 

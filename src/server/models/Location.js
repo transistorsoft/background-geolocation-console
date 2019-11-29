@@ -75,10 +75,10 @@ export async function createLocation (params, device = {}) {
     }
     return;
   }
-  const { company_token: companyToken, id } = device;
+  const { company_token: orgToken, id } = device;
   const { location, company_token: token } = params;
   const deviceInfo = params.device || { model: 'UNKNOWN' };
-  const companyName = companyToken || token || 'UNKNOWN';
+  const companyName = orgToken || token || 'UNKNOWN';
   const now = new Date();
 
   if (isDeniedCompany(companyName)) {
@@ -92,9 +92,6 @@ export async function createLocation (params, device = {}) {
   const locations = Array.isArray(location) ? location : (location ? [location] : []);
 
   for (let location of locations) {
-    const uuid = deviceInfo.uuid;
-    const model = deviceInfo.model;
-
     if (isDeniedDevice(deviceInfo.model)) {
       throw new AccessDeniedError(
         'This is a question from the CEO of Transistor Software.\n' +
@@ -105,7 +102,7 @@ export async function createLocation (params, device = {}) {
 
     const currentDevice = id
       ? device
-      : await findOrCreate(companyName, { ...deviceInfo, model, id: uuid });
+      : await findOrCreate(companyName, { ...deviceInfo });
 
     CompanyModel.update(
       { updated_at: now },
@@ -156,12 +153,12 @@ export async function deleteLocations (params) {
     const locationsCount = await LocationModel.count({
       where: verify,
     });
-    if (!locationsCount) {
+    if (!locationsCount && verify.device_id) {
       await DeviceModel.destroy({
         where: { id: verify.device_id },
       });
     }
-  } else {
+  } else if (companyId) {
     const devices = await LocationModel.findAll({
       attributes: ['company_id', 'device_id'],
       where: verify,

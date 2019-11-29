@@ -4,7 +4,7 @@ import {
 } from '../libs/utils';
 import CompanyModel from '../database/CompanyModel';
 
-export async function getCompanyTokens ({ company_token: org }) {
+export async function getOrgs ({ company_token: org }) {
   if (!filterByCompany) {
     return [
       {

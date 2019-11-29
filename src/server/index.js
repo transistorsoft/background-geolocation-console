@@ -8,7 +8,7 @@ import 'colors';
 import opn from 'opn';
 
 import { makeKeys } from './libs/jwt';
-import obsoleteApi from './routes/obsolete-api';
+import siteApi from './routes/site-api';
 import api from './routes/api-v2';
 import tests from './routes/tests';
 
@@ -17,6 +17,7 @@ const port = process.env.PORT || 9000;
 const dyno = process.env.DYNO;
 const app = express();
 const buildPath = resolve(__dirname, '..', '..', 'build');
+const parserLimits = { limit: '1mb', extended: true };
 
 process
   .on('uncaughtException', (err) => {
@@ -30,23 +31,20 @@ process
     console.log('Server %s process.on( message = %s )', msg);
   });
 
-(async function () {
-  app.disable('etag');
-  app.use(morgan(isProduction ? 'short' : 'dev'));
-  app.use(compress());
-  app.use(bodyParser.json({ limit: '1mb', extended: true }));
-  app.use(bodyParser.raw({ limit: '1mb', extended: true }));
+app.disable('etag');
+app.use(morgan(isProduction ? 'short' : 'dev'));
+app.use(compress());
+app.use(bodyParser.json(parserLimits));
+app.use(bodyParser.raw(parserLimits));
 
+(async function () {
   await initializeDatabase();
   await makeKeys();
 
-  // default old api
-  app.use(obsoleteApi);
-  app.use('/v1', obsoleteApi);
-  // v2 with jwt auth support
-  app.use('/v2', api);
+  app.use(siteApi);
+  app.use('/api/site', siteApi);
   app.use('/api', api);
-  app.use('/v2', tests);
+  app.use('/api', tests);
 
   if (isProduction) {
     app.use(express.static(buildPath));
@@ -72,7 +70,7 @@ process
 
     // Spawning dedicated process on opened port.. only if not deployed on heroku
     if (!dyno) {
-      opn(`http://localhost:${port}`)
+      opn(`http://localhost:8080`)
         .catch(error => console.log('Optional site open failed:', error));
     }
   });

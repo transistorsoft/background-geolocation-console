@@ -1,6 +1,6 @@
 import { Op } from 'sequelize';
 
-import { findOrCreate as findOrCreateCompany } from './CompanyToken';
+import { findOrCreate as findOrCreateCompany } from './Org';
 import DeviceModel from '../database/DeviceModel';
 import LocationModel from '../database/LocationModel';
 import {
@@ -77,7 +77,7 @@ export const findOrCreate = async (
     defaults: {
       company_id: company.id,
       company_token: org,
-      device_id: device.id,
+      device_id: device.device_id || uuid,
       device_model: device.model,
       created_at: now,
       framework,

@@ -1,8 +1,4 @@
-const isProduction = process.env.NODE_ENV === 'production';
-
-export const API_URI = isProduction
-  ? ''
-  : '/v1';
+export const API_URI = '/api/site';
 
 export const API_URL = window.location.origin + API_URI;
 
