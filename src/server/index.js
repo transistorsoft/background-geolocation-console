@@ -45,6 +45,7 @@ process
   app.use('/v1', obsoleteApi);
   // v2 with jwt auth support
   app.use('/v2', api);
+  app.use('/api', api);
   app.use('/v2', tests);
 
   if (isProduction) {

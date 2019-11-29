@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import crypto from 'crypto';
 
 import { findOrCreate, getDevices, getDevice, deleteDevice } from '../models/Device';
 import { getCompanyTokens } from '../models/CompanyToken';
@@ -59,12 +60,12 @@ router.post('/register', async function (req, res) {
       model: model,
     };
 
-    const jwt = sign(jwtInfo);
+    const accessToken = sign(jwtInfo);
+    const refreshToken = crypto.createHash('md5').update(accessToken).digest('hex');
 
     return res.send({
-      accessToken: jwt,
-      // TODO
-      refreshToken: 'TODO_RENEWAL_TOKEN',
+      accessToken,
+      refreshToken,
       expires: -1,
     });
   } catch (err) {
@@ -75,6 +76,32 @@ router.post('/register', async function (req, res) {
     return res.status(500).send(!isProduction ? err : err.message);
   }
 });
+
+router.all('/refresh_token', checkAuth, async function (req, res) {
+  const { org, deviceId, model } = req.jwt;
+  const jwtInfo = {
+    org: org,
+    deviceId: deviceId,
+    model: model,
+  };
+  try {
+    const accessToken = sign(jwtInfo);
+    const refreshToken = crypto.createHash('md5').update(accessToken).digest('hex');
+
+    return res.send({
+      accessToken,
+      refreshToken,
+      expires: -1,
+    });
+  } catch (err) {
+    if (err instanceof AccessDeniedError) {
+      return res.status(403).send({ error: err.message });
+    }
+    console.error('/register', req.body, err);
+    return res.status(500).send(!isProduction ? err : err.message);
+  }
+});
+
 // curl -v http://localhost:9000/v2/company_tokens \
 //   -H 'Authorization: Bearer ey...Pg'
 //
