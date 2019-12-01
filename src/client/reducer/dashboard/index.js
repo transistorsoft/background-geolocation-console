@@ -26,7 +26,7 @@ export type DeleteOptions = {|
 export type LoadParams = {|
   loadUsers: boolean,
 |};
-export type CompanyToken = {|
+export type OrgToken = {|
   id: string,
   name: string,
 |};
@@ -37,6 +37,7 @@ export type Location = {|
   activity_type: string,
   battery_is_charging: boolean,
   battery_level: number,
+  company_id: number,
   created_at: string,
   device_id: string,
   event: string,
@@ -65,9 +66,10 @@ export type Marker = {|
 
 export type DashboardState = {|
   activeTab: Tab,
-  companyToken: string,
-  companyTokenFromSearch: string,
-  companyTokens: CompanyToken[],
+  orgToken: string,
+  companyId: number,
+  orgTokenFromSearch: string,
+  orgTokens: OrgToken[],
   currentLocation: ?Location,
   deviceId: ?string,
   devices: Device[],
@@ -87,9 +89,9 @@ export type DashboardState = {|
 |};
 
 // Action Types
-type SetCompanyTokensAction = {|
-  type: 'dashboard/SET_COMPANY_TOKENS',
-  companyTokens: CompanyToken[],
+type SetOrgTokensAction = {|
+  type: 'dashboard/SET_ORG_TOKENS',
+  orgTokens: OrgToken[],
 |};
 type SetDevicesAction = {|
   type: 'dashboard/SET_DEVICES',
@@ -124,8 +126,8 @@ type AutoselectOrInvalidateSelectedDeviceAction = {|
   type: 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_DEVICE',
 |};
 
-type AutoselectOrInvalidateSelectedCompanyTokenAction = {|
-  type: 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_COMPANY_TOKEN',
+type AutoselectOrInvalidateSelectedOrgTokenAction = {|
+  type: 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_ORG_TOKEN',
 |};
 
 type InvalidateSelectedLocationAction = {|
@@ -181,13 +183,13 @@ type SetActiveTabAction = {|
   tab: Tab,
 |};
 
-type SetCompanyTokenAction = {|
-  type: 'dashboard/SET_COMPANY_TOKEN',
+type SetOrgTokenAction = {|
+  type: 'dashboard/SET_ORG_TOKEN',
   value: string,
 |};
 
-type SetCompanyTokenFromSearchAction = {|
-  type: 'dashboard/SET_COMPANY_TOKEN_FROM_SEARCH',
+type SetOrgTokenFromSearchAction = {|
+  type: 'dashboard/SET_ORG_TOKEN_FROM_SEARCH',
   value: string,
 |};
 // Combining Actions
@@ -200,13 +202,13 @@ type AddTestMarkerAction = {|
 type Action =
   | AddTestMarkerAction
   | ApplyExistingSettinsAction
-  | AutoselectOrInvalidateSelectedCompanyTokenAction
+  | AutoselectOrInvalidateSelectedOrgTokenAction
   | AutoselectOrInvalidateSelectedDeviceAction
   | InvalidateSelectedLocationAction
   | SetActiveTabAction
-  | SetCompanyTokenAction
-  | SetCompanyTokenFromSearchAction
-  | SetCompanyTokensAction
+  | SetOrgTokenAction
+  | SetOrgTokenFromSearchAction
+  | SetOrgTokensAction
   | SetCurrentLocationAction
   | SetDeviceAction
   | SetDevicesAction
@@ -231,10 +233,10 @@ type ThunkAction = (dispatch: Dispatch, getState: GetState) => Promise<void>;
 // Action Creators
 // ------------------------------------
 
-export function setCompanyTokens (companyTokens: CompanyToken[]): SetCompanyTokensAction {
+export function setOrgTokens (orgTokens: OrgToken[]): SetOrgTokensAction {
   return {
-    type: 'dashboard/SET_COMPANY_TOKENS',
-    companyTokens: companyTokens,
+    type: 'dashboard/SET_ORG_TOKENS',
+    orgTokens: orgTokens,
   };
 }
 export function setDevices (devices: Device[]): SetDevicesAction {
@@ -265,9 +267,9 @@ export function setIsLoading (status: boolean): SetIsLoadingAction {
   };
 }
 
-export function autoselectOrInvalidateSelectedCompanyToken (): AutoselectOrInvalidateSelectedCompanyTokenAction {
+export function autoselectOrInvalidateSelectedOrgToken (): AutoselectOrInvalidateSelectedOrgTokenAction {
   return {
-    type: 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_COMPANY_TOKEN',
+    type: 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_ORG_TOKEN',
   };
 }
 
@@ -380,16 +382,16 @@ export function setActiveTab (tab: Tab): SetActiveTabAction {
   };
 }
 
-export function setCompanyToken (value: string): SetCompanyTokenAction {
+export function setOrgToken (value: string): SetOrgTokenAction {
   return {
-    type: 'dashboard/SET_COMPANY_TOKEN',
+    type: 'dashboard/SET_ORG_TOKEN',
     value,
   };
 }
 
-export function setCompanyTokenFromSearch (value: string): SetCompanyTokenFromSearchAction {
+export function setOrgTokenFromSearch (value: string): SetOrgTokenFromSearchAction {
   return {
-    type: 'dashboard/SET_COMPANY_TOKEN_FROM_SEARCH',
+    type: 'dashboard/SET_ORG_TOKEN_FROM_SEARCH',
     value,
   };
 }
@@ -411,9 +413,9 @@ export function loadInitialData (id: string): ThunkAction {
       console.error('extra call after everything is set up!');
       return;
     }
-    await dispatch(setCompanyTokenFromSearch(id));
-    const { dashboard: { companyTokenFromSearch } } = getState();
-    const existingSettings = getSettings(companyTokenFromSearch);
+    await dispatch(setOrgTokenFromSearch(id));
+    const { dashboard: { orgTokenFromSearch } } = getState();
+    const existingSettings = getSettings(orgTokenFromSearch);
     const urlSettings = getUrlSettings();
     await dispatch(applyExistingSettings(existingSettings));
     await dispatch(applyExistingSettings(urlSettings));
@@ -429,8 +431,8 @@ export function loadInitialData (id: string): ThunkAction {
 export function reload ({ loadUsers }: LoadParams = { loadUsers: true }): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setIsLoading(true));
-    loadUsers && await dispatch(loadCompanyTokens());
-    await dispatch(autoselectOrInvalidateSelectedCompanyToken());
+    loadUsers && await dispatch(loadOrgTokens());
+    await dispatch(autoselectOrInvalidateSelectedOrgToken());
     await dispatch(loadDevices());
     await dispatch(autoselectOrInvalidateSelectedDevice());
     await dispatch(loadLocations());
@@ -453,86 +455,114 @@ export function deleteActiveDevice (deleteOptions: ?DeleteOptions): ThunkAction 
         end_date: deleteOptions.endDate.toISOString(),
       })}`
       : '';
-    await fetch(`${API_URL}/devices/${deviceId}${params}`, { method: 'delete' });
-    await dispatch(reload({ loadUsers: false }));
-    GA.sendEvent('tracker', 'delete device:' + deviceId);
+    try {
+      await fetch(`${API_URL}/devices/${deviceId}${params}`, { method: 'delete' });
+      await dispatch(reload({ loadUsers: false }));
+      GA.sendEvent('tracker', 'delete device:' + deviceId);
+    } catch (e) {
+      console.error('deleteActiveDevice', e);
+    }
   };
 }
 
-export function loadCompanyTokens (): ThunkAction {
+export function loadOrgTokens (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const { dashboard: { companyTokenFromSearch } } = getState();
+    const { dashboard: { orgTokenFromSearch } } = getState();
     const params = qs.stringify({
-      company_token: companyTokenFromSearch,
+      company_token: orgTokenFromSearch,
     });
-    const response = await fetch(`${API_URL}/company_tokens?${params}`);
-    const records = await response.json();
-    const companyTokens: CompanyToken[] = records.map((companyToken: { company_token: string }) => ({
-      id: companyToken.company_token,
-      name: companyToken.company_token,
-    }));
-    dispatch(setCompanyTokens(companyTokens));
+    try {
+      const response = await fetch(`${API_URL}/company_tokens?${params}`);
+      const records = await response.json();
+      const orgTokens: OrgToken[] = records.map((x: { company_token: string }) => ({
+        id: x.id,
+        name: x.company_token,
+      }));
+      return dispatch(setOrgTokens(orgTokens));
+    } catch (e) {
+      console.error('loadOrgTokens', e);
+    }
   };
 }
 
 export function loadDevices (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const { dashboard: { companyToken } } = getState();
+    const { dashboard: { companyId, orgToken } } = getState();
     const params = qs.stringify({
-      company_token: companyToken,
+      company_id: companyId,
+      company_token: orgToken,
     });
-    const response = await fetch(`${API_URL}/devices?${params}`);
-    const records = await response.json();
-    const devices: Device[] = records.map((record: Object) => ({ id: record.device_id, name: record.device_model }));
-    dispatch(setDevices(devices));
+    try {
+      const response = await fetch(`${API_URL}/devices?${params}`);
+      const records = await response.json();
+      const devices: Device[] = records
+        .map((record: Object) => ({
+          id: record.id,
+          name: record.device_id + '(' + record.framework + ')',
+        }));
+      return dispatch(setDevices(devices));
+    } catch (e) {
+      console.error('loadDevices', e);
+    }
   };
 }
 
 export function loadLocations (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const { deviceId, companyToken, startDate, endDate, maxMarkers } = getState().dashboard;
-    GA.sendEvent('tracker', 'loadLocations', companyToken);
+    const { deviceId, orgToken, companyId, startDate, endDate, maxMarkers } = getState().dashboard;
+    GA.sendEvent('tracker', 'loadLocations', orgToken);
 
     const params = qs.stringify({
-      company_token: companyToken,
+      company_id: companyId,
+      company_token: orgToken,
       device_id: deviceId,
-      start_date: startDate.toISOString(),
       end_date: endDate.toISOString(),
       limit: maxMarkers,
+      start_date: startDate.toISOString(),
     });
-    const response = await fetch(`${API_URL}/locations?${params}`);
-    const records = await response.json();
-    dispatch(setLocations(records));
+    try {
+      const response = await fetch(`${API_URL}/locations?${params}`);
+      const records = await response.json();
+      return dispatch(setLocations(records));
+    } catch (e) {
+      console.error('loadLocations', e);
+    }
   };
 }
 
 export function loadCurrentLocation (): ThunkAction {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const { deviceId, companyToken } = getState().dashboard;
+    const { deviceId, companyId, company_token: orgToken } = getState().dashboard;
     if (deviceId) {
       const params = qs.stringify({
         device_id: deviceId,
-        company_token: companyToken,
+        company_id: companyId,
+        company_token: orgToken,
       });
-      const response = await fetch(`${API_URL}/locations/latest?${params}`);
-      const currentLocation = await response.json();
-      await dispatch(setCurrentLocation(currentLocation));
-    } else {
-      await dispatch(setCurrentLocation(null));
+      try {
+        const response = await fetch(`${API_URL}/locations/latest?${params}`);
+        const currentLocation = await response.json();
+        return await dispatch(setCurrentLocation(currentLocation));
+      } catch (e) {
+        console.error('loadCurrentLocation', deviceId, e);
+      }
     }
+
+    await dispatch(setCurrentLocation(null));
   };
 }
 
 export function changeStartDate (value: Date) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setStartDate(value));
-    setSettings(getState().dashboard.companyTokenFromSearch, { startDate: value });
+    setSettings(getState().dashboard.orgTokenFromSearch, { startDate: value });
     const { dashboard } = getState();
     setUrlSettings({
       startDate: dashboard.startDate,
       endDate: dashboard.endDate,
       deviceId: dashboard.deviceId,
-      companyTokenFromSearch: dashboard.companyTokenFromSearch,
+      companyId: dashboard.companyId,
+      orgTokenFromSearch: dashboard.orgTokenFromSearch,
     });
     await dispatch(reload({ loadUsers: false }));
   };
@@ -540,35 +570,37 @@ export function changeStartDate (value: Date) {
 export function changeEndDate (value: Date) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setEndDate(value));
-    setSettings(getState().dashboard.companyTokenFromSearch, { endDate: value });
+    setSettings(getState().dashboard.orgTokenFromSearch, { endDate: value });
     const { dashboard } = getState();
     setUrlSettings({
       startDate: dashboard.startDate,
       endDate: dashboard.endDate,
       deviceId: dashboard.deviceId,
-      companyTokenFromSearch: dashboard.companyTokenFromSearch,
+      companyId: dashboard.companyId,
+      orgTokenFromSearch: dashboard.orgTokenFromSearch,
     });
     await dispatch(reload({ loadUsers: false }));
   };
 }
 
-export function changeCompanyToken (value: string) {
+export function changeOrgToken (value: string) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    await dispatch(setCompanyToken(value));
-    setSettings(getState().dashboard.companyTokenFromSearch, { companyToken: value });
+    await dispatch(setOrgToken(value));
+    setSettings(getState().dashboard.orgTokenFromSearch, { companyId: value });
     await dispatch(reload({ loadUsers: false }));
   };
 }
 export function changeDeviceId (value: string) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setDevice(value));
-    setSettings(getState().dashboard.companyTokenFromSearch, { deviceId: value });
+    setSettings(getState().dashboard.orgTokenFromSearch, { deviceId: value });
     const { dashboard } = getState();
     setUrlSettings({
       startDate: dashboard.startDate,
       endDate: dashboard.endDate,
       deviceId: dashboard.deviceId,
-      companyTokenFromSearch: dashboard.companyTokenFromSearch,
+      companyId: dashboard.companyId,
+      orgTokenFromSearch: dashboard.orgTokenFromSearch,
     });
     await dispatch(reload({ loadUsers: false }));
   };
@@ -577,42 +609,42 @@ export function changeDeviceId (value: string) {
 export function changeIsWatching (value: boolean) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setIsWatching(value));
-    setSettings(getState().dashboard.companyTokenFromSearch, { isWatching: value });
+    setSettings(getState().dashboard.orgTokenFromSearch, { isWatching: value });
   };
 }
 
 export function changeShowMarkers (value: boolean) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setShowMarkers(value));
-    setSettings(getState().dashboard.companyTokenFromSearch, { showMarkers: value });
+    setSettings(getState().dashboard.orgTokenFromSearch, { showMarkers: value });
   };
 }
 
 export function changeEnableClustering (value: boolean) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setEnableClustering(value));
-    setSettings(getState().dashboard.companyTokenFromSearch, { enableClustering: value });
+    setSettings(getState().dashboard.orgTokenFromSearch, { enableClustering: value });
   };
 }
 
 export function changeShowPolyline (value: boolean) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setShowPolyline(value));
-    setSettings(getState().dashboard.companyTokenFromSearch, { showPolyline: value });
+    setSettings(getState().dashboard.orgTokenFromSearch, { showPolyline: value });
   };
 }
 
 export function changeShowGeofenceHits (value: boolean) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setShowGeofenceHits(value));
-    setSettings(getState().dashboard.companyTokenFromSearch, { showGeofenceHits: value });
+    setSettings(getState().dashboard.orgTokenFromSearch, { showGeofenceHits: value });
   };
 }
 
 export function changeMaxMarkers (value: number) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setShowMaxMarkers(value));
-    setSettings(getState().dashboard.companyTokenFromSearch, { maxMarkers: value });
+    setSettings(getState().dashboard.orgTokenFromSearch, { maxMarkers: value });
   };
 }
 
@@ -626,7 +658,7 @@ export function clickMarker (locationId: string) {
 export function changeActiveTab (tab: Tab) {
   return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
     await dispatch(setActiveTab(tab));
-    setSettings(getState().dashboard.companyTokenFromSearch, { activeTab: tab });
+    setSettings(getState().dashboard.orgTokenFromSearch, { activeTab: tab });
     changeTabBus.emit({ tab });
   };
 }
@@ -640,8 +672,8 @@ export function addTestMarker (value: Object): ThunkAction {
 // Action Handlers
 // ------------------------------------
 
-const setCompanyTokensHandler = function (state: DashboardState, action: SetCompanyTokensAction): DashboardState {
-  return cloneState(state, { companyTokens: action.companyTokens });
+const setOrgTokensHandler = function (state: DashboardState, action: SetOrgTokensAction): DashboardState {
+  return cloneState(state, { orgTokens: action.orgTokens });
 };
 
 const setDevicesHandler = function (state: DashboardState, action: SetDevicesAction): DashboardState {
@@ -664,21 +696,21 @@ const setLocationsHandler = function (state: DashboardState, action: SetLocation
   }
 };
 
-const autoselectOrInvalidateSelectedCompanyTokenHandler = function (
+const autoselectOrInvalidateSelectedOrgTokenHandler = function (
   state: DashboardState,
-  action: AutoselectOrInvalidateSelectedCompanyTokenAction
+  action: AutoselectOrInvalidateSelectedOrgTokenAction
 ): DashboardState {
-  const { companyTokens, companyToken } = state;
-  if (companyTokens.length === 0) {
-    return cloneState(state, { companyToken: 'bogus' });
+  const { orgTokens, companyId } = state;
+  if (orgTokens.length === 0) {
+    return cloneState(state, { companyId: 1 });
   }
-  if (companyTokens.length === 1) {
-    return cloneState(state, { companyToken: companyTokens[0].id });
+  if (orgTokens.length === 1) {
+    return cloneState(state, { companyId: `${orgTokens[0].id}` });
   }
-  if (companyTokens.length > 1) {
-    const existingCompanyToken = companyTokens && companyTokens.find((x: Device) => x.id === companyToken);
-    if (!existingCompanyToken) {
-      return cloneState(state, { companyToken: companyTokens[0].id });
+  if (orgTokens.length > 1) {
+    const existingOrgToken = orgTokens && orgTokens.find((x: Device) => x.id === +companyId);
+    if (!existingOrgToken) {
+      return cloneState(state, { companyId: `${orgTokens[0].id}` });
     } else {
       return state;
     }
@@ -695,12 +727,12 @@ const autoselectOrInvalidateSelectedDeviceHandler = function (
     return cloneState(state, { deviceId: null });
   }
   if (devices.length === 1) {
-    return cloneState(state, { deviceId: devices[0].id });
+    return cloneState(state, { deviceId: `${devices[0].id}` });
   }
   if (devices.length > 1) {
-    const existingDevice = devices && devices.find((x: Device) => x.id === deviceId);
+    const existingDevice = devices && devices.find((x: Device) => x.id === +deviceId);
     if (!existingDevice) {
-      return cloneState(state, { deviceId: devices[0].id });
+      return cloneState(state, { deviceId: `${devices[0].id}` });
     } else {
       return state;
     }
@@ -779,11 +811,11 @@ const applyExistingSettingsHandler = function (
 const setActiveTabHandler = function (state: DashboardState, action: SetActiveTabAction) {
   return cloneState(state, { activeTab: action.tab });
 };
-const setCompanyTokenHandler = function (state: DashboardState, action: SetCompanyTokenAction) {
-  return cloneState(state, { companyToken: action.value });
+const setOrgTokenHandler = function (state: DashboardState, action: SetOrgTokenAction) {
+  return cloneState(state, { companyId: action.value });
 };
-const setCompanyTokenFromSearchHandler = function (state: DashboardState, action: SetCompanyTokenFromSearchAction) {
-  return cloneState(state, { companyTokenFromSearch: action.value });
+const setOrgTokenFromSearchHandler = function (state: DashboardState, action: SetOrgTokenFromSearchAction) {
+  return cloneState(state, { orgTokenFromSearch: action.value });
 };
 
 const addTestMarkerHandler = function (state: DashboardState, action: AddTestMarkerAction) {
@@ -811,9 +843,9 @@ const getEndDate = function () {
 
 const initialState: DashboardState = {
   activeTab: 'map',
-  companyToken: '',
-  companyTokenFromSearch: '',
-  companyTokens: [],
+  orgToken: '',
+  orgTokenFromSearch: '',
+  orgTokens: [],
   currentLocation: null,
   deviceId: null,
   devices: [],
@@ -837,8 +869,8 @@ const initialState: DashboardState = {
 // ------------------------------------
 export default function spotsReducer (state: DashboardState = initialState, action: Action): DashboardState {
   switch (action.type) {
-    case 'dashboard/SET_COMPANY_TOKENS':
-      return setCompanyTokensHandler(state, action);
+    case 'dashboard/SET_ORG_TOKENS':
+      return setOrgTokensHandler(state, action);
     case 'dashboard/SET_DEVICES':
       return setDevicesHandler(state, action);
     case 'dashboard/SET_LOCATIONS':
@@ -849,8 +881,8 @@ export default function spotsReducer (state: DashboardState = initialState, acti
       return setHasDataHandler(state, action);
     case 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_DEVICE':
       return autoselectOrInvalidateSelectedDeviceHandler(state, action);
-    case 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_COMPANY_TOKEN':
-      return autoselectOrInvalidateSelectedCompanyTokenHandler(state, action);
+    case 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_ORG_TOKEN':
+      return autoselectOrInvalidateSelectedOrgTokenHandler(state, action);
     case 'dashboard/INVALIDATE_SELECTED_LOCATION':
       return invalidateSelectedLocationHandler(state, action);
     case 'dashboard/SET_SHOW_MARKERS':
@@ -879,10 +911,10 @@ export default function spotsReducer (state: DashboardState = initialState, acti
       return applyExistingSettingsHandler(state, action);
     case 'dashboard/SET_ACTIVE_TAB':
       return setActiveTabHandler(state, action);
-    case 'dashboard/SET_COMPANY_TOKEN':
-      return setCompanyTokenHandler(state, action);
-    case 'dashboard/SET_COMPANY_TOKEN_FROM_SEARCH':
-      return setCompanyTokenFromSearchHandler(state, action);
+    case 'dashboard/SET_ORG_TOKEN':
+      return setOrgTokenHandler(state, action);
+    case 'dashboard/SET_ORG_TOKEN_FROM_SEARCH':
+      return setOrgTokenFromSearchHandler(state, action);
     case 'dashboard/ADD_TEST_MARKER':
       return addTestMarkerHandler(state, action);
     default:

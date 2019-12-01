@@ -12,19 +12,20 @@ import { changeTabBus, type ChangeTabPayload, scrollToRowBus, type ScrollToRowPa
 import Styles from '~/assets/styles/app.css';
 
 type LocationRow = {|
-  uuid: string,
-  device_id: string,
-  coordinate: string,
-  recorded_at: string,
-  created_at: string,
-  is_moving: string,
   accuracy: number,
-  speed: number,
-  odometer: number,
   activity: string,
-  battery_level: string,
   battery_is_charging: boolean,
+  battery_level: string,
+  company_id: number,
+  coordinate: string,
+  created_at: string,
+  device_id: string,
   event: string,
+  is_moving: string,
+  odometer: number,
+  recorded_at: string,
+  speed: number,
+  uuid: string,
 |};
 type StateProps = {|
   locations: LocationRow[],
@@ -42,12 +43,17 @@ const getRowData = (location: Location): LocationRow => {
   let event = location.event || '';
   switch (location.event) {
     case 'geofence':
-      event = location.event + ': ' + location.geofence.action + ' ' + location.geofence.identifier;
+      event = location.event + ': ' + (
+        location.geofence
+          ? location.geofence.action + ' ' + location.geofence.identifier
+          : 'empty'
+      );
       break;
   }
   return {
     uuid: location.uuid,
-    device_id: location.device_id,
+    device_id: +location.device_id,
+    company_id: location.company_id,
     coordinate: location.latitude.toFixed(6) + ', ' + location.longitude.toFixed(6),
     recorded_at: format(new Date(location.recorded_at), 'MM-dd HH:mm:ss:SSS'),
     created_at: format(new Date(location.created_at), 'MM-dd HH:mm:ss:SSS'),

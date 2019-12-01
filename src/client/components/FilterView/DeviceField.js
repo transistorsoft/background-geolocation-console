@@ -22,7 +22,7 @@ const DeviceField = ({ onChange, source, hasData, value }: Props) => {
         autoWidth
         style={flex}
         label='Device'
-        onChange={handleChange} value={value || ''}
+        onChange={handleChange} value={'' + (value || '')}
       >
         {source.map((x: Source) => <MenuItem key={x.value} value={x.value}>{x.label}</MenuItem>)}
       </Select>

@@ -1,17 +1,19 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import WrappedViewport from './components/WrappedViewport';
 import { AppContainer } from 'react-hot-loader';
 import { Provider } from 'react-redux';
 
-import store from './store';
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
+
+import store from './store';
+import WrappedViewport from './components/WrappedViewport';
 
 // Detect users incorrectly hitting /locations/username instead of /username.
 // It seems people think because the plugin is POSTing -> /location/username that they must
 // view in browser at same url.  This is incorrect.
 const path = window.location.pathname;
 const pathQuery = path.match(/^\/locations\/(.*)$/);
+
 if (pathQuery) {
   // Redirect /locations/username -> /username
   window.location.pathname = pathQuery[1];

@@ -34,15 +34,15 @@ import formatDate from '~/utils/formatDate';
 import DeviceField from './DeviceField';
 import RemoveAnimationProvider from '../RemoveAnimationProvider';
 import DeleteDeviceLink from './DeleteDeviceLink';
-import CompanyTokenField from './CompanyTokenField';
+import OrgField from './OrgField';
 import CustomMarkers from './CustomMarkers';
 import { type GlobalState } from '~/reducer/state';
 import {
-  type CompanyToken,
+  type OrgToken,
   type Device,
   type MaterialInputElement,
   type Source,
-  changeCompanyToken,
+  changeOrgToken,
   changeDeviceId,
   changeEnableClustering,
   changeEndDate,
@@ -56,8 +56,8 @@ import {
 } from '~/reducer/dashboard';
 const cardMargins = { marginBottom: '10px' };
 type StateProps = {|
-  companyToken: string,
-  companyTokens: Source[],
+  companyId: string,
+  orgTokens: Source[],
   deviceId: string,
   devices: Source[],
   enableClustering: boolean,
@@ -71,7 +71,7 @@ type StateProps = {|
   startDate: Date,
 |};
 type DispatchProps = {|
-  onChangeCompanyToken: (companyToken: string) => any,
+  onChangeOrgToken: (orgToken: string) => any,
   onChangeDeviceId: (deviceId: string) => any,
   onChangeEnableClustering: (value: boolean) => any,
   onChangeEndDate: (date: Date) => any,
@@ -89,8 +89,8 @@ type Props = {|
   setOpen: (open: boolean) => any,
 |};
 const FilterView = function ({
-  companyToken,
-  companyTokens,
+  companyId,
+  orgTokens,
   deviceId,
   devices,
   enableClustering,
@@ -98,7 +98,7 @@ const FilterView = function ({
   hasData,
   isWatching,
   maxMarkers,
-  onChangeCompanyToken,
+  onChangeOrgToken,
   onChangeDeviceId,
   onChangeEnableClustering,
   onChangeEndDate,
@@ -139,11 +139,11 @@ const FilterView = function ({
             <CardHeader className={classes.header} title='Locations' />
             <CardContent className={classes.relative}>
               <RemoveAnimationProvider>
-                <CompanyTokenField
+                <OrgField
                   fullScreen={fullScreen}
-                  onChange={onChangeCompanyToken}
-                  source={companyTokens}
-                  value={companyToken}
+                  onChange={onChangeOrgToken}
+                  source={orgTokens}
+                  value={companyId}
                 />
                 <DeviceField onChange={onChangeDeviceId} source={devices} hasData={hasData} value={deviceId} />
               </RemoveAnimationProvider>
@@ -265,15 +265,15 @@ const FilterView = function ({
 
 const mapStateToProps = function (state: GlobalState): StateProps {
   return {
-    deviceId: state.dashboard.deviceId,
-    companyToken: state.dashboard.companyToken,
+    deviceId: '' + state.dashboard.deviceId,
+    companyId: '' + state.dashboard.companyId,
     enableClustering: state.dashboard.enableClustering,
     startDate: state.dashboard.startDate,
     endDate: state.dashboard.endDate,
-    devices: state.dashboard.devices.map((device: Device) => ({ value: device.id, label: device.name })),
-    companyTokens: state.dashboard.companyTokens.map((companyToken: CompanyToken) => ({
-      value: companyToken.id,
-      label: companyToken.name,
+    devices: state.dashboard.devices.map((device: Device) => ({ value: '' + device.id, label: device.name })),
+    orgTokens: state.dashboard.orgTokens.map((orgToken: OrgToken) => ({
+      value: '' + orgToken.id,
+      label: orgToken.name,
     })),
     hasData: state.dashboard.hasData,
     isWatching: state.dashboard.isWatching,
@@ -287,7 +287,7 @@ const mapStateToProps = function (state: GlobalState): StateProps {
 const mapDispatchToProps: DispatchProps = {
   onReload: reload,
   onChangeDeviceId: changeDeviceId,
-  onChangeCompanyToken: changeCompanyToken,
+  onChangeOrgToken: changeOrgToken,
   onChangeStartDate: changeStartDate,
   onChangeEndDate: changeEndDate,
   onChangeEnableClustering: changeEnableClustering,

@@ -5,3 +5,5 @@ src/server/database/db/*.db
 build/
 changes.diff
 backup.backup
+keys/private.key
+keys/public.key

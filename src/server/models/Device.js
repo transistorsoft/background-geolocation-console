@@ -1,28 +1,90 @@
+import { Op } from 'sequelize';
+
+import { findOrCreate as findOrCreateCompany } from './Org';
+import DeviceModel from '../database/DeviceModel';
 import LocationModel from '../database/LocationModel';
-import sequelize, { Op } from 'sequelize';
+import {
+  checkCompany,
+  filterByCompany,
+} from '../libs/utils';
 
-const filterByCompany = !!process.env.SHARED_DASHBOARD;
-
-export async function getDevices (params) {
-  const whereConditions = {};
-  // console.info(filterByCompany);
-  if (filterByCompany) {
-    whereConditions.company_token = params.company_token;
-  }
-  const result = await LocationModel.findAll({
+export async function getDevice ({ id }) {
+  const whereConditions = { id };
+  const result = await DeviceModel.findOne({
     where: whereConditions,
-    attributes: ['device_id', 'device_model'],
-    group: ['device_id', 'device_model'],
-    order: [[sequelize.fn('max', sequelize.col('recorded_at')), 'DESC']],
+    attributes: ['id', 'device_id', 'device_model', 'company_id', 'company_token'],
+    raw: true,
   });
   return result;
 }
 
-export async function deleteDevice ({ id: deviceId, start_date: startDate, end_date: endDate }) {
-  const where = { device_id: deviceId || 'blank' };
+export async function getDevices (params) {
+  const whereConditions = {};
+  if (filterByCompany) {
+    params.company_id && (whereConditions.company_id = +params.company_id);
+  }
+  const result = await DeviceModel.findAll({
+    where: whereConditions,
+    attributes: ['id', 'device_id', 'device_model', 'company_id', 'company_token', 'framework'],
+    order: [['updated_at', 'DESC'], ['created_at', 'DESC']],
+    raw: true,
+  });
+  return result;
+}
+
+export async function deleteDevice ({
+  id: deviceId,
+  start_date: startDate,
+  end_date: endDate,
+}) {
+  const whereByDevice = {
+    device_id: deviceId,
+  };
+  const where = { ...whereByDevice };
   if (startDate && endDate && new Date(startDate) && new Date(endDate)) {
     where.recorded_at = { [Op.between]: [new Date(startDate), new Date(endDate)] };
   }
   const result = await LocationModel.destroy({ where });
+  const locationsCount = await LocationModel.count({ where: whereByDevice });
+  if (!locationsCount) {
+    await DeviceModel.destroy({
+      where: {
+        id: deviceId,
+      },
+      cascade: true,
+    });
+  }
   return result;
 }
+
+export const findOrCreate = async (
+  org = 'UNKNOWN', {
+    model,
+    uuid,
+    framework,
+    version,
+  }
+) => {
+  const device = { device_id: uuid, model: model || 'UNKNOWN', uuid };
+
+  const now = new Date();
+
+  checkCompany({ org, model: device.model });
+
+  const company = await findOrCreateCompany({ company_token: org });
+  const [row] = await DeviceModel.findOrCreate({
+    where: { company_id: company.id, device_id: device.device_id },
+    defaults: {
+      company_id: company.id,
+      company_token: org,
+      device_id: device.device_id || uuid,
+      device_model: device.model,
+      created_at: now,
+      framework,
+      version,
+    },
+    raw: true,
+  });
+
+  return row;
+};

@@ -1,42 +1,19 @@
-import fs from 'fs';
-import path from 'path';
-import Sequelize from 'sequelize';
+import { Op } from 'sequelize';
+import Promise from 'bluebird';
+import CompanyModel from '../database/CompanyModel';
+import DeviceModel from '../database/DeviceModel';
 import LocationModel from '../database/LocationModel';
+import { findOrCreate } from './Device';
+import {
+  AccessDeniedError,
+  filterByCompany,
+  hydrate,
+  isDeniedCompany,
+  isDeniedDevice,
+  jsonb,
+} from '../libs/utils';
 
-const Op = Sequelize.Op;
-
-const filterByCompany = !!process.env.SHARED_DASHBOARD;
-const deniedCompanies = (process.env.DENIED_COMPANY_TOKENS || '').split(',');
-const deniedDevices = (process.env.DENIED_DEVICE_TOKENS || '').split(',');
-const ddosBombCompanies = (process.env.DDOS_BOMB_COMPANY_TOKENS || '').split(',');
-
-const check = (list, verify) => list
-  .find(x => !!x && (verify || '').toLowerCase().startsWith(x.toLowerCase()));
-export const isDDosCompany = companyToken => check(ddosBombCompanies, companyToken);
-export const isDeniedCompany = companyToken => check(deniedCompanies, companyToken);
-export const isDeniedDevice = companyToken => check(deniedDevices, companyToken);
-
-export class AccessDeniedError extends Error {};
-
-function hydrate (record) {
-  if (record.geofence) {
-    record.geofence = JSON.parse(record.geofence);
-  }
-  if (record.provider) {
-    record.provider = JSON.parse(record.provider);
-  }
-  if (record.extras) {
-    record.extras = JSON.parse(record.extras);
-  }
-  return record;
-}
-
-export function return1Gbfile (res) {
-  const file1gb = path.resolve(__dirname, '..', '..', '..', 'text.null.gz');
-  console.log('file1gb', file1gb);
-  res.setHeader('Content-Encoding', 'gzip, deflate');
-  fs.createReadStream(file1gb).pipe(res);
-}
+const include = [{ model: DeviceModel, as: 'device' }];
 
 export async function getStats () {
   const minDate = await LocationModel.min('created_at');
@@ -55,15 +32,16 @@ export async function getLocations (params) {
     whereConditions.recorded_at = { [Op.between]: [new Date(params.start_date), new Date(params.end_date)] };
   }
 
-  whereConditions.device_id = params.device_id || '';
+  params.device_id && (whereConditions.device_id = +params.device_id);
   if (filterByCompany) {
-    whereConditions.company_token = params.company_token;
+    params.company_id && (whereConditions.company_id = +params.company_id);
   }
 
   const rows = await LocationModel.findAll({
     where: whereConditions,
     order: [['recorded_at', 'DESC']],
     limit: params.limit,
+    include,
   });
 
   const locations = rows.map(hydrate);
@@ -71,35 +49,39 @@ export async function getLocations (params) {
 }
 
 export async function getLatestLocation (params) {
-  var whereConditions = {
-    device_id: params.device_id,
-  };
+  var whereConditions = {};
+  params.device_id && (whereConditions.device_id = +params.device_id);
   if (filterByCompany) {
-    whereConditions.company_token = params.company_token;
+    params.companyId && (whereConditions.company_id = +params.companyId);
+    params.company_id && (whereConditions.company_id = +params.company_id);
   }
   const row = await LocationModel.findOne({
     where: whereConditions,
     order: [['recorded_at', 'DESC']],
+    include,
   });
   const result = row ? hydrate(row) : null;
   return result;
 }
-export async function createLocation (params) {
+
+export async function createLocation (params, device = {}) {
   if (Array.isArray(params)) {
     for (let location of params) {
       try {
-        await createLocation(location);
+        await createLocation(location, device);
       } catch (e) {
         throw e;
       }
     }
     return;
   }
-  const { location, company_token: companyToken } = params;
-  const device = params.device || { model: 'UNKNOWN' };
-  const verify = companyToken || 'UNKNOWN';
+  const { company_token: orgToken, id } = device;
+  const { location, company_token: token } = params;
+  const deviceInfo = params.device || { model: 'UNKNOWN' };
+  const companyName = orgToken || token || 'UNKNOWN';
+  const now = new Date();
 
-  if (isDeniedCompany(verify)) {
+  if (isDeniedCompany(companyName)) {
     throw new AccessDeniedError(
       'This is a question from the CEO of Transistor Software.\n' +
       'Why are you spamming my demo server1?\n' +
@@ -110,17 +92,7 @@ export async function createLocation (params) {
   const locations = Array.isArray(location) ? location : (location ? [location] : []);
 
   for (let location of locations) {
-    const coords = location.coords;
-    const battery = location.battery || { level: null, is_charging: null };
-    const activity = location.activity || { type: null, confidence: null };
-    const geofence = location.geofence ? JSON.stringify(location.geofence) : null;
-    const provider = location.provider ? JSON.stringify(location.provider) : null;
-    const extras = location.extras ? JSON.stringify(location.extras) : null;
-    const now = new Date();
-    const uuid = device.framework ? device.framework + '-' + device.uuid : device.uuid;
-    const model = device.framework ? device.model + ' (' + device.framework + ')' : device.model;
-
-    if (isDeniedDevice(device.model)) {
+    if (isDeniedDevice(deviceInfo.model)) {
       throw new AccessDeniedError(
         'This is a question from the CEO of Transistor Software.\n' +
         'Why are you spamming my demo server2?\n' +
@@ -128,43 +100,47 @@ export async function createLocation (params) {
       );
     }
 
+    const currentDevice = id
+      ? device
+      : await findOrCreate(companyName, { ...deviceInfo });
+
+    CompanyModel.update(
+      { updated_at: now },
+      { where: { id: currentDevice.company_id } }
+    );
+    DeviceModel.update(
+      { updated_at: now },
+      { where: { id: currentDevice.id } }
+    );
+
     await LocationModel.create({
-      uuid: location.uuid,
-      company_token: companyToken || null,
-      device_id: uuid,
-      device_model: model,
-      latitude: coords.latitude,
-      longitude: coords.longitude,
-      accuracy: parseInt(coords.accuracy, 10),
-      altitude: coords.altitude,
-      speed: coords.speed,
-      heading: coords.heading,
-      odometer: location.odometer,
-      event: location.event,
-      activity_type: activity.type,
-      activity_confidence: activity.confidence,
-      battery_level: battery.level,
-      battery_is_charging: battery.is_charging,
-      is_moving: location.is_moving,
-      geofence: geofence,
-      provider: provider,
-      extras: extras,
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+      data: jsonb(location),
       recorded_at: location.timestamp,
       created_at: now,
+      company_id: currentDevice.company_id,
+      device_id: currentDevice.id,
     });
   }
 }
 
 export async function deleteLocations (params) {
-  var whereConditions = {};
-  if (params && params.deviceId) {
-    whereConditions.device_id = params.deviceId;
+  const whereConditions = {};
+  const verify = {};
+  const companyId = params && (params.companyId || params.company_id);
+  const deviceId = params && (params.deviceId || params.device_id);
+
+  if (filterByCompany && !!companyId) {
+    whereConditions.company_id = +companyId;
+    verify.company_id = +companyId;
+  }
+  if (params && deviceId) {
+    whereConditions.device_id = +deviceId;
+    verify.device_id = +deviceId;
   }
   if (params && params.start_date && params.end_date) {
     whereConditions.recorded_at = { $between: [params.start_date, params.end_date] };
-  }
-  if (filterByCompany) {
-    whereConditions.company_token = params.company_token;
   }
 
   if (!Object.keys(whereConditions).length) {
@@ -172,4 +148,34 @@ export async function deleteLocations (params) {
   }
 
   await LocationModel.destroy({ where: whereConditions });
+
+  if (params.deviceId) {
+    const locationsCount = await LocationModel.count({
+      where: verify,
+    });
+    if (!locationsCount && verify.device_id) {
+      await DeviceModel.destroy({
+        where: { id: verify.device_id },
+      });
+    }
+  } else if (companyId) {
+    const devices = await LocationModel.findAll({
+      attributes: ['company_id', 'device_id'],
+      where: verify,
+      group: ['company_id', 'device_id'],
+      raw: true,
+    });
+    const group = {};
+    devices.forEach(x => (group[x.company_id] = (group[x.company_id] || []).concat([x.device_id])));
+    const queries = Object.keys(group)
+      .map(companyId => DeviceModel.destroy({
+        where: {
+          company_id: +companyId,
+          id: { $notIn: group[companyId] },
+        },
+        cascade: true,
+        raw: true,
+      }));
+    await Promise.reduce(queries, (p, q) => q, 0);
+  }
 }
