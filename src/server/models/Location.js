@@ -113,6 +113,13 @@ export async function createLocation (params, device = {}) {
       { where: { id: currentDevice.id } }
     );
 
+    console.info(
+      'location:create'.green,
+      'org:name'.green, companyName,
+      'org:id'.green, currentDevice.company_id,
+      'device:id'.green, currentDevice.id,
+    );
+
     await LocationModel.create({
       latitude: location.coords.latitude,
       longitude: location.coords.longitude,

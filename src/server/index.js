@@ -71,7 +71,7 @@ app.use(bodyParser.raw(parserLimits));
     // Spawning dedicated process on opened port.. only if not deployed on heroku
     if (!dyno) {
       opn(`http://localhost:8080`)
-        .catch(error => console.log('Optional site open failed:', error));
+        .catch(error => console.error('Optional site open failed:', error));
     }
   });
 })();

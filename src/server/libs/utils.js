@@ -76,7 +76,6 @@ export function hydrate (row) {
 
 export function return1Gbfile (res) {
   const file1gb = resolve(__dirname, '..', '..', '..', 'text.null.gz');
-  console.log('file1gb', file1gb);
   res.setHeader('Content-Encoding', 'gzip, deflate');
   createReadStream(file1gb).pipe(res);
 }
