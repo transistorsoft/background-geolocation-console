@@ -1,6 +1,6 @@
 import { Op } from 'sequelize';
 
-import { findOrCreate as findOrCreateCompany } from './CompanyToken';
+import { findOrCreate as findOrCreateCompany } from './Org';
 import DeviceModel from '../database/DeviceModel';
 import LocationModel from '../database/LocationModel';
 import {
@@ -49,7 +49,7 @@ export async function deleteDevice ({
   if (!locationsCount) {
     await DeviceModel.destroy({
       where: {
-        id: deviceId
+        id: deviceId,
       },
       cascade: true,
     });
@@ -57,8 +57,14 @@ export async function deleteDevice ({
   return result;
 }
 
-export const findOrCreate = async (org = 'UNKNOWN', { model, uuid, framework, version }) => {
-
+export const findOrCreate = async (
+  org = 'UNKNOWN', {
+    model,
+    uuid,
+    framework,
+    version,
+  }
+) => {
   const device = { device_id: uuid, model: model || 'UNKNOWN', uuid };
 
   const now = new Date();
@@ -71,7 +77,7 @@ export const findOrCreate = async (org = 'UNKNOWN', { model, uuid, framework, ve
     defaults: {
       company_id: company.id,
       company_token: org,
-      device_id: device.id,
+      device_id: device.device_id || uuid,
       device_model: device.model,
       created_at: now,
       framework,

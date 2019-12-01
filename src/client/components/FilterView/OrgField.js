@@ -54,7 +54,7 @@ const styles = (theme: any) => ({
   },
 });
 
-const CompanyTokenField = withStyles(styles)((props: Props) => {
+const OrgField = withStyles(styles)((props: Props) => {
   const { onChange, value, source: s, fullScreen, classes } = props;
   const [dialogOpen, setOpen] = React.useState(false);
   const [filter, setFilter] = React.useState('');
@@ -133,10 +133,10 @@ const CompanyTokenField = withStyles(styles)((props: Props) => {
       fullScreen={fullScreen}
       onClose={handleCancel}
       scroll='paper'
-      className='company-token-dialog'
+      className='org-token-dialog'
     >
       <DialogTitle id='confirmation-dialog-title'>
-        Company selector
+        Org selector
         <IconButton aria-label='close' className={classes.closeButton} onClick={handleCancel}>
           <CloseIcon />
         </IconButton>
@@ -211,4 +211,4 @@ const CompanyTokenField = withStyles(styles)((props: Props) => {
   ];
 });
 
-export default CompanyTokenField;
+export default OrgField;

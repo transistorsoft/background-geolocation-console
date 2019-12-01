@@ -1,10 +1,12 @@
 import { Router } from 'express';
+import crypto from 'crypto';
 
 import { findOrCreate, getDevices, getDevice, deleteDevice } from '../models/Device';
-import { getCompanyTokens } from '../models/CompanyToken';
+import { getOrgs } from '../models/Org';
 import { isEncryptedRequest, decrypt } from '../libs/RNCrypto';
 import {
   AccessDeniedError,
+  RegistrationRequiredError,
   checkAuth,
   isProduction,
   isDDosCompany,
@@ -26,15 +28,15 @@ const router = new Router();
 //  -H 'Content-Type: application/json'
 router.post('/register', async function (req, res) {
   const {
-    org: org,
-    uuid: uuid,
-    model: model,
-    manufacturer: manufacturer,
-    version = version,
-    framework = framework
+    org,
+    uuid,
+    model,
+    manufacturer,
+    version,
+    framework,
   } = req.body;
 
-  console.log("POST /register %s".green, JSON.stringify(req.body, null, 2));
+  console.log('POST /register %s'.green, JSON.stringify(req.body, null, 2));
 
   if (!org) {
     return res.status(500).send({ message: 'Organization identifier empty' });
@@ -49,7 +51,7 @@ router.post('/register', async function (req, res) {
       uuid,
       model,
       framework,
-      version
+      version,
     });
 
     const jwtInfo = {
@@ -58,13 +60,13 @@ router.post('/register', async function (req, res) {
       model: model,
     };
 
-    const jwt = sign(jwtInfo);
+    const accessToken = sign(jwtInfo);
+    const refreshToken = crypto.createHash('md5').update(accessToken).digest('hex');
 
     return res.send({
-      accessToken: jwt,
-      renewalToken: null, // TODO
-      expires: null      // TODO
-
+      accessToken,
+      refreshToken,
+      expires: -1,
     });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
@@ -74,14 +76,40 @@ router.post('/register', async function (req, res) {
     return res.status(500).send(!isProduction ? err : err.message);
   }
 });
+
+router.all('/refresh_token', checkAuth, async function (req, res) {
+  const { org, deviceId, model } = req.jwt;
+  const jwtInfo = {
+    org: org,
+    deviceId: deviceId,
+    model: model,
+  };
+  try {
+    const accessToken = sign(jwtInfo);
+    const refreshToken = crypto.createHash('md5').update(accessToken).digest('hex');
+
+    return res.send({
+      accessToken,
+      refreshToken,
+      expires: -1,
+    });
+  } catch (err) {
+    if (err instanceof AccessDeniedError) {
+      return res.status(403).send({ error: err.message });
+    }
+    console.error('/register', req.body, err);
+    return res.status(500).send(!isProduction ? err : err.message);
+  }
+});
+
 // curl -v http://localhost:9000/v2/company_tokens \
 //   -H 'Authorization: Bearer ey...Pg'
 //
 router.get('/company_tokens', checkAuth, async function (req, res) {
-  const { company: companyToken } = req.jwt;
+  const { org } = req.jwt;
   try {
-    const companyTokens = await getCompanyTokens({ company_token: companyToken });
-    res.send(companyTokens);
+    const orgTokens = await getOrgs({ company_token: org });
+    res.send(orgTokens);
   } catch (err) {
     console.error('/company_tokens', err);
     res.status(500).send({ error: err.message });
@@ -95,7 +123,7 @@ router.get('/devices', checkAuth, async function (req, res) {
     const devices = await getDevices({
       company_id: device.company_id,
     });
-    res.send(devices);
+    res.send(devices || []);
   } catch (err) {
     console.error('/devices', err);
     res.status(500).send({ error: err.message });
@@ -104,7 +132,7 @@ router.get('/devices', checkAuth, async function (req, res) {
 
 router.delete('/devices/:id', checkAuth, async function (req, res) {
   const { deviceId } = req.jwt;
-  const device = await getDevice({ id: deviceId });
+  // const device = await getDevice({ id: deviceId });
   const {
     id,
     end_date: endDate,
@@ -112,13 +140,13 @@ router.delete('/devices/:id', checkAuth, async function (req, res) {
   } = req.params;
   try {
     await deleteDevice({
-      id,
+      id: deviceId,
       end_date: endDate,
       start_date: startDate,
     });
     res.send({ success: true });
   } catch (err) {
-    console.error(`/devices/${id}`, req.query, err);
+    console.error(`/devices/${id}`, deviceId, req.query, err);
     res.status(500).send({ error: err.message });
   }
 });
@@ -136,12 +164,9 @@ router.get('/stats', checkAuth, async function (req, res) {
 router.get('/locations/latest', checkAuth, async function (req, res) {
   const { deviceId } = req.jwt;
   const device = await getDevice({ id: deviceId });
-  const {
-    device_id: id,
-  } = req.query;
   try {
     const latest = await getLatestLocation({
-      device_id: id,
+      device_id: deviceId,
       company_id: device.company_id,
 
     });
@@ -190,7 +215,7 @@ router.post('/locations', checkAuth, async function (req, res) {
   // Can happen if Device is deleted from Dashboard but a JWT is still posting locations for it.
   if (device == null) {
     console.error('Device ID %s not found.  Was it deleted from dashboard?'.red, deviceId);
-    return res.status(410).send({error: 'DEVICE_ID_NOT_FOUND'});
+    return res.status(410).send({ error: 'DEVICE_ID_NOT_FOUND', background_geolocation: ['stop'] });
   }
 
   const locations = (Array.isArray(data) ? data : (data ? [data] : []))
@@ -213,6 +238,8 @@ router.post('/locations', checkAuth, async function (req, res) {
   } catch (err) {
     if (err instanceof AccessDeniedError) {
       return res.status(403).send({ error: err.toString() });
+    } else if (err instanceof RegistrationRequiredError) {
+      return res.status(406).send({ error: err.toString() });
     }
     console.error('POST /locations', body, err);
     res.status(500).send({ error: err.message });
@@ -258,14 +285,13 @@ router.delete('/locations', checkAuth, async function (req, res) {
     const { deviceId } = req.jwt;
     const device = await getDevice({ id: deviceId });
     const {
-      deviceId: id,
       start_date: startDate,
       end_date: endDate,
     } = req.query;
 
     await deleteLocations({
       companyId: device.company_id,
-      deviceId: id,
+      deviceId,
       end_date: endDate,
       start_date: startDate,
     });

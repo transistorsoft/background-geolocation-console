@@ -34,15 +34,15 @@ import formatDate from '~/utils/formatDate';
 import DeviceField from './DeviceField';
 import RemoveAnimationProvider from '../RemoveAnimationProvider';
 import DeleteDeviceLink from './DeleteDeviceLink';
-import CompanyTokenField from './CompanyTokenField';
+import OrgField from './OrgField';
 import CustomMarkers from './CustomMarkers';
 import { type GlobalState } from '~/reducer/state';
 import {
-  type CompanyToken,
+  type OrgToken,
   type Device,
   type MaterialInputElement,
   type Source,
-  changeCompanyToken,
+  changeOrgToken,
   changeDeviceId,
   changeEnableClustering,
   changeEndDate,
@@ -57,7 +57,7 @@ import {
 const cardMargins = { marginBottom: '10px' };
 type StateProps = {|
   companyId: string,
-  companyTokens: Source[],
+  orgTokens: Source[],
   deviceId: string,
   devices: Source[],
   enableClustering: boolean,
@@ -71,7 +71,7 @@ type StateProps = {|
   startDate: Date,
 |};
 type DispatchProps = {|
-  onChangeCompanyToken: (companyToken: string) => any,
+  onChangeOrgToken: (orgToken: string) => any,
   onChangeDeviceId: (deviceId: string) => any,
   onChangeEnableClustering: (value: boolean) => any,
   onChangeEndDate: (date: Date) => any,
@@ -90,7 +90,7 @@ type Props = {|
 |};
 const FilterView = function ({
   companyId,
-  companyTokens,
+  orgTokens,
   deviceId,
   devices,
   enableClustering,
@@ -98,7 +98,7 @@ const FilterView = function ({
   hasData,
   isWatching,
   maxMarkers,
-  onChangeCompanyToken,
+  onChangeOrgToken,
   onChangeDeviceId,
   onChangeEnableClustering,
   onChangeEndDate,
@@ -139,10 +139,10 @@ const FilterView = function ({
             <CardHeader className={classes.header} title='Locations' />
             <CardContent className={classes.relative}>
               <RemoveAnimationProvider>
-                <CompanyTokenField
+                <OrgField
                   fullScreen={fullScreen}
-                  onChange={onChangeCompanyToken}
-                  source={companyTokens}
+                  onChange={onChangeOrgToken}
+                  source={orgTokens}
                   value={companyId}
                 />
                 <DeviceField onChange={onChangeDeviceId} source={devices} hasData={hasData} value={deviceId} />
@@ -271,9 +271,9 @@ const mapStateToProps = function (state: GlobalState): StateProps {
     startDate: state.dashboard.startDate,
     endDate: state.dashboard.endDate,
     devices: state.dashboard.devices.map((device: Device) => ({ value: '' + device.id, label: device.name })),
-    companyTokens: state.dashboard.companyTokens.map((companyToken: CompanyToken) => ({
-      value: '' + companyToken.id,
-      label: companyToken.name,
+    orgTokens: state.dashboard.orgTokens.map((orgToken: OrgToken) => ({
+      value: '' + orgToken.id,
+      label: orgToken.name,
     })),
     hasData: state.dashboard.hasData,
     isWatching: state.dashboard.isWatching,
@@ -287,7 +287,7 @@ const mapStateToProps = function (state: GlobalState): StateProps {
 const mapDispatchToProps: DispatchProps = {
   onReload: reload,
   onChangeDeviceId: changeDeviceId,
-  onChangeCompanyToken: changeCompanyToken,
+  onChangeOrgToken: changeOrgToken,
   onChangeStartDate: changeStartDate,
   onChangeEndDate: changeEndDate,
   onChangeEnableClustering: changeEnableClustering,

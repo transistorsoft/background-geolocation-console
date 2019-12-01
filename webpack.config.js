@@ -9,6 +9,7 @@ const copyAssets = new CopyPlugin([
   { from: 'assets/images', to: 'images' },
 ]);
 const isProduction = process.env.NODE_ENV === 'production';
+
 const htmlWebpackPlugin = new HtmlWebpackPlugin({
   template: 'index.ejs',
   inject: true,
@@ -30,9 +31,9 @@ const htmlWebpackPlugin = new HtmlWebpackPlugin({
   GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
 });
 
-module.exports = {
+const config = {
   context: path.resolve(__dirname, 'src', 'client'),
-  devtool: 'source-map',
+  devtool: !isProduction ? 'cheap-module-eval-source-map' : 'source-map',
   target: 'web',
   entry: isProduction
     ? [
@@ -126,6 +127,7 @@ module.exports = {
     ? [
       new webpack.DefinePlugin({
         'process.env.SHARED_DASHBOARD': !!process.env.SHARED_DASHBOARD || '',
+        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
       }),
       new webpack.LoaderOptionsPlugin({
         minimize: true,
@@ -138,9 +140,12 @@ module.exports = {
       new webpack.NamedModulesPlugin(),
       new webpack.DefinePlugin({
         'process.env.SHARED_DASHBOARD': !!process.env.SHARED_DASHBOARD || '',
+        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
       }),
       copyAssets,
       new webpack.HotModuleReplacementPlugin(),
       htmlWebpackPlugin,
     ],
 };
+
+module.exports = config;

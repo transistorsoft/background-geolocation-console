@@ -4,7 +4,7 @@ import {
 } from '../libs/utils';
 import CompanyModel from '../database/CompanyModel';
 
-export async function getCompanyTokens ({ company_token: companyToken }) {
+export async function getOrgs ({ company_token: org }) {
   if (!filterByCompany) {
     return [
       {
@@ -13,7 +13,7 @@ export async function getCompanyTokens ({ company_token: companyToken }) {
       },
     ];
   }
-  const whereConditions = isAdmin(companyToken) ? {} : { company_token: companyToken };
+  const whereConditions = isAdmin(org) ? {} : { company_token: org };
   const result = await CompanyModel.findAll({
     where: whereConditions,
     attributes: ['id', 'company_token'],
@@ -24,11 +24,11 @@ export async function getCompanyTokens ({ company_token: companyToken }) {
   return result;
 }
 
-export async function findOrCreate ({ company_token: companyToken }) {
+export async function findOrCreate ({ company_token: org }) {
   const now = new Date();
   const [company] = await CompanyModel.findOrCreate({
-    where: { company_token: companyToken },
-    defaults: { created_at: now, company_token: companyToken, updated_at: now },
+    where: { company_token: org },
+    defaults: { created_at: now, company_token: org, updated_at: now },
     raw: true,
   });
   return company;

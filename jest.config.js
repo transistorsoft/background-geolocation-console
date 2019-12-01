@@ -1,10 +1,10 @@
 const { defaults } = require('jest-config');
 
 module.exports = {
-  // rootDir: 'src/server',
+  // rootDir: './',
   transform: {
     ...defaults.transform,
-    '^.+\\.[t|j]sx?$': 'babel-jest',
+    '^.+\\.[t|j]sx?$': '<rootDir>/jest.transform.js',
   },
   moduleFileExtensions: [
     'js',
@@ -15,5 +15,8 @@ module.exports = {
     defaults.coveragePathIgnorePatterns,
     []
   ),
+  setupFiles: [
+    '<rootDir>/jest.init.js',
+  ],
   verbose: true,
 };
