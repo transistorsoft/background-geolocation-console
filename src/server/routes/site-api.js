@@ -26,7 +26,7 @@ router.get('/company_tokens', async function (req, res) {
     const orgs = await getOrgs(req.query);
     res.send(orgs);
   } catch (err) {
-    console.info('err: ', err);
+    console.error('/company_tokens', err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -39,7 +39,7 @@ router.get('/devices', async function (req, res) {
     const devices = await getDevices(req.query);
     res.send(devices);
   } catch (err) {
-    console.info('err: ', err);
+    console.error('/devices', err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -50,7 +50,7 @@ router.delete('/devices/:id', async function (req, res) {
     await deleteDevice({ ...req.query, id: req.params.id });
     res.send({ success: true });
   } catch (err) {
-    console.info('err: ', err);
+    console.error('/devices', JSON.stringify(req.params), JSON.stringify(req.query), err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -60,7 +60,7 @@ router.get('/stats', async function (req, res) {
     const stats = await getStats();
     res.send(stats);
   } catch (err) {
-    console.info('err: ', err);
+    console.info('/stats', err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -71,7 +71,7 @@ router.get('/locations/latest', async function (req, res) {
     const latest = await getLatestLocation(req.query);
     res.send(latest);
   } catch (err) {
-    console.info('err: ', err);
+    console.info('/locations/latest', JSON.stringify(req.query), err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -86,7 +86,7 @@ router.get('/locations', async function (req, res) {
     const locations = await getLocations(req.query);
     res.send(locations);
   } catch (err) {
-    console.info('err: ', err);
+    console.info('get /locations', JSON.stringify(req.query), err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -112,7 +112,7 @@ router.post('/locations', async function (req, res) {
     if (err instanceof AccessDeniedError) {
       return res.status(403).send({ error: err.toString() });
     }
-    console.error('err: ', err);
+    console.error('post /locations', err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -143,7 +143,7 @@ router.post('/locations/:company_token', async function (req, res) {
     if (err instanceof AccessDeniedError) {
       return res.status(403).send({ error: err.toString() });
     }
-    console.error('err: ', err);
+    console.error('post /locations', org, err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -157,7 +157,7 @@ router.delete('/locations', async function (req, res) {
     res.send({ success: true });
     res.status(500).send({ error: 'Something failed!' });
   } catch (err) {
-    console.info('err: ', err);
+    console.info('delete /locations', JSON.stringify(req.query), err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -170,7 +170,6 @@ router.post('/locations_template', async function (req, res) {
 });
 
 router.post('/configure', async function (req, res) {
-
   var response = {
     access_token: 'e7ebae5e-4bea-4d63-8f28-8a104acd2f4c',
     token_type: 'Bearer',
