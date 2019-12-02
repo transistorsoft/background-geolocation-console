@@ -65,19 +65,25 @@ export const findOrCreate = async (
     version,
   }
 ) => {
-  const device = { device_id: uuid, model: model || 'UNKNOWN', uuid };
-
+  const device = {
+    device_id: uuid || 'UNKNOWN',
+    model: model || 'UNKNOWN',
+  };
   const now = new Date();
 
   checkCompany({ org, model: device.model });
 
   const company = await findOrCreateCompany({ company_token: org });
+  const where = { company_id: company.id };
+
+  uuid && (where.device_id = uuid);
+
   const [row] = await DeviceModel.findOrCreate({
-    where: { company_id: company.id, device_id: device.device_id },
+    where,
     defaults: {
       company_id: company.id,
       company_token: org,
-      device_id: device.device_id || uuid,
+      device_id: device.device_id,
       device_model: device.model,
       created_at: now,
       framework,

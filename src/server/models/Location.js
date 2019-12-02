@@ -77,7 +77,7 @@ export async function createLocation (params, device = {}) {
   }
   const { company_token: orgToken, id } = device;
   const { location, company_token: token } = params;
-  const deviceInfo = params.device || { model: 'UNKNOWN' };
+  const deviceInfo = params.device || { model: 'UNKNOWN', uuid: 'UNKNOWN' };
   const companyName = orgToken || token || 'UNKNOWN';
   const now = new Date();
 
