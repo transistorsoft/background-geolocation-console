@@ -36,7 +36,14 @@ router.post('/register', async function (req, res) {
     framework,
   } = req.body;
 
-  console.log('POST /register %s'.green, JSON.stringify(req.body, null, 2));
+  console.info(
+    'POST /register '.green,
+    'org'.green, org,
+    'uuid'.green, uuid,
+    'model'.green, model,
+    'version'.green, version,
+    'framework'.green, framework,
+  );
 
   if (!org) {
     return res.status(500).send({ message: 'Organization identifier empty' });
@@ -55,9 +62,9 @@ router.post('/register', async function (req, res) {
     });
 
     const jwtInfo = {
-      org: org,
+      org,
       deviceId: device.id,
-      model: model,
+      model,
     };
 
     const accessToken = sign(jwtInfo);
@@ -72,7 +79,7 @@ router.post('/register', async function (req, res) {
     if (err instanceof AccessDeniedError) {
       return res.status(403).send({ error: err.message });
     }
-    console.error('/register', req.body, err);
+    console.error('/register', err);
     return res.status(500).send(!isProduction ? err : err.message);
   }
 });
@@ -80,10 +87,15 @@ router.post('/register', async function (req, res) {
 router.all('/refresh_token', checkAuth, async function (req, res) {
   const { org, deviceId, model } = req.jwt;
   const jwtInfo = {
-    org: org,
-    deviceId: deviceId,
-    model: model,
+    org,
+    deviceId,
+    model,
   };
+  console.info(
+    'auth:refresh'.green,
+    'org:name'.green, org,
+    'device:id'.green, deviceId,
+  );
   try {
     const accessToken = sign(jwtInfo);
     const refreshToken = crypto.createHash('md5').update(accessToken).digest('hex');
@@ -132,7 +144,13 @@ router.get('/devices', checkAuth, async function (req, res) {
 
 router.delete('/devices/:id', checkAuth, async function (req, res) {
   const { deviceId } = req.jwt;
-  // const device = await getDevice({ id: deviceId });
+
+  console.info(
+    'devices:delete'.green,
+    'device:id'.green, deviceId,
+    JSON.stringify(req.query)
+  );
+
   const {
     id,
     end_date: endDate,
@@ -162,8 +180,14 @@ router.get('/stats', checkAuth, async function (req, res) {
 });
 
 router.get('/locations/latest', checkAuth, async function (req, res) {
-  const { deviceId } = req.jwt;
+  const { deviceId, org } = req.jwt;
   const device = await getDevice({ id: deviceId });
+  console.info(
+    'locations:latest'.green,
+    'org:name'.green, org,
+    'device:id'.green, deviceId,
+    JSON.stringify(req.query)
+  );
   try {
     const latest = await getLatestLocation({
       device_id: deviceId,
@@ -181,8 +205,13 @@ router.get('/locations/latest', checkAuth, async function (req, res) {
  * GET /locations
  */
 router.get('/locations', checkAuth, async function (req, res) {
-  const { deviceId } = req.jwt;
-
+  const { deviceId, org } = req.jwt;
+  console.info(
+    'locations:get'.green,
+    'org:name'.green, org,
+    'device:id'.green, deviceId,
+    JSON.stringify(req.query)
+  );
   const device = await getDevice({ id: deviceId });
   const {
     end_date: endDate,
@@ -205,7 +234,12 @@ router.get('/locations', checkAuth, async function (req, res) {
  * POST /locations
  */
 router.post('/locations', checkAuth, async function (req, res) {
-  const { deviceId } = req.jwt;
+  const { deviceId, org } = req.jwt;
+  console.info(
+    'locations:post'.green,
+    'org:name'.green, org,
+    'device:id'.green, deviceId
+  );
   const { body } = req;
   const device = await getDevice({ id: deviceId });
   const data = isEncryptedRequest(req)
@@ -230,8 +264,6 @@ router.post('/locations', checkAuth, async function (req, res) {
     return return1Gbfile(res);
   }
 
-  console.log('%s\n'.yellow, JSON.stringify(data, null, 2));
-
   try {
     await createLocation(locations, device);
     res.send({ success: true });
@@ -250,7 +282,14 @@ router.post('/locations', checkAuth, async function (req, res) {
  * POST /locations
  */
 router.post('/locations/:company_token', checkAuth, async function (req, res) {
-  const { deviceId } = req.jwt;
+  const { deviceId, org } = req.jwt;
+
+  console.info(
+    'locations:post'.green,
+    'org:name'.green, org,
+    'device:id'.green, deviceId
+  );
+
   const device = await getDevice({ id: deviceId });
   if (isDDosCompany(device.company_token)) {
     return return1Gbfile(res);
@@ -282,7 +321,15 @@ router.post('/locations/:company_token', checkAuth, async function (req, res) {
 
 router.delete('/locations', checkAuth, async function (req, res) {
   try {
-    const { deviceId } = req.jwt;
+    const { deviceId, org } = req.jwt;
+
+    console.info(
+      'locations:delete'.green,
+      'org:name'.green, org,
+      'device:id'.green, deviceId,
+      JSON.stringify(req.query)
+    );
+
     const device = await getDevice({ id: deviceId });
     const {
       start_date: startDate,

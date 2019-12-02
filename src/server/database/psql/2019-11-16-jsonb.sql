@@ -76,3 +76,10 @@ ALTER TABLE public.locations DROP COLUMN if exists is_moving;
 ALTER TABLE public.locations DROP COLUMN if exists geofence;
 ALTER TABLE public.locations DROP COLUMN if exists provider;
 ALTER TABLE public.locations DROP COLUMN if exists extras;
+
+-- # step 4
+
+ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone;
+ALTER TABLE public.devices ADD COLUMN IF NOT EXISTS framework text;
+ALTER TABLE public.devices ADD COLUMN IF NOT EXISTS version text;
+ALTER TABLE public.devices ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone;

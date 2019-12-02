@@ -19,7 +19,7 @@ export default async function initializeDatabase () {
   try {
     await definedSequelizeDb.authenticate();
   } catch (err) {
-    console.log('Unable to connect to the database:', err);
+    console.error('Unable to connect to the database:', err);
   }
 
   if (isProduction && process.env.DATABASE_URL) {
@@ -30,6 +30,6 @@ export default async function initializeDatabase () {
     await Device.sync(syncOptions);
     await Location.sync(syncOptions);
   } catch (err) {
-    console.log('Unable to sync database:', err);
+    console.error('Unable to sync database:', err);
   }
 }

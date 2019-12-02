@@ -1,5 +1,4 @@
 import fs from 'fs';
-import { stringify } from 'querystring';
 import { Router } from 'express';
 import { isEncryptedRequest, decrypt } from '../libs/RNCrypto';
 import {
@@ -37,7 +36,6 @@ router.get('/company_tokens', async function (req, res) {
  */
 router.get('/devices', async function (req, res) {
   try {
-    console.log('GET /devices\n'.green);
     const devices = await getDevices(req.query);
     res.send(devices);
   } catch (err) {
@@ -48,7 +46,7 @@ router.get('/devices', async function (req, res) {
 
 router.delete('/devices/:id', async function (req, res) {
   try {
-    console.log(`DELETE /devices/${req.params.id}?${stringify(req.query)}\n`.green);
+    console.log(`DELETE /devices/${req.params.id}?${JSON.stringify(req.query)}\n`.green);
     await deleteDevice({ ...req.query, id: req.params.id });
     res.send({ success: true });
   } catch (err) {
@@ -59,7 +57,6 @@ router.delete('/devices/:id', async function (req, res) {
 
 router.get('/stats', async function (req, res) {
   try {
-    console.log('GET /stats\n'.green);
     const stats = await getStats();
     res.send(stats);
   } catch (err) {
@@ -107,10 +104,6 @@ router.post('/locations', async function (req, res) {
   if (locations.find(({ company_token: org }) => isDDosCompany(org))) {
     return return1Gbfile(res);
   }
-  var auth = req.get('Authorization');
-  console.log('POST /locations\n%s'.green, JSON.stringify(req.headers, null, 2));
-  console.log('Authorization: %s'.green, auth);
-  console.log('%s\n'.yellow, JSON.stringify(locations, null, 2));
 
   try {
     await createLocation(locations);
@@ -130,18 +123,17 @@ router.post('/locations', async function (req, res) {
 router.post('/locations/:company_token', async function (req, res) {
   const { company_token: org } = req.params;
 
+  console.info(
+    'locations:post'.green,
+    'org:name'.green, org,
+  );
+
   if (isDDosCompany(org)) {
     return return1Gbfile(res);
   }
 
-  const auth = req.get('Authorization');
-
   const data = (isEncryptedRequest(req)) ? decrypt(req.body.toString()) : req.body;
   data.company_token = org;
-
-  console.log(`POST /locations/${org}\n%s`.green, JSON.stringify(req.headers, null, 2));
-  console.log('Authorization: %s'.green, auth);
-  console.log('%s\n'.yellow, JSON.stringify(data, null, 2));
 
   try {
     await createLocation(data);
@@ -157,8 +149,7 @@ router.post('/locations/:company_token', async function (req, res) {
 });
 
 router.delete('/locations', async function (req, res) {
-  console.log('---------------------------------------------------------------------');
-  console.log('- DELETE /locations', JSON.stringify(req.query));
+  console.info('locations:delete:query'.green, JSON.stringify(req.query));
 
   try {
     await deleteLocations(req.query);
@@ -172,14 +163,13 @@ router.delete('/locations', async function (req, res) {
 });
 
 router.post('/locations_template', async function (req, res) {
-  console.log('POST /locations_template\n%s\n'.green, JSON.stringify(req.body, null, 2));
+  console.log('POST /locations_template\n%s\n'.green, JSON.stringify(req.body));
 
   res.set('Retry-After', 5);
   res.send({ success: true });
 });
 
 router.post('/configure', async function (req, res) {
-  console.log('/configure');
 
   var response = {
     access_token: 'e7ebae5e-4bea-4d63-8f28-8a104acd2f4c',
