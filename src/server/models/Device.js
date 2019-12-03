@@ -26,7 +26,7 @@ export async function getDevices (params) {
   const result = await DeviceModel.findAll({
     where: whereConditions,
     attributes: ['id', 'device_id', 'device_model', 'company_id', 'company_token', 'framework'],
-    order: [['updated_at', 'DESC'], ['created_at', 'DESC']],
+    order: [['updated_at', 'DESC NULLS LAST'], ['created_at', 'DESC NULLS LAST']],
     raw: true,
   });
   return result;
