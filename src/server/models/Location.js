@@ -39,7 +39,7 @@ export async function getLocations (params) {
 
   const rows = await LocationModel.findAll({
     where: whereConditions,
-    order: [['recorded_at', 'DESC']],
+    order: [['recorded_at', 'DESC NULLS LAST']],
     limit: params.limit,
     include,
   });
@@ -57,7 +57,7 @@ export async function getLatestLocation (params) {
   }
   const row = await LocationModel.findOne({
     where: whereConditions,
-    order: [['recorded_at', 'DESC']],
+    order: [['recorded_at', 'DESC NULLS LAST']],
     include,
   });
   const result = row ? hydrate(row) : null;

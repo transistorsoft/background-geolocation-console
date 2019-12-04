@@ -17,7 +17,7 @@ export async function getOrgs ({ company_token: org }) {
   const result = await CompanyModel.findAll({
     where: whereConditions,
     attributes: ['id', 'company_token'],
-    order: [['updated_at', 'DESC']],
+    order: [['updated_at', 'DESC NULLS LAST']],
     raw: true,
 
   });
