@@ -1,6 +1,6 @@
 {
   "name": "background-geolocation-console",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "A field-testing/analysis server & web-app for the Background Geolocation plugin",
   "main": "index.js",
   "scripts": {
