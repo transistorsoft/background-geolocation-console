@@ -1,11 +1,5 @@
-import { readFileSync, existsSync, writeFileSync } from 'fs';
-import { resolve } from 'path';
 import jwt from 'jsonwebtoken';
 import rsaGen from 'keypair';
-
-export const keyPath = resolve(__dirname, '..', '..', '..', 'keys');
-export const privateKeyFile = resolve(keyPath, 'private.key');
-export const publicKeyFile = resolve(keyPath, 'public.key');
 
 export const signOptions = {
   issuer: 'transistorsoft',
@@ -13,23 +7,15 @@ export const signOptions = {
   audience: 'client',
 };
 
-export const makeKeys = async () => {
-  if (existsSync(privateKeyFile)) {
-    return;
-  }
-
-  const keys = rsaGen();
-  const options = { flag: 'w', encoding: 'utf8' };
-
-  writeFileSync(privateKeyFile, keys.private, options);
-  writeFileSync(publicKeyFile, keys.public, options);
-};
+const keys = process.env.JWT_PRIVATE_KEY ? rsaGen() : {};
+export const privateKey = process.env.JWT_PRIVATE_KEY || keys.private;
+export const publicKey = process.env.JWT_PUBLIC_KEY || keys.public;
 
 export const getKeys = () => {
-  const result = {};
-
-  result.private = (process.env.JWT_PRIVATE_KEY) ? process.env.JWT_PRIVATE_KEY : readFileSync(privateKeyFile, 'utf8');
-  result.public = (process.env.JWT_PUBLIC_KEY) ? process.env.JWT_PUBLIC_KEY : readFileSync(publicKeyFile, 'utf8');
+  const result = {
+    private: privateKey,
+    public: publicKey,
+  };
 
   return result;
 };
