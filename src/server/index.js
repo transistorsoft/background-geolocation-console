@@ -7,7 +7,6 @@ import compress from 'compression';
 import 'colors';
 import opn from 'opn';
 
-import { makeKeys } from './libs/jwt';
 import siteApi from './routes/site-api';
 import api from './routes/api-v2';
 import tests from './routes/tests';
@@ -39,7 +38,6 @@ app.use(bodyParser.raw(parserLimits));
 
 (async function () {
   await initializeDatabase();
-  await makeKeys();
 
   app.use(siteApi);
   app.use('/api/site', siteApi);

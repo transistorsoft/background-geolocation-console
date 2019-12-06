@@ -7,7 +7,7 @@ export const signOptions = {
   audience: 'client',
 };
 
-const keys = process.env.JWT_PRIVATE_KEY ? rsaGen() : {};
+const keys = !process.env.JWT_PRIVATE_KEY ? rsaGen() : {};
 export const privateKey = process.env.JWT_PRIVATE_KEY || keys.private;
 export const publicKey = process.env.JWT_PUBLIC_KEY || keys.public;
 
@@ -16,6 +16,8 @@ export const getKeys = () => {
     private: privateKey,
     public: publicKey,
   };
+
+  console.info('getKeys', result);
 
   return result;
 };
