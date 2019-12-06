@@ -17,8 +17,6 @@ export const getKeys = () => {
     public: publicKey,
   };
 
-  console.info('getKeys', result);
-
   return result;
 };
 
