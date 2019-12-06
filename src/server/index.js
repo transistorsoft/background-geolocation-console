@@ -12,11 +12,12 @@ import api from './routes/api-v2';
 import tests from './routes/tests';
 
 const isProduction = process.env.NODE_ENV === 'production';
+const prserLimit = process.env.BODY_PARSER_LIMIT || '1mb';
 const port = process.env.PORT || 9000;
 const dyno = process.env.DYNO;
 const app = express();
 const buildPath = resolve(__dirname, '..', '..', 'build');
-const parserLimits = { limit: '1mb', extended: true };
+const parserLimits = { limit: prserLimit, extended: true };
 
 process
   .on('uncaughtException', (err) => {
