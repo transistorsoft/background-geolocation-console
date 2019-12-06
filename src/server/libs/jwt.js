@@ -28,8 +28,8 @@ export const makeKeys = async () => {
 export const getKeys = () => {
   const result = {};
 
-  result.private = readFileSync(privateKeyFile, 'utf8');
-  result.public = readFileSync(publicKeyFile, 'utf8');
+  result.private = (process.env.JWT_PRIVATE_KEY) ? process.env.JWT_PRIVATE_KEY : readFileSync(privateKeyFile, 'utf8');
+  result.public = (process.env.JWT_PUBLIC_KEY) ? process.env.JWT_PUBLIC_KEY : readFileSync(publicKeyFile, 'utf8');
 
   return result;
 };
