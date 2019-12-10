@@ -16,6 +16,7 @@ export const deniedDevices = (process.env.DENIED_DEVICE_TOKENS || '').split(',')
 export const ddosBombCompanies = (process.env.DDOS_BOMB_COMPANY_TOKENS || '').split(',');
 export const isProduction = process.env.NODE_ENV === 'production';
 export const isPostgres = !!process.env.DATABASE_URL;
+export const desc = isPostgres ? 'DESC NULLS LAST' : 'DESC';
 
 const check = (list, item) => list
   .find(x => !!x && (item || '').toLowerCase().startsWith(x.toLowerCase()));

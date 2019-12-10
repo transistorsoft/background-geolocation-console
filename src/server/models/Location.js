@@ -7,6 +7,7 @@ import { findOrCreate } from './Device';
 import {
   AccessDeniedError,
   filterByCompany,
+  desc,
   hydrate,
   isDeniedCompany,
   isDeniedDevice,
@@ -39,7 +40,7 @@ export async function getLocations (params) {
 
   const rows = await LocationModel.findAll({
     where: whereConditions,
-    order: [['recorded_at', 'DESC NULLS LAST']],
+    order: [['recorded_at', desc]],
     limit: params.limit,
     include,
   });
@@ -57,7 +58,7 @@ export async function getLatestLocation (params) {
   }
   const row = await LocationModel.findOne({
     where: whereConditions,
-    order: [['recorded_at', 'DESC NULLS LAST']],
+    order: [['recorded_at', desc]],
     include,
   });
   const result = row ? hydrate(row) : null;
