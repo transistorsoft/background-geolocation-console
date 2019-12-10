@@ -6,6 +6,7 @@ import LocationModel from '../database/LocationModel';
 import {
   checkCompany,
   filterByCompany,
+  desc,
 } from '../libs/utils';
 
 export async function getDevice ({ id }) {
@@ -26,7 +27,7 @@ export async function getDevices (params) {
   const result = await DeviceModel.findAll({
     where: whereConditions,
     attributes: ['id', 'device_id', 'device_model', 'company_id', 'company_token', 'framework'],
-    order: [['updated_at', 'DESC NULLS LAST'], ['created_at', 'DESC NULLS LAST']],
+    order: [['updated_at', desc], ['created_at', desc]],
     raw: true,
   });
   return result;

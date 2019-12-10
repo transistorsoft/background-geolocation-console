@@ -3,6 +3,7 @@ import {
   filterByCompany,
 } from '../libs/utils';
 import CompanyModel from '../database/CompanyModel';
+import { desc } from '../libs/utils';
 
 export async function getOrgs ({ company_token: org }) {
   if (!filterByCompany) {
@@ -17,7 +18,7 @@ export async function getOrgs ({ company_token: org }) {
   const result = await CompanyModel.findAll({
     where: whereConditions,
     attributes: ['id', 'company_token'],
-    order: [['updated_at', 'DESC NULLS LAST']],
+    order: [['updated_at', desc]],
     raw: true,
 
   });
