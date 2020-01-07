@@ -1,13 +1,11 @@
-const webpack = require('webpack');
-const path = require('path');
+const path = require('path'); const webpack = require('webpack');
+
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 
-const copyAssets = new CopyPlugin([
-  { from: 'assets/images', to: 'images' },
-]);
+const copyAssets = new CopyPlugin([{ from: 'assets/images', to: 'images' }]);
 const isProduction = process.env.NODE_ENV === 'production';
 
 const htmlWebpackPlugin = new HtmlWebpackPlugin({
@@ -37,21 +35,25 @@ const config = {
   target: 'web',
   entry: isProduction
     ? [
+      '@babel/polyfill/noConflict',
       '@babel/polyfill',
       './main.js',
     ]
     : [
       '@babel/polyfill',
-      'webpack-hot-middleware/client?path=/__webpack_hmr&timeout=20000', 'react-hot-loader/patch',
+      'webpack-hot-middleware/client?path=/__webpack_hmr&timeout=20000',
+      'react-hot-loader/patch',
       './main.js',
     ],
   output: {
-    path: path.resolve(__dirname, './build'),
+    path: path.resolve(__dirname, 'build'),
     publicPath: '/',
     filename: '[name]-[hash].js',
     chunkFilename: '[id].[chunkhash].js',
   },
   resolve: {
+    alias: { 'react-dom': '@hot-loader/react-dom' },
+    modules: ['node_modules', 'src/client', 'src/server'],
     extensions: ['.js', '.json', '.css', '.svg'],
   },
   mode: isProduction ? 'production' : 'development',
@@ -75,9 +77,7 @@ const config = {
             ie8: true,
             drop_console: true,
           },
-          output: {
-            comments: false,
-          },
+          output: { comments: false },
           comments: false,
         },
       }),
@@ -94,9 +94,7 @@ const config = {
       {
         test: /\.(jpe?g|png|gif|svg)$/i,
         use: [
-          {
-            loader: 'url-loader',
-          },
+          { loader: 'url-loader' },
         ],
       },
       {
@@ -140,7 +138,9 @@ const config = {
       new webpack.NamedModulesPlugin(),
       new webpack.DefinePlugin({
         'process.env.SHARED_DASHBOARD': !!process.env.SHARED_DASHBOARD || '',
-        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+        'process.env.NODE_ENV': JSON.stringify(
+          process.env.NODE_ENV || 'development',
+        ),
       }),
       copyAssets,
       new webpack.HotModuleReplacementPlugin(),

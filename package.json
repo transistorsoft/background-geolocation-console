@@ -4,7 +4,7 @@
   "description": "A field-testing/analysis server & web-app for the Background Geolocation plugin",
   "main": "index.js",
   "scripts": {
-    "lint": "eslint src/ && flow",
+    "lint": "eslint src/**/*.js --fix && flow",
     "build": "NODE_ENV=production webpack",
     "start": "better-npm-run start",
     "dev": "better-npm-run dev",
@@ -24,14 +24,14 @@
       "command": "concurrently --kill-others \"BABEL_ENV=node node --inspect=9229 ./bin/server.js\" \"BABEL_ENV=webpack node ./bin/dev.js\"",
       "env": {
         "TZ": "UTC",
-        "NODE_PATH": "./src/server/"
+        "NODE_PATH": "./src/client/"
       }
     },
     "start": {
       "command": "node ./bin/server.js",
       "env": {
         "TZ": "UTC",
-        "NODE_PATH": "./src/server/",
+        "NODE_PATH": "./src/client/",
         "DYNO": "1",
         "NODE_ENV": "production",
         "NPM_CONFIG_PRODUCTION": "true"
@@ -39,9 +39,8 @@
     }
   },
   "dependencies": {
-    "@babel/core": "^7.7.2",
-    "@babel/preset-env": "^7.7.1",
     "@babel/cli": "^7.6.0",
+    "@babel/core": "^7.7.2",
     "@babel/node": "^7.6.1",
     "@babel/plugin-proposal-class-properties": "^7.5.5",
     "@babel/plugin-proposal-decorators": "^7.4.4",
@@ -49,6 +48,7 @@
     "@babel/plugin-proposal-export-namespace-from": "^7.5.2",
     "@babel/plugin-transform-regenerator": "^7.4.5",
     "@babel/polyfill": "^7.4.4",
+    "@babel/preset-env": "^7.7.1",
     "@babel/preset-flow": "^7.0.0",
     "@babel/preset-react": "^7.0.0",
     "@babel/register": "^7.5.5",
@@ -56,9 +56,10 @@
     "@material-ui/core": "^4.4.1",
     "@material-ui/icons": "^4.4.1",
     "@material-ui/pickers": "^3.2.5",
+    "@material-ui/styles": "^4.8.2",
+    "@hot-loader/react-dom": "^16.8.6",
     "babel-loader": "^8.0.6",
     "babel-node": "0.0.1-security",
-    "babel-plugin-root-import": "^6.4.1",
     "babel-plugin-transform-flow-strip-types": "^6.22.0",
     "babel-plugin-transform-function-bind": "^6.22.0",
     "babel-plugin-transform-require-ignore": "0.0.2",
@@ -111,14 +112,16 @@
     "copy-webpack-plugin": "^5.0.4",
     "css-loader": "^0.26.1",
     "ejs-loader": "^0.3.0",
-    "eslint": "^4.0.0",
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb": "^18.0.1",
     "eslint-config-standard": "^10.2.1",
     "eslint-config-standard-react": "^5.0.0",
     "eslint-loader": "^1.8.0",
     "eslint-plugin-babel": "^4.1.1",
     "eslint-plugin-flowtype": "^2.34.0",
     "eslint-plugin-immutable": "^1.0.0",
-    "eslint-plugin-import": "^2.3.0",
+    "eslint-plugin-import": "^2.19.1",
+    "eslint-plugin-jsx-a11y": "^6.2.3",
     "eslint-plugin-node": "^5.0.0",
     "eslint-plugin-promise": "^3.5.0",
     "eslint-plugin-react": "^7.1.0",
@@ -136,9 +139,7 @@
     "postcss-mixins": "^6.2.2",
     "postcss-modules-values": "^3.0.0",
     "postcss-preset-env": "^5.3.0",
-    "prettier-eslint": "^6.3.0",
-    "prettier-eslint-cli": "^4.1.1",
-    "react-hot-loader": "^3.0.0-beta.6",
+    "react-hot-loader": "^4.6.3",
     "sqlite3": "~4.0.6",
     "style-loader": "^0.13.1",
     "uglifyjs-webpack-plugin": "^2.2.0",

@@ -14,19 +14,22 @@ export type Result = {| value: any |};
 
 type Props = {|
   children: any,
-  onOpen?: () => {},
   onClose: (?Result) => {},
-  dlgContentProps: any,
+  open: boolean,
   title: any,
-  value: any,
+
+  dlgContentProps?: any,
+  onOpen?: (Result) => {},
+  onEntering?: () => {},
+  value?: any,
 |};
 
-export default function ConfirmationDialog ({
+export default function ConfirmationDialog({
   onClose,
-  value,
   open,
   children,
-  onOpen,
+  value = undefined,
+  onOpen = undefined,
   title = 'Confirm?',
   dlgContentProps = {},
   ...other
@@ -57,10 +60,18 @@ export default function ConfirmationDialog ({
     >
       <DialogTitle id='confirmation-dialog-title'>{title}</DialogTitle>
       <DialogContent {...dlgContentProps}>
-        <WarningIcon color='error' fontSize='large' style={{ float: 'left', marginRight: theme.spacing(2) }} />
-        {typeof children === 'string'
-          ? <DialogContentText id='alert-dialog-description'>{children}</DialogContentText>
-          : children}
+        <WarningIcon
+          color='error'
+          fontSize='large'
+          style={{ float: 'left', marginRight: theme.spacing(2) }}
+        />
+        {typeof children === 'string' ? (
+          <DialogContentText id='alert-dialog-description'>
+            {children}
+          </DialogContentText>
+        ) : (
+          children
+        )}
       </DialogContent>
       <DialogActions>
         <Button onClick={handleCancel} color='primary'>

@@ -1,4 +1,5 @@
 import Sequelize from 'sequelize';
+
 import definedSequelizeDb from './define-sequelize-db';
 
 const CompanyModel = definedSequelizeDb.define(
@@ -13,12 +14,10 @@ const CompanyModel = definedSequelizeDb.define(
     created_at: { type: Sequelize.DATE },
     updated_at: { type: Sequelize.DATE },
   },
-  {
-    timestamps: false,
-  }
+  { timestamps: false },
 );
 
-CompanyModel.associate = (models) => {
+CompanyModel.associate = models => {
   models.Company.hasMany(models.Device, { foreignKey: 'company_id' });
   models.Company.hasMany(models.Location, { foreignKey: 'company_id' });
 };

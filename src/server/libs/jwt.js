@@ -25,8 +25,7 @@ export const getKeys = () => {
   subject: "iam@user.me",
   audience: "Client_Identity" // this should be provided by client
 */
-export const sign = (payload, { issuer, subject, audience } = signOptions) => {
-  const keys = getKeys();
+export const sign = (payload, { issuer, subject } = signOptions) => {
   // Token signing options
   const options = {
     issuer,
@@ -38,18 +37,15 @@ export const sign = (payload, { issuer, subject, audience } = signOptions) => {
   return jwt.sign(payload, keys.private, options);
 };
 
-export const verify = (token, { issuer, subject, audience } = signOptions) => {
-  const keys = getKeys();
+export const verify = (token, { issuer, subject } = signOptions) => {
   const options = {
     issuer,
     subject,
-    audience: /.*/img,
+    audience: /.*/gim,
     // expiresIn: '782d',
-    algorithm:  ['RS256'],
+    algorithm: ['RS256'],
   };
   return jwt.verify(token, keys.public, options);
 };
 
-export const decode = (token) => {
-  return jwt.decode(token, { complete: true });
-};
+export const decode = token => jwt.decode(token, { complete: true });

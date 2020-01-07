@@ -1,17 +1,21 @@
+/* eslint-disable no-console */
 // @flow
 /* eslint-disable camelcase */
 
 import React, { Component } from 'react';
 import { createSelector } from 'reselect';
-
-import { connect } from 'react-redux';
-import { type Location, type Marker, clickMarker } from '~/reducer/dashboard';
-import { type GlobalState } from '~/reducer/state';
-
 import GoogleMap from 'google-map-react';
+import { connect } from 'react-redux';
 
-import { COLORS, MAX_POINTS } from '~/constants';
-import { changeTabBus, type ChangeTabPayload, fitBoundsBus, type FitBoundsPayload } from '~/globalBus';
+import {
+  type Location, type Marker, clickMarker,
+} from 'reducer/dashboard';
+import { type GlobalState } from 'reducer/state';
+import {
+  changeTabBus, fitBoundsBus, type FitBoundsPayload,
+} from 'globalBus';
+
+import { COLORS, MAX_POINTS } from '../constants';
 
 import MarkerClusterer from './MarkerClusterer';
 
@@ -43,11 +47,10 @@ type Props = {|
 
 type MapState = {|
   center: {| lat: number, lng: number |},
-  zoom: number,
+  zoom?: number,
 |};
 
 class MapView extends Component<Props, MapState> {
-  props: Props;
   previousLocations: Location[] = [];
   motionChangePolylines: any = [];
   selectedMarker: any = null;
@@ -58,10 +61,6 @@ class MapView extends Component<Props, MapState> {
   polyline: any = null;
   currentLocationMarker: any = null;
   locationAccuracyCircle: any = null;
-  state: MapState = {
-    center: { lat: -25.363882, lng: 131.044922 },
-    zoom: 18,
-  };
   updateFlags = {
     needsMarkersRedraw: true,
     needsTestMarkersRedraw: true,
@@ -70,6 +69,15 @@ class MapView extends Component<Props, MapState> {
     needsShowGeofenceHitsUpdate: true,
   };
   postponedFitBoundsPayload: ?FitBoundsPayload = null;
+
+  constructor(props: Props, context: any) {
+    super(props, context);
+
+    this.state = {
+      center: { lat: -25.363882, lng: 131.044922 },
+      // zoom: 18,
+    };
+  }
 
   componentDidMount () {
     fitBoundsBus.subscribe(this.fitBounds);
@@ -81,34 +89,29 @@ class MapView extends Component<Props, MapState> {
     changeTabBus.unsubscribe(this.changeTab);
   }
 
-  changeTab = (payload: ChangeTabPayload) => {
-    if (this.props.isActiveTab) {
+  changeTab = () => {
+    const { isActiveTab } = this.props;
+    if (isActiveTab) {
       setTimeout(() => this.fitBoundsIfPostponed(), 1);
     }
   };
 
-  fitBoundsIfPostponed () {
-    if (this.postponedFitBoundsPayload) {
-      this.fitBounds(this.postponedFitBoundsPayload);
-      this.postponedFitBoundsPayload = null;
-    }
-  }
-
   // Fit Bounds, postpone if gmap is not ready, also postpone if tab is not active
   fitBounds = (payload: FitBoundsPayload) => {
-    if (!this.props.isActiveTab) {
+    const { isActiveTab, locations } = this.props;
+    if (!isActiveTab) {
       this.postponedFitBoundsPayload = payload;
       return;
     }
     if (this.gmap) {
-      if (this.props.locations.length > 1) {
+      if (locations.length > 1) {
         const bounds = new google.maps.LatLngBounds();
-        this.props.locations.forEach(function (location: Location) {
+        locations.forEach((location: Location) => {
           bounds.extend(new google.maps.LatLng(location.latitude, location.longitude));
         });
         this.gmap.fitBounds(bounds);
-      } else if (this.props.locations.length === 1) {
-        const location = this.props.locations[0];
+      } else if (locations.length === 1) {
+        const [location] = locations;
         this.gmap.setCenter(new google.maps.LatLng(location.latitude, location.longitude));
       }
     } else {
@@ -116,7 +119,7 @@ class MapView extends Component<Props, MapState> {
     }
   };
 
-  onBoundChange = (e: any) => {
+  onBoundChange = () => {
     console.time('onBoundChange');
     const bound = this.gmap.getBounds();
     this.markers
@@ -137,7 +140,7 @@ class MapView extends Component<Props, MapState> {
   onMapLoaded = (event: any) => {
     this.gmap = event.map;
     // Route polyline
-    let seq = {
+    const seq = {
       repeat: '50px',
       icon: {
         path: google.maps.SymbolPath.FORWARD_OPEN_ARROW,
@@ -194,6 +197,70 @@ class MapView extends Component<Props, MapState> {
     cluster.remove();
   };
 
+
+  buildLocationIcon = (location: Location, options: any = {}) => {
+    let anchor;
+    let fillColor = COLORS.polyline_color;
+    let scale = options.scale || 2;
+    let path = google.maps.SymbolPath.FORWARD_CLOSED_ARROW;
+
+    if (location.geofence) {
+      path = google.maps.SymbolPath.FORWARD_CLOSED_ARROW;
+      anchor = new google.maps.Point(0, 2.6);
+      scale = 3;
+      switch (location.geofence.action) {
+        case 'ENTER':
+          fillColor = COLORS.green;
+          break;
+        case 'EXIT':
+          fillColor = COLORS.red;
+          break;
+        case 'DWELL':
+          fillColor = COLORS.gold;
+          break;
+        default:
+      }
+    }
+    let fillOpacity = 1;
+
+    if (location.event === 'motionchange') {
+      if (!location.is_moving) {
+        anchor = undefined;
+        path = google.maps.SymbolPath.CIRCLE;
+        scale = 10;
+        fillOpacity = 0.7;
+        fillColor = COLORS.red;
+      } else {
+        path = google.maps.SymbolPath.FORWARD_OPEN_ARROW;
+        fillColor = COLORS.green;
+        scale = 3;
+        fillOpacity = 1;
+      }
+    }
+    if (options.selected) {
+      scale *= 2;
+    }
+
+    return {
+      path,
+      rotation: location.heading,
+      scale,
+      anchor,
+      fillColor: options.fillColor || fillColor,
+      fillOpacity: options.fillOpacity || fillOpacity,
+      strokeColor: options.strokeColor || COLORS.black,
+      strokeWeight: options.strokeWeight || 1,
+      strokeOpacity: options.strokeOpacity || 1,
+    };
+  }
+
+  fitBoundsIfPostponed () {
+    if (this.postponedFitBoundsPayload) {
+      this.fitBounds(this.postponedFitBoundsPayload);
+      this.postponedFitBoundsPayload = null;
+    }
+  }
+
   cleanClustering () {
     !!this.markerCluster && this.markerCluster.clearMarkers();
   }
@@ -219,17 +286,17 @@ class MapView extends Component<Props, MapState> {
         minimumClusterSize: 7,
         gridSize: 33,
         imagePath: '/images/m',
-      }
+      },
     );
     google.maps.event.addListener(this.markerCluster, 'click', this.onClusterClick);
     console.timeEnd('clustering');
-  };
+  }
 
   // ensures that selected location is properly displayed
   // previous marker is set to default icon, new marker or nothing is set to
   // selected icon
   updateSelectedLocation () {
-    const location = this.props.selectedLocation;
+    const { selectedLocation: location } = this.props;
     if (this.selectedMarker) {
       this.selectedMarker.setIcon(this.buildLocationIcon(this.selectedMarker.location));
       this.selectedMarker.setZIndex(1);
@@ -238,13 +305,9 @@ class MapView extends Component<Props, MapState> {
       this.selectedMarker = null;
       return;
     }
-    let marker = this.markers.find((marker: any) => {
-      return marker.location.uuid === location.uuid;
-    });
+    let marker = this.markers.find((x: any) => x.location.uuid === location.uuid);
     if (!marker) {
-      marker = this.geofenceHitMarkers.find((marker: any) => {
-        return marker.location && marker.location.uuid === location.uuid;
-      });
+      marker = this.geofenceHitMarkers.find((x: any) => x.location && marker.location.uuid === location.uuid);
     }
     if (marker) {
       this.selectedMarker = marker;
@@ -255,10 +318,175 @@ class MapView extends Component<Props, MapState> {
           strokeColor: COLORS.red,
           strokeWeight: 2,
           selected: true,
-        })
+        }),
       );
     }
   }
+
+  buildMotionChangePolyline (stationaryPosition: any, movingPosition: any) {
+    const { showPolyline } = this.props;
+    const seq = {
+      repeat: '25px',
+      icon: {
+        path: google.maps.SymbolPath.FORWARD_OPEN_ARROW,
+        scale: 1,
+        fillColor: COLORS.white,
+        fillOpacity: 0,
+        strokeColor: COLORS.white,
+        strokeWeight: 1,
+        strokeOpacity: 1,
+      },
+    };
+    return new google.maps.Polyline({
+      map: showPolyline ? this.gmap : null,
+      zIndex: 1001,
+      geodesic: true,
+      strokeColor: COLORS.green,
+      fillColor: COLORS.red,
+      icons: [seq],
+      strokeOpacity: 1,
+      strokeWeight: 8,
+      path: [stationaryPosition, movingPosition],
+    });
+  }
+
+  buildGeofenceMarker (location: Location, options: any) {
+    const { geofence } = location;
+    let circle = this.geofenceMarkers[geofence.identifier];
+    if (!circle) {
+      let center;
+      let radius = 200;
+      // If the geofence contains information about its center & radius in #extras...
+      if (geofence.extras && geofence.extras.center) {
+        center = new google.maps.LatLng(geofence.extras.center.latitude, geofence.extras.center.longitude);
+        radius = geofence.extras.radius;
+        if (typeof radius === 'string') {
+          radius = parseInt(radius, 10);
+        }
+      } else {
+        center = new google.maps.LatLng(location.latitude, location.longitude);
+      }
+      circle = new google.maps.Circle({
+        zIndex: 2000,
+        fillOpacity: 0,
+        strokeColor: COLORS.black,
+        strokeWeight: 1,
+        strokeOpacity: 1,
+        radius,
+        center,
+        map: options.map,
+      });
+      this.geofenceMarkers[geofence.identifier] = circle;
+      this.geofenceHitMarkers.push(circle);
+    }
+    let color;
+    if (geofence.action === 'ENTER') {
+      color = COLORS.green;
+    } else if (geofence.action === 'DWELL') {
+      color = COLORS.gold;
+    } else {
+      color = COLORS.red;
+    }
+    const circleLatLng = circle.getCenter();
+    const locationLatLng = new google.maps.LatLng(location.latitude, location.longitude);
+
+    const heading = google.maps.geometry.spherical.computeHeading(circleLatLng, locationLatLng);
+    const circleEdgeLatLng = google.maps.geometry.spherical.computeOffset(circleLatLng, circle.getRadius(), heading);
+
+    const geofenceEdgeMarker = new google.maps.Marker({
+      zIndex: 2000,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 5,
+        fillColor: color,
+        fillOpacity: 0.7,
+        strokeColor: COLORS.black,
+        strokeWeight: 1,
+        strokeOpacity: 1,
+      },
+      map: options.map,
+      position: circleEdgeLatLng,
+    });
+    this.geofenceHitMarkers.push(geofenceEdgeMarker);
+
+    const locationMarker = this.buildLocationMarker(location, {
+      showHeading: true,
+      zIndex: 2000,
+      map: options.map,
+      fillColor: color,
+    });
+    this.geofenceHitMarkers.push(locationMarker);
+
+    const polyline = new google.maps.Polyline({
+      map: options.map,
+      zIndex: 2000,
+      strokeColor: COLORS.black,
+      strokeOpacity: 1,
+      strokeWeight: 1,
+      path: [circleEdgeLatLng, locationMarker.getPosition()],
+    });
+    this.geofenceHitMarkers.push(polyline);
+  }
+
+  // Build a bread-crumb location marker.
+  buildLocationMarker (location: Location, options: any = {}) {
+    const { onSelectLocation } = this.props;
+    const zIndex = options.zIndex || 1;
+    const marker = new google.maps.Marker({
+      zIndex,
+      icon: this.buildLocationIcon(location, options),
+      location,
+      map: options.map,
+      position: new google.maps.LatLng(location.latitude, location.longitude),
+    });
+
+    marker.addListener('click', () => onSelectLocation(location.uuid));
+    return marker;
+  }
+
+  clearMarkers () {
+    this.markers.forEach((marker: Marker) => {
+      google.maps.event.clearInstanceListeners(marker);
+      marker.setMap(null);
+    });
+    this.markers = [];
+
+    this.geofenceMarkers = {};
+    this.geofenceHitMarkers.forEach((marker: any) => {
+      marker.setMap(null);
+    });
+    this.geofenceHitMarkers = [];
+
+    this.polyline.setPath([]);
+    this.motionChangePolylines.forEach((polyline: any) => {
+      polyline.setMap(null);
+    });
+    this.motionChangePolylines = [];
+  }
+
+  UNSAFE_shouldComponentUpdate (nestState: StateProps, nextProps: Props) {
+    const {
+      locations, testMarkers, showMarkers, enableClustering, showPolyline, showGeofenceHits,
+    } = this.props;
+    // If the map was rendered - decide how we can only partially update markers
+    // to significantly speed up the update
+    // const previous = this.updateFlags;
+    if (this.gmap) {
+      this.updateFlags = {
+        needsMarkersRedraw: nextProps.locations !== locations,
+        needsTestMarkersRedraw: nextProps.testMarkers !== testMarkers,
+        needsShowMarkersUpdate: nextProps.showMarkers !== showMarkers ||
+          nextProps.enableClustering !== enableClustering,
+        needsShowPolylineUpdate: nextProps.showPolyline !== showPolyline,
+        needsShowGeofenceHitsUpdate: nextProps.showGeofenceHits !== showGeofenceHits,
+      };
+      const result = Object.keys(this.updateFlags)
+        .find((x: string) => !!this.updateFlags[x]);
+      return !!result;
+    }
+    return false;
+  }
+
 
   renderMarkers () {
     console.time('renderMarkers');
@@ -281,8 +509,8 @@ class MapView extends Component<Props, MapState> {
       this.clearMarkers();
       this.cleanClustering();
 
-      const length = locations.length;
-      console.info('draw markers: ' + length);
+      const { length } = locations;
+      console.info(`draw markers: ${length}`);
 
       this.polyline.setMap(showPolyline ? this.gmap : null);
 
@@ -291,17 +519,13 @@ class MapView extends Component<Props, MapState> {
 
       // Iterate in reverse order to create polyline points from oldest->latest.
       // We DO NOT want this.props.locations.reverse()!!!
-      for (var n = length - 1; n > 0; n--) {
-        let location = locations[n];
-        let latLng = new google.maps.LatLng(location.latitude, location.longitude);
+      for (let n = length - 1; n > 0; n--) {
+        const location = locations[n];
+        const latLng = new google.maps.LatLng(location.latitude, location.longitude);
         if (location.geofence) {
-          this.buildGeofenceMarker(location, {
-            map: showGeofenceHits ? this.gmap : null,
-          });
+          this.buildGeofenceMarker(location, { map: showGeofenceHits ? this.gmap : null });
         } else {
-          let marker = this.buildLocationMarker(location, {
-            map: showMarkers ? this.gmap : null,
-          });
+          const marker = this.buildLocationMarker(location, { map: showMarkers ? this.gmap : null });
           this.markers.push(marker);
         }
         this.polyline.getPath().push(latLng);
@@ -341,7 +565,7 @@ class MapView extends Component<Props, MapState> {
     // handle current location
     if (isWatching && currentLocation) {
       console.time('renderMarkers: Current Location');
-      let latLng = new google.maps.LatLng(currentLocation.latitude, currentLocation.longitude);
+      const latLng = new google.maps.LatLng(currentLocation.latitude, currentLocation.longitude);
       this.gmap.setCenter(latLng);
       this.currentLocationMarker.setMap(this.gmap);
       this.locationAccuracyCircle.setMap(this.gmap);
@@ -374,7 +598,7 @@ class MapView extends Component<Props, MapState> {
   renderTestMarkers (testMarkers: any) {
     // 37.33313411,-122.05283635
     for (let n = 0, len = testMarkers.length; n < len; n++) {
-      let record = testMarkers[n];
+      const record = testMarkers[n];
       if (record.type === 'location') {
         // eslint-disable-next-line no-new
         new google.maps.Marker({
@@ -397,248 +621,33 @@ class MapView extends Component<Props, MapState> {
       }
     }
     // arbitrarily center on first marker.
-    let first = testMarkers[0];
+    const first = testMarkers[0];
     this.gmap.setCenter(first.position);
   }
 
-  buildMotionChangePolyline (stationaryPosition: any, movingPosition: any) {
-    const { showPolyline } = this.props;
-    let seq = {
-      repeat: '25px',
-      icon: {
-        path: google.maps.SymbolPath.FORWARD_OPEN_ARROW,
-        scale: 1,
-        fillColor: COLORS.white,
-        fillOpacity: 0,
-        strokeColor: COLORS.white,
-        strokeWeight: 1,
-        strokeOpacity: 1,
-      },
-    };
-    return new google.maps.Polyline({
-      map: showPolyline ? this.gmap : null,
-      zIndex: 1001,
-      geodesic: true,
-      strokeColor: COLORS.green,
-      fillColor: COLORS.red,
-      icons: [seq],
-      strokeOpacity: 1,
-      strokeWeight: 8,
-      path: [stationaryPosition, movingPosition],
-    });
-  }
-
-  buildGeofenceMarker (location: Location, options: any) {
-    let geofence = location.geofence;
-    let circle = this.geofenceMarkers[geofence.identifier];
-    if (!circle) {
-      let center;
-      let radius = 200;
-      // If the geofence contains information about its center & radius in #extras...
-      if (geofence.extras && geofence.extras.center) {
-        center = new google.maps.LatLng(geofence.extras.center.latitude, geofence.extras.center.longitude);
-        radius = geofence.extras.radius;
-        if (typeof radius === 'string') {
-          radius = parseInt(radius, 10);
-        }
-      } else {
-        center = new google.maps.LatLng(location.latitude, location.longitude);
-      }
-      circle = new google.maps.Circle({
-        zIndex: 2000,
-        fillOpacity: 0,
-        strokeColor: COLORS.black,
-        strokeWeight: 1,
-        strokeOpacity: 1,
-        radius: radius,
-        center: center,
-        map: options.map,
-      });
-      this.geofenceMarkers[geofence.identifier] = circle;
-      this.geofenceHitMarkers.push(circle);
-    }
-    var color;
-    if (geofence.action === 'ENTER') {
-      color = COLORS.green;
-    } else if (geofence.action === 'DWELL') {
-      color = COLORS.gold;
-    } else {
-      color = COLORS.red;
-    }
-    let circleLatLng = circle.getCenter();
-    let locationLatLng = new google.maps.LatLng(location.latitude, location.longitude);
-
-    const heading = google.maps.geometry.spherical.computeHeading(circleLatLng, locationLatLng);
-    let circleEdgeLatLng = google.maps.geometry.spherical.computeOffset(circleLatLng, circle.getRadius(), heading);
-
-    var geofenceEdgeMarker = new google.maps.Marker({
-      zIndex: 2000,
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 5,
-        fillColor: color,
-        fillOpacity: 0.7,
-        strokeColor: COLORS.black,
-        strokeWeight: 1,
-        strokeOpacity: 1,
-      },
-      map: options.map,
-      position: circleEdgeLatLng,
-    });
-    this.geofenceHitMarkers.push(geofenceEdgeMarker);
-
-    var locationMarker = this.buildLocationMarker(location, {
-      showHeading: true,
-      zIndex: 2000,
-      map: options.map,
-      fillColor: color,
-    });
-    this.geofenceHitMarkers.push(locationMarker);
-
-    var polyline = new google.maps.Polyline({
-      map: options.map,
-      zIndex: 2000,
-      strokeColor: COLORS.black,
-      strokeOpacity: 1,
-      strokeWeight: 1,
-      path: [circleEdgeLatLng, locationMarker.getPosition()],
-    });
-    this.geofenceHitMarkers.push(polyline);
-  }
-
-  // Build a bread-crumb location marker.
-  buildLocationMarker (location: Location, options: any) {
-    const { onSelectLocation } = this.props;
-    options = options || {};
-    let zIndex = options.zIndex || 1;
-    let marker = new google.maps.Marker({
-      zIndex: zIndex,
-      icon: this.buildLocationIcon(location, options),
-      location: location,
-      map: options.map,
-      position: new google.maps.LatLng(location.latitude, location.longitude),
-    });
-
-    marker.addListener('click', () => onSelectLocation(location.uuid));
-    return marker;
-  }
-
-  buildLocationIcon (location: Location, options: any) {
-    options = options || {};
-    let anchor;
-    let fillColor = COLORS.polyline_color;
-    let scale = options.scale || 2;
-    let path = google.maps.SymbolPath.FORWARD_CLOSED_ARROW;
-
-    if (location.geofence) {
-      path = google.maps.SymbolPath.FORWARD_CLOSED_ARROW;
-      anchor = new google.maps.Point(0, 2.6);
-      scale = 3;
-      switch (location.geofence.action) {
-        case 'ENTER':
-          fillColor = COLORS.green;
-          break;
-        case 'EXIT':
-          fillColor = COLORS.red;
-          break;
-        case 'DWELL':
-          fillColor = COLORS.gold;
-          break;
-      }
-    }
-    let fillOpacity = 1;
-
-    if (location.event === 'motionchange') {
-      if (!location.is_moving) {
-        anchor = undefined;
-        path = google.maps.SymbolPath.CIRCLE;
-        scale = 10;
-        fillOpacity = 0.7;
-        fillColor = COLORS.red;
-      } else {
-        path = google.maps.SymbolPath.FORWARD_OPEN_ARROW;
-        fillColor = COLORS.green;
-        scale = 3;
-        fillOpacity = 1;
-      }
-    }
-    if (options.selected) {
-      scale *= 2;
-    }
-
-    return {
-      path: path,
-      rotation: location.heading,
-      scale: scale,
-      anchor: anchor,
-      fillColor: options.fillColor || fillColor,
-      fillOpacity: options.fillOpacity || fillOpacity,
-      strokeColor: options.strokeColor || COLORS.black,
-      strokeWeight: options.strokeWeight || 1,
-      strokeOpacity: options.strokeOpacity || 1,
-    };
-  }
-
-  clearMarkers () {
-    this.markers.forEach((marker: Marker) => {
-      google.maps.event.clearInstanceListeners(marker);
-      marker.setMap(null);
-    });
-    this.markers = [];
-
-    this.geofenceMarkers = {};
-    this.geofenceHitMarkers.forEach((marker: any) => {
-      marker.setMap(null);
-    });
-    this.geofenceHitMarkers = [];
-
-    this.polyline.setPath([]);
-    this.motionChangePolylines.forEach((polyline: any) => {
-      polyline.setMap(null);
-    });
-    this.motionChangePolylines = [];
-  }
-
-  UNSAFE_shouldComponentUpdate (nestState: StateProps, nextProps: Props) {
-    // If the map was rendered - decide how we can only partially update markers
-    // to significantly speed up the update
-    // const previous = this.updateFlags;
-    if (this.gmap) {
-      this.updateFlags = {
-        needsMarkersRedraw: nextProps.locations !== this.props.locations,
-        needsTestMarkersRedraw: nextProps.testMarkers !== this.props.testMarkers,
-        needsShowMarkersUpdate: nextProps.showMarkers !== this.props.showMarkers ||
-          nextProps.enableClustering !== this.props.enableClustering,
-        needsShowPolylineUpdate: nextProps.showPolyline !== this.props.showPolyline,
-        needsShowGeofenceHitsUpdate: nextProps.showGeofenceHits !== this.props.showGeofenceHits,
-      };
-      const result = Object.keys(this.updateFlags)
-        .find((x: string) => !!this.updateFlags[x]);
-      return !!result;
-    }
-    return false;
-  }
-
   render () {
+    const { isActiveTab } = this.props;
+    const { center } = this.state;
+
     if (this.gmap) {
       this.renderMarkers();
     }
     // protects us from rendering the google map while the tab is not active
     // because of display: none this leads to improper size calculations, so
     // later FitToBounds or setMapCenter do not work
-    if (!this.props.isActiveTab && !this.gmap) {
+    if (!isActiveTab && !this.gmap) {
       return null;
     }
 
     return (
       <GoogleMap
-        yesIWantToUseGoogleMapApiInternals={true}
+        yesIWantToUseGoogleMapApiInternals
         bootstrapURLKeys={{
           key: API_KEY,
           libraries: 'geometry',
         }}
         className='map'
-        center={this.state.center}
+        center={center}
         zoom={15}
         onGoogleApiLoaded={this.onMapLoaded}
       />
@@ -661,11 +670,7 @@ const selectedLocationSelector = createSelector(
     locations.find((x: Location) => x.uuid === selectedLocationId),
 );
 
-const nthItem = function (n: number) {
-  return function (candidate: Location, index: number) {
-    return candidate.event || index % n === 0;
-  };
-};
+const nthItem = (n: number) => (candidate: Location, index: number) => candidate.event || index % n === 0;
 const filteredLocationSelector = createSelector(
   [
     (state: GlobalState) => ({
@@ -673,11 +678,12 @@ const filteredLocationSelector = createSelector(
       length: state.dashboard.locations.length,
     }),
   ],
-  ({ locations, length }: { locations: Location[], length: number }) =>
+  ({ locations, length }: { locations: Location[], length: number }) => (
     length < MAX_POINTS ? locations : locations.filter(nthItem(Math.floor(length / MAX_POINTS) + 1))
+  ),
 );
 
-const mapStateToProps = function (state: GlobalState) {
+const mapStateToProps = (state: GlobalState) => {
   const { dashboard } = state;
   return {
     locations: filteredLocationSelector(state),
@@ -693,8 +699,6 @@ const mapStateToProps = function (state: GlobalState) {
   };
 };
 
-const mapDispatchToProps = {
-  onSelectLocation: clickMarker,
-};
+const mapDispatchToProps = { onSelectLocation: clickMarker };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MapView);

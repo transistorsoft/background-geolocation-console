@@ -1,7 +1,11 @@
 import React from 'react';
-import Viewport from './Viewport';
-import { loadInitialData } from '~/reducer/dashboard';
+
+import { loadInitialData } from 'reducer/dashboard';
+
 import store from '../store';
+
+import Viewport from './Viewport';
+
 
 const WrappedViewport = ({ match }) => {
   store.dispatch(loadInitialData(match.params.token));

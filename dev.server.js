@@ -13,9 +13,8 @@ const app = express();
 const compiler = webpack(webpackConfig);
 const make = (apiAddress) => {
   const proxy = apiAddress
-    ? httpProxy.createProxyServer({
-      target: apiAddress,
-    }) : httpProxy.createProxyServer();
+    ? httpProxy.createProxyServer({ target: apiAddress })
+    : httpProxy.createProxyServer();
 
   proxy.on('error', (error, req, res) => {
     if (error.code !== 'ECONNRESET') {
@@ -34,9 +33,7 @@ const register = (app, proxy, path, apiAddress) => {
   console.log(`Server ${app.name} will proxy ${path} to ${apiAddress}`);
 
   app.use(path, (req, res) => {
-    proxy.web(req, res, {
-      target: apiAddress,
-    });
+    proxy.web(req, res, { target: apiAddress });
   });
 };
 const middleware = [
@@ -44,9 +41,7 @@ const middleware = [
     port: devPort,
     contentBase: path.join(__dirname, 'src', 'client'),
     hot: true,
-    stats: {
-      colors: true,
-    },
+    stats: { colors: true },
     compress: true,
   }),
   webpackHotMiddleware(compiler, {
@@ -59,9 +54,7 @@ const middleware = [
 
 app.use(middleware);
 
-[
-  { address: `http://localhost:${port}/api`, path: '/api' },
-].forEach(cfg => {
+[{ address: `http://localhost:${port}/api`, path: '/api' }].forEach((cfg) => {
   const proxy = make(cfg.address);
   app.on('stop', () => proxy.close());
   register(app, proxy, cfg.path, cfg.address);
@@ -83,8 +76,7 @@ app.listen(devPort, () => {
   console.log('Developer Server | port: %s', devPort);
 });
 
-process
-  .on('dev server Uncaught Exception', (err) => {
-    // eslint-disable-next-line no-console
-    console.error('<!> Exception %s: ', err.message, err.stack);
-  });
+process.on('dev server Uncaught Exception', (err) => {
+  // eslint-disable-next-line no-console
+  console.error('<!> Exception %s: ', err.message, err.stack);
+});

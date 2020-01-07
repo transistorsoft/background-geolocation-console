@@ -1,59 +1,58 @@
 // @flow
-import React from 'react';
-import { connect } from 'react-redux';
 import DateFnsUtils from '@date-io/date-fns';
-import {
-  AppBar,
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  Checkbox,
-  FormControlLabel,
-  IconButton,
-  Switch,
-  TextField,
-  Toolbar,
-  Typography,
-  useTheme,
-} from '@material-ui/core';
-import {
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
-  Refresh as RefreshIcon,
-} from '@material-ui/icons';
+import AppBar from '@material-ui/core/AppBar';
+import IconButton from '@material-ui/core/IconButton';
+import Toolbar from '@material-ui/core/Toolbar';
+import Typography from '@material-ui/core/Typography';
+import Button from '@material-ui/core/Button';
+import Card from '@material-ui/core/Card';
+import CardContent from '@material-ui/core/CardContent';
+import CardHeader from '@material-ui/core/CardHeader';
+import Checkbox from '@material-ui/core/Checkbox';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import Switch from '@material-ui/core/Switch';
+import TextField from '@material-ui/core/TextField';
+import useMediaQuery from '@material-ui/core/useMediaQuery';
+import { useTheme } from '@material-ui/core/styles';
+import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
+import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import RefreshIcon from '@material-ui/icons/Refresh';
 import {
   DatePicker,
   MuiPickersUtilsProvider,
   TimePicker,
 } from '@material-ui/pickers';
-import useMediaQuery from '@material-ui/core/useMediaQuery';
+import React from 'react';
+import { connect } from 'react-redux';
 
-import useStyles from './Style';
-import formatDate from '~/utils/formatDate';
-import DeviceField from './DeviceField';
-import RemoveAnimationProvider from '../RemoveAnimationProvider';
-import DeleteDeviceLink from './DeleteDeviceLink';
-import OrgField from './OrgField';
-import CustomMarkers from './CustomMarkers';
-import { type GlobalState } from '~/reducer/state';
 import {
-  type OrgToken,
-  type Device,
-  type MaterialInputElement,
-  type Source,
-  changeOrgToken,
   changeDeviceId,
   changeEnableClustering,
   changeEndDate,
   changeIsWatching,
   changeMaxMarkers,
+  changeOrgToken,
   changeShowGeofenceHits,
   changeShowMarkers,
   changeShowPolyline,
   changeStartDate,
+  type Device,
+  type MaterialInputElement,
+  type OrgToken,
   reload,
-} from '~/reducer/dashboard';
+  type Source,
+} from 'reducer/dashboard';
+import { type GlobalState } from 'reducer/state';
+import formatDate from 'utils/formatDate';
+
+import RemoveAnimationProvider from '../RemoveAnimationProvider';
+
+import CustomMarkers from './CustomMarkers';
+import DeleteDeviceLink from './DeleteDeviceLink';
+import DeviceField from './DeviceField';
+import OrgField from './OrgField';
+import useStyles from './Style';
+
 const cardMargins = { marginBottom: '10px' };
 type StateProps = {|
   companyId: string,
@@ -88,7 +87,7 @@ type Props = {|
   ...DispatchProps,
   setOpen: (open: boolean) => any,
 |};
-const FilterView = function ({
+const FilterView = ({
   companyId,
   orgTokens,
   deviceId,
@@ -114,7 +113,7 @@ const FilterView = function ({
   showMarkers,
   showPolyline,
   startDate,
-}: Props): React$Element<any> {
+}: Props): React$Element<any> => {
   const theme = useTheme();
   const classes = useStyles();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
@@ -122,14 +121,19 @@ const FilterView = function ({
     <div className='filterView'>
       <AppBar className={classes.appBar} position='static'>
         <Toolbar style={{ justifyContent: 'space-between' }}>
-          <IconButton edge='start' onClick={onReload} color='inherit' aria-label='menu'>
+          <IconButton
+            edge='start'
+            onClick={onReload}
+            color='inherit'
+            aria-label='menu'
+          >
             <RefreshIcon />
           </IconButton>
-          <Typography variant='h6'>
-            Filter
-          </Typography>
+          <Typography variant='h6'>Filter!</Typography>
           <IconButton edge='end' color='inherit' onClick={() => setOpen(false)}>
-            {theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+            {theme.direction === 'ltr'
+              ? <ChevronLeftIcon />
+              : <ChevronRightIcon />}
           </IconButton>
         </Toolbar>
       </AppBar>
@@ -145,7 +149,12 @@ const FilterView = function ({
                   source={orgTokens}
                   value={companyId}
                 />
-                <DeviceField onChange={onChangeDeviceId} source={devices} hasData={hasData} value={deviceId} />
+                <DeviceField
+                  onChange={onChangeDeviceId}
+                  source={devices}
+                  hasData={hasData}
+                  value={deviceId}
+                />
               </RemoveAnimationProvider>
               <DeleteDeviceLink />
               <div style={{ display: 'flex', flexDirection: 'row' }}>
@@ -184,14 +193,20 @@ const FilterView = function ({
                   value={endDate}
                 />
               </div>
-              <Button fullWidth className={classes.paddingRow} variant='contained' color='primary' onClick={onReload}>
+              <Button
+                fullWidth
+                className={classes.paddingRow}
+                variant='contained'
+                color='primary'
+                onClick={onReload}
+              >
                 <RefreshIcon />
                 Reload
               </Button>
               <FormControlLabel
                 labelPlacement='start'
                 className={classes.switch}
-                control={
+                control={(
                   <Switch
                     color='primary'
                     value='watching'
@@ -199,7 +214,7 @@ const FilterView = function ({
                     onChange={(e: MaterialInputElement) => onChangeIsWatching(e.target.checked)}
                     style={{ flex: 1 }}
                   />
-                }
+                )}
                 label='Watch mode'
               />
             </CardContent>
@@ -263,26 +278,27 @@ const FilterView = function ({
   );
 };
 
-const mapStateToProps = function (state: GlobalState): StateProps {
-  return {
-    deviceId: '' + state.dashboard.deviceId,
-    companyId: '' + state.dashboard.companyId,
-    enableClustering: state.dashboard.enableClustering,
-    startDate: state.dashboard.startDate,
-    endDate: state.dashboard.endDate,
-    devices: state.dashboard.devices.map((device: Device) => ({ value: '' + device.id, label: device.name })),
-    orgTokens: state.dashboard.orgTokens.map((orgToken: OrgToken) => ({
-      value: '' + orgToken.id,
-      label: orgToken.name,
-    })),
-    hasData: state.dashboard.hasData,
-    isWatching: state.dashboard.isWatching,
-    showGeofenceHits: state.dashboard.showGeofenceHits,
-    showPolyline: state.dashboard.showPolyline,
-    showMarkers: state.dashboard.showMarkers,
-    maxMarkers: state.dashboard.maxMarkers,
-  };
-};
+const mapStateToProps = (state: GlobalState): StateProps => ({
+  deviceId: `${state.dashboard.deviceId}`,
+  companyId: `${state.dashboard.companyId}`,
+  enableClustering: state.dashboard.enableClustering,
+  startDate: state.dashboard.startDate,
+  endDate: state.dashboard.endDate,
+  devices: state.dashboard.devices.map((device: Device) => ({
+    value: `${device.id}`,
+    label: device.name,
+  })),
+  orgTokens: state.dashboard.orgTokens.map((orgToken: OrgToken) => ({
+    value: `${orgToken.id}`,
+    label: orgToken.name,
+  })),
+  hasData: state.dashboard.hasData,
+  isWatching: state.dashboard.isWatching,
+  showGeofenceHits: state.dashboard.showGeofenceHits,
+  showPolyline: state.dashboard.showPolyline,
+  showMarkers: state.dashboard.showMarkers,
+  maxMarkers: state.dashboard.maxMarkers,
+});
 
 const mapDispatchToProps: DispatchProps = {
   onReload: reload,

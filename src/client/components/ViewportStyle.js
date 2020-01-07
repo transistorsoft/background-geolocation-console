@@ -56,15 +56,9 @@ const useStyles = makeStyles(theme => ({
     right: 0,
     bottom: 0,
   },
-  tabs: {
-    backgroundColor: theme.palette.primary.main,
-  },
-  menuButton: {
-    marginRight: theme.spacing(2),
-  },
-  hide: {
-    display: 'none',
-  },
+  tabs: { backgroundColor: theme.palette.primary.main },
+  menuButton: { marginRight: theme.spacing(2) },
+  hide: { display: 'none' },
   drawer: {
     width: drawerWidth,
     flexShrink: 0,
@@ -73,12 +67,8 @@ const useStyles = makeStyles(theme => ({
     width: locationDrawlerWidth,
     flexShrink: 0,
   },
-  drawerPaper: {
-    width: drawerWidth,
-  },
-  drawerLocationPaper: {
-    width: locationDrawlerWidth,
-  },
+  drawerPaper: { width: drawerWidth },
+  drawerLocationPaper: { width: locationDrawlerWidth },
   drawerHeader: {
     display: 'flex',
     alignItems: 'center',
@@ -86,12 +76,8 @@ const useStyles = makeStyles(theme => ({
     ...theme.mixins.toolbar,
     justifyContent: 'space-between',
   },
-  overflowAuto: {
-    overflow: 'auto',
-  },
-  whiteBackground: {
-    backgroundColor: 'rgb(255, 255, 255)',
-  },
+  overflowAuto: { overflow: 'auto' },
+  whiteBackground: { backgroundColor: 'rgb(255, 255, 255)' },
   content: {
     position: 'relative',
     flexGrow: 1,

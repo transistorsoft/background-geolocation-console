@@ -1,12 +1,19 @@
+/* eslint-disable no-console */
 // @flow
-import { API_URL } from '~/constants';
-import { type GlobalState } from '~/reducer/state';
-import cloneState from '~/utils/cloneState';
-import isEqual from 'lodash/isEqual';
 import qs from 'querystring';
-import { fitBoundsBus, scrollToRowBus, changeTabBus } from '~/globalBus';
-import { setSettings, getSettings, getUrlSettings, setUrlSettings, type StoredSettings } from '~/storage';
-import GA from '~/utils/GA';
+import isEqual from 'lodash/isEqual';
+
+import {
+  fitBoundsBus, scrollToRowBus, changeTabBus,
+} from 'globalBus';
+import {
+  setSettings, getSettings, getUrlSettings, setUrlSettings, type StoredSettings,
+} from 'storage';
+import GA from 'utils/GA';
+import { type GlobalState, type Tab } from 'reducer/state';
+import cloneState from 'utils/cloneState';
+
+import { API_URL } from '../../constants';
 
 export type Source = {|
   value: string,
@@ -30,7 +37,6 @@ export type OrgToken = {|
   id: string,
   name: string,
 |};
-export type Tab = 'map' | 'list';
 export type Location = {|
   accuracy: number,
   activity_confidence: number,
@@ -236,53 +242,47 @@ type ThunkAction = (dispatch: Dispatch, getState: GetState) => Promise<void>;
 export function setOrgTokens (orgTokens: OrgToken[]): SetOrgTokensAction {
   return {
     type: 'dashboard/SET_ORG_TOKENS',
-    orgTokens: orgTokens,
+    orgTokens,
   };
 }
 export function setDevices (devices: Device[]): SetDevicesAction {
   return {
     type: 'dashboard/SET_DEVICES',
-    devices: devices,
+    devices,
   };
 }
 
 export function setLocations (locations: Location[]): SetLocationsAction {
   return {
     type: 'dashboard/SET_LOCATIONS',
-    locations: locations,
+    locations,
   };
 }
 
 export function setHasData (status: boolean): SetHasDataAction {
   return {
     type: 'dashboard/SET_HAS_DATA',
-    status: status,
+    status,
   };
 }
 
 export function setIsLoading (status: boolean): SetIsLoadingAction {
   return {
     type: 'dashboard/SET_IS_LOADING',
-    status: status,
+    status,
   };
 }
 
 export function autoselectOrInvalidateSelectedOrgToken (): AutoselectOrInvalidateSelectedOrgTokenAction {
-  return {
-    type: 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_ORG_TOKEN',
-  };
+  return { type: 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_ORG_TOKEN' };
 }
 
 export function autoselectOrInvalidateSelectedDevice (): AutoselectOrInvalidateSelectedDeviceAction {
-  return {
-    type: 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_DEVICE',
-  };
+  return { type: 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_DEVICE' };
 }
 
 export function invalidateSelectedLocation (): InvalidateSelectedLocationAction {
-  return {
-    type: 'dashboard/INVALIDATE_SELECTED_LOCATION',
-  };
+  return { type: 'dashboard/INVALIDATE_SELECTED_LOCATION' };
 }
 
 export function setShowMarkers (value: boolean): SetShowMarkersAction {
@@ -329,7 +329,7 @@ export function setIsWatching (value: boolean): SetIsWatchingAction {
 export function setCurrentLocation (location: ?Location): SetCurrentLocationAction {
   return {
     type: 'dashboard/SET_CURRENT_LOCATION',
-    location: location,
+    location,
   };
 }
 
@@ -350,14 +350,14 @@ export function setEndDate (value: Date): SetEndDateAction {
 export function setDevice (deviceId: string): SetDeviceAction {
   return {
     type: 'dashboard/SET_DEVICE',
-    deviceId: deviceId,
+    deviceId,
   };
 }
 
 export function setSelectedLocation (locationId: string): SetSelectedLocationAction {
   return {
     type: 'dashboard/SET_SELECTED_LOCATION',
-    locationId: locationId,
+    locationId,
   };
 }
 
@@ -371,14 +371,14 @@ export function unselectLocation (): SetSelectedLocationAction {
 export function applyExistingSettings (settings: StoredSettings): ApplyExistingSettinsAction {
   return {
     type: 'dashboard/APPLY_EXISTING_SETTINGS',
-    settings: settings,
+    settings,
   };
 }
 
 export function setActiveTab (tab: Tab): SetActiveTabAction {
   return {
     type: 'dashboard/SET_ACTIVE_TAB',
-    tab: tab,
+    tab,
   };
 }
 
@@ -406,8 +406,108 @@ export function doAddTestMarker (value: Object): AddTestMarkerAction {
 // ------------------------------------
 // Thunk Actions
 // ------------------------------------
-export function loadInitialData (id: string): ThunkAction {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+
+export const loadOrgTokens = (): ThunkAction => async (dispatch: Dispatch, getState: GetState): Promise<void> => {
+  const { dashboard: { orgTokenFromSearch } } = getState();
+  const params = qs.stringify({ company_token: orgTokenFromSearch });
+  try {
+    const response = await fetch(`${API_URL}/company_tokens?${params}`);
+    const records = await response.json();
+    const orgTokens: OrgToken[] = records.map((x: { company_token: string }) => ({
+      id: x.id,
+      name: x.company_token,
+    }));
+    return dispatch(setOrgTokens(orgTokens));
+  } catch (e) {
+    console.error('loadOrgTokens', e);
+    return e;
+  }
+};
+
+export const loadDevices = (): ThunkAction => async (dispatch: Dispatch, getState: GetState): Promise<void> => {
+  const { dashboard: { companyId, orgToken } } = getState();
+  const params = qs.stringify({
+    company_id: companyId,
+    company_token: orgToken,
+  });
+  try {
+    const response = await fetch(`${API_URL}/devices?${params}`);
+    const records = await response.json();
+    const devices: Device[] = records
+      .map((record: Object) => ({
+        id: record.id,
+        name: `${record.device_id}(${record.framework})`,
+      }));
+    return dispatch(setDevices(devices));
+  } catch (e) {
+    console.error('loadDevices', e);
+    return e;
+  }
+};
+
+
+export const loadLocations = (): ThunkAction => async (dispatch: Dispatch, getState: GetState): Promise<void> => {
+  const {
+    deviceId, orgToken, companyId, startDate, endDate, maxMarkers,
+  } = getState().dashboard;
+  GA.sendEvent('tracker', 'loadLocations', orgToken);
+
+  const params = qs.stringify({
+    company_id: companyId,
+    company_token: orgToken,
+    device_id: deviceId,
+    end_date: endDate.toISOString(),
+    limit: maxMarkers,
+    start_date: startDate.toISOString(),
+  });
+  try {
+    const response = await fetch(`${API_URL}/locations?${params}`);
+    const records = await response.json();
+    return dispatch(setLocations(records));
+  } catch (e) {
+    console.error('loadLocations', e);
+    return e;
+  }
+};
+
+export const loadCurrentLocation = (): ThunkAction => async (dispatch: Dispatch, getState: GetState): Promise<void> => {
+  const {
+    deviceId, companyId, company_token: orgToken,
+  } = getState().dashboard;
+  if (deviceId) {
+    const params = qs.stringify({
+      device_id: deviceId,
+      company_id: companyId,
+      company_token: orgToken,
+    });
+    try {
+      const response = await fetch(`${API_URL}/locations/latest?${params}`);
+      const currentLocation = await response.json();
+      return await dispatch(setCurrentLocation(currentLocation));
+    } catch (e) {
+      console.error('loadCurrentLocation', deviceId, e);
+    }
+  }
+
+  return dispatch(setCurrentLocation(null));
+};
+
+export const reload =
+  ({ loadUsers }: LoadParams = { loadUsers: true }): ThunkAction => async (dispatch: Dispatch): Promise<void> => {
+    await dispatch(setIsLoading(true));
+    loadUsers && await dispatch(loadOrgTokens());
+    await dispatch(autoselectOrInvalidateSelectedOrgToken());
+    await dispatch(loadDevices());
+    await dispatch(autoselectOrInvalidateSelectedDevice());
+    await dispatch(loadLocations());
+    await dispatch(loadCurrentLocation());
+    await dispatch(invalidateSelectedLocation());
+    await dispatch(setIsLoading(false));
+    fitBoundsBus.emit({});
+  };
+
+export const loadInitialData =
+  (id: string): ThunkAction => async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     const { dashboard: { hasData } } = getState();
     if (hasData) {
       console.error('extra call after everything is set up!');
@@ -424,27 +524,11 @@ export function loadInitialData (id: string): ThunkAction {
     await dispatch(setHasData(true));
     // set a timer as a side effect
     setTimeout(() => dispatch(reload()), 60 * 1000);
-    GA.sendEvent('tracker', 'load:' + id);
+    GA.sendEvent('tracker', `load:${id}`);
   };
-}
-
-export function reload ({ loadUsers }: LoadParams = { loadUsers: true }): ThunkAction {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    await dispatch(setIsLoading(true));
-    loadUsers && await dispatch(loadOrgTokens());
-    await dispatch(autoselectOrInvalidateSelectedOrgToken());
-    await dispatch(loadDevices());
-    await dispatch(autoselectOrInvalidateSelectedDevice());
-    await dispatch(loadLocations());
-    await dispatch(loadCurrentLocation());
-    await dispatch(invalidateSelectedLocation());
-    await dispatch(setIsLoading(false));
-    fitBoundsBus.emit({});
-  };
-}
 
 export function deleteActiveDevice (deleteOptions: ?DeleteOptions): ThunkAction {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     const { dashboard: { deviceId } } = getState();
     if (!deviceId) {
       return;
@@ -458,102 +542,15 @@ export function deleteActiveDevice (deleteOptions: ?DeleteOptions): ThunkAction 
     try {
       await fetch(`${API_URL}/devices/${deviceId}${params}`, { method: 'delete' });
       await dispatch(reload({ loadUsers: false }));
-      GA.sendEvent('tracker', 'delete device:' + deviceId);
+      GA.sendEvent('tracker', `delete device:${deviceId}`);
     } catch (e) {
       console.error('deleteActiveDevice', e);
     }
   };
 }
 
-export function loadOrgTokens (): ThunkAction {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const { dashboard: { orgTokenFromSearch } } = getState();
-    const params = qs.stringify({
-      company_token: orgTokenFromSearch,
-    });
-    try {
-      const response = await fetch(`${API_URL}/company_tokens?${params}`);
-      const records = await response.json();
-      const orgTokens: OrgToken[] = records.map((x: { company_token: string }) => ({
-        id: x.id,
-        name: x.company_token,
-      }));
-      return dispatch(setOrgTokens(orgTokens));
-    } catch (e) {
-      console.error('loadOrgTokens', e);
-    }
-  };
-}
-
-export function loadDevices (): ThunkAction {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const { dashboard: { companyId, orgToken } } = getState();
-    const params = qs.stringify({
-      company_id: companyId,
-      company_token: orgToken,
-    });
-    try {
-      const response = await fetch(`${API_URL}/devices?${params}`);
-      const records = await response.json();
-      const devices: Device[] = records
-        .map((record: Object) => ({
-          id: record.id,
-          name: record.device_id + '(' + record.framework + ')',
-        }));
-      return dispatch(setDevices(devices));
-    } catch (e) {
-      console.error('loadDevices', e);
-    }
-  };
-}
-
-export function loadLocations (): ThunkAction {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const { deviceId, orgToken, companyId, startDate, endDate, maxMarkers } = getState().dashboard;
-    GA.sendEvent('tracker', 'loadLocations', orgToken);
-
-    const params = qs.stringify({
-      company_id: companyId,
-      company_token: orgToken,
-      device_id: deviceId,
-      end_date: endDate.toISOString(),
-      limit: maxMarkers,
-      start_date: startDate.toISOString(),
-    });
-    try {
-      const response = await fetch(`${API_URL}/locations?${params}`);
-      const records = await response.json();
-      return dispatch(setLocations(records));
-    } catch (e) {
-      console.error('loadLocations', e);
-    }
-  };
-}
-
-export function loadCurrentLocation (): ThunkAction {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
-    const { deviceId, companyId, company_token: orgToken } = getState().dashboard;
-    if (deviceId) {
-      const params = qs.stringify({
-        device_id: deviceId,
-        company_id: companyId,
-        company_token: orgToken,
-      });
-      try {
-        const response = await fetch(`${API_URL}/locations/latest?${params}`);
-        const currentLocation = await response.json();
-        return await dispatch(setCurrentLocation(currentLocation));
-      } catch (e) {
-        console.error('loadCurrentLocation', deviceId, e);
-      }
-    }
-
-    await dispatch(setCurrentLocation(null));
-  };
-}
-
 export function changeStartDate (value: Date) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setStartDate(value));
     setSettings(getState().dashboard.orgTokenFromSearch, { startDate: value });
     const { dashboard } = getState();
@@ -568,7 +565,7 @@ export function changeStartDate (value: Date) {
   };
 }
 export function changeEndDate (value: Date) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setEndDate(value));
     setSettings(getState().dashboard.orgTokenFromSearch, { endDate: value });
     const { dashboard } = getState();
@@ -584,14 +581,14 @@ export function changeEndDate (value: Date) {
 }
 
 export function changeOrgToken (value: string) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setOrgToken(value));
     setSettings(getState().dashboard.orgTokenFromSearch, { companyId: value });
     await dispatch(reload({ loadUsers: false }));
   };
 }
 export function changeDeviceId (value: string) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setDevice(value));
     setSettings(getState().dashboard.orgTokenFromSearch, { deviceId: value });
     const { dashboard } = getState();
@@ -607,56 +604,56 @@ export function changeDeviceId (value: string) {
 }
 
 export function changeIsWatching (value: boolean) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setIsWatching(value));
     setSettings(getState().dashboard.orgTokenFromSearch, { isWatching: value });
   };
 }
 
 export function changeShowMarkers (value: boolean) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setShowMarkers(value));
     setSettings(getState().dashboard.orgTokenFromSearch, { showMarkers: value });
   };
 }
 
 export function changeEnableClustering (value: boolean) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setEnableClustering(value));
     setSettings(getState().dashboard.orgTokenFromSearch, { enableClustering: value });
   };
 }
 
 export function changeShowPolyline (value: boolean) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setShowPolyline(value));
     setSettings(getState().dashboard.orgTokenFromSearch, { showPolyline: value });
   };
 }
 
 export function changeShowGeofenceHits (value: boolean) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setShowGeofenceHits(value));
     setSettings(getState().dashboard.orgTokenFromSearch, { showGeofenceHits: value });
   };
 }
 
 export function changeMaxMarkers (value: number) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setShowMaxMarkers(value));
     setSettings(getState().dashboard.orgTokenFromSearch, { maxMarkers: value });
   };
 }
 
 export function clickMarker (locationId: string) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch): Promise<void> => {
     await dispatch(setSelectedLocation(locationId));
     scrollToRowBus.emit({ locationId });
   };
 }
 
 export function changeActiveTab (tab: Tab) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setActiveTab(tab));
     setSettings(getState().dashboard.orgTokenFromSearch, { activeTab: tab });
     changeTabBus.emit({ tab });
@@ -664,7 +661,7 @@ export function changeActiveTab (tab: Tab) {
 }
 
 export function addTestMarker (value: Object): ThunkAction {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch): Promise<void> => {
     dispatch(doAddTestMarker(value));
   };
 }
@@ -672,15 +669,16 @@ export function addTestMarker (value: Object): ThunkAction {
 // Action Handlers
 // ------------------------------------
 
-const setOrgTokensHandler = function (state: DashboardState, action: SetOrgTokensAction): DashboardState {
-  return cloneState(state, { orgTokens: action.orgTokens });
-};
+const setOrgTokensHandler =
+  (state: DashboardState, action: SetOrgTokensAction): DashboardState => cloneState(
+    state,
+    { orgTokens: action.orgTokens },
+  );
 
-const setDevicesHandler = function (state: DashboardState, action: SetDevicesAction): DashboardState {
-  return cloneState(state, { devices: action.devices });
-};
+const setDevicesHandler =
+  (state: DashboardState, action: SetDevicesAction): DashboardState => cloneState(state, { devices: action.devices });
 
-const areLocationsEqual = function (existingLocations: Location[], newLocations: Location[]) {
+const areLocationsEqual = (existingLocations: Location[], newLocations: Location[]) => {
   const firstExistingLocation = existingLocations[0];
   const firstNewLocation = newLocations[0];
   const lastExistingLocation = existingLocations[existingLocations.length - 1];
@@ -688,18 +686,16 @@ const areLocationsEqual = function (existingLocations: Location[], newLocations:
   return isEqual([firstExistingLocation, lastExistingLocation], [firstNewLocation, lastNewLocation]);
 };
 
-const setLocationsHandler = function (state: DashboardState, action: SetLocationsAction): DashboardState {
+const setLocationsHandler = (state: DashboardState, action: SetLocationsAction): DashboardState => {
   if (areLocationsEqual(state.locations, action.locations)) {
     return state;
-  } else {
-    return cloneState(state, { locations: action.locations });
   }
+  return cloneState(state, { locations: action.locations });
 };
 
-const autoselectOrInvalidateSelectedOrgTokenHandler = function (
+const autoselectOrInvalidateSelectedOrgTokenHandler = (
   state: DashboardState,
-  action: AutoselectOrInvalidateSelectedOrgTokenAction
-): DashboardState {
+): DashboardState => {
   const { orgTokens, companyId } = state;
   if (orgTokens.length === 0) {
     return cloneState(state, { companyId: 1 });
@@ -711,17 +707,15 @@ const autoselectOrInvalidateSelectedOrgTokenHandler = function (
     const existingOrgToken = orgTokens && orgTokens.find((x: Device) => x.id === +companyId);
     if (!existingOrgToken) {
       return cloneState(state, { companyId: `${orgTokens[0].id}` });
-    } else {
-      return state;
     }
+    return state;
   }
   return state;
 };
 
-const autoselectOrInvalidateSelectedDeviceHandler = function (
+const autoselectOrInvalidateSelectedDeviceHandler = (
   state: DashboardState,
-  action: AutoselectOrInvalidateSelectedDeviceAction
-): DashboardState {
+): DashboardState => {
   const { devices, deviceId } = state;
   if (devices.length === 0) {
     return cloneState(state, { deviceId: null });
@@ -733,93 +727,121 @@ const autoselectOrInvalidateSelectedDeviceHandler = function (
     const existingDevice = devices && devices.find((x: Device) => x.id === +deviceId);
     if (!existingDevice) {
       return cloneState(state, { deviceId: `${devices[0].id}` });
-    } else {
-      return state;
     }
+    return state;
   }
   return state;
 };
 
-const invalidateSelectedLocationHandler = function (
+const invalidateSelectedLocationHandler = (
   state: DashboardState,
-  action: InvalidateSelectedLocationAction
-): DashboardState {
-  const { selectedLocationId, isWatching, currentLocation, locations } = state;
+): DashboardState => {
+  const {
+    selectedLocationId, isWatching, currentLocation, locations,
+  } = state;
   if (!selectedLocationId) {
     return state;
   }
   if (isWatching) {
     return cloneState(state, { selectedLocationId: currentLocation ? currentLocation.uuid : null });
-  } else {
-    const existingLocation = locations && locations.find((x: Location) => x.uuid === selectedLocationId);
-    if (!existingLocation) {
-      return cloneState(state, { selectedLocationId: null });
-    } else {
-      return state;
-    }
   }
+  const existingLocation = locations && locations.find((x: Location) => x.uuid === selectedLocationId);
+  if (!existingLocation) {
+    return cloneState(state, { selectedLocationId: null });
+  }
+  return state;
 };
 
-const setIsLoadingHandler = function (state: DashboardState, action: SetIsLoadingAction): DashboardState {
-  return cloneState(state, { isLoading: action.status });
-};
-const setHasDataHandler = function (state: DashboardState, action: SetHasDataAction): DashboardState {
-  return cloneState(state, { hasData: action.status });
-};
+const setIsLoadingHandler =
+  (state: DashboardState, action: SetIsLoadingAction): DashboardState => cloneState(
+    state,
+    { isLoading: action.status },
+  );
+const setHasDataHandler =
+  (state: DashboardState, action: SetHasDataAction): DashboardState => cloneState(state, { hasData: action.status });
 
-const setShowMarkersHandler = function (state: DashboardState, action: SetShowMarkersAction): DashboardState {
-  return cloneState(state, { showMarkers: action.value });
-};
+const setShowMarkersHandler =
+  (state: DashboardState, action: SetShowMarkersAction): DashboardState => cloneState(
+    state,
+    { showMarkers: action.value },
+  );
 
-const setEnableClusteringHandler = function (state: DashboardState, action: SetEnableClustringAction): DashboardState {
-  return cloneState(state, { enableClustering: action.value });
-};
+const setEnableClusteringHandler =
+  (state: DashboardState, action: SetEnableClustringAction): DashboardState => cloneState(
+    state,
+    { enableClustering: action.value },
+  );
 
-const setShowPolylineHandler = function (state: DashboardState, action: SetShowPolylineAction): DashboardState {
-  return cloneState(state, { showPolyline: action.value });
-};
-const setShowGeofenceHitsHandler = function (state: DashboardState, action: SetShowGeofenceHitsAction): DashboardState {
-  return cloneState(state, { showGeofenceHits: action.value });
-};
-const setMaxMarkersHandler = function (state: DashboardState, action: SetMaxMarkersAction): DashboardState {
-  return cloneState(state, { maxMarkers: action.value });
-};
-const setIsWatchingHandler = function (state: DashboardState, action: SetIsWatchingAction): DashboardState {
-  return cloneState(state, { isWatching: action.value });
-};
-const setCurrentLocationHandler = function (state: DashboardState, action: SetCurrentLocationAction): DashboardState {
-  return cloneState(state, { currentLocation: action.location });
-};
-const setStartDateHandler = function (state: DashboardState, action: SetStartDateAction): DashboardState {
-  return cloneState(state, { startDate: action.value });
-};
-const setEndDateHandler = function (state: DashboardState, action: SetEndDateAction): DashboardState {
-  return cloneState(state, { endDate: action.value });
-};
-const setDeviceHandler = function (state: DashboardState, action: SetDeviceAction): DashboardState {
-  return cloneState(state, { deviceId: action.deviceId });
-};
-const setSelectedLocationHandler = function (state: DashboardState, action: SetSelectedLocationAction): DashboardState {
-  return cloneState(state, { selectedLocationId: action.locationId });
-};
-const applyExistingSettingsHandler = function (
+const setShowPolylineHandler =
+  (state: DashboardState, action: SetShowPolylineAction): DashboardState => cloneState(
+    state,
+    { showPolyline: action.value },
+  );
+
+const setShowGeofenceHitsHandler =
+  (state: DashboardState, action: SetShowGeofenceHitsAction): DashboardState => cloneState(
+    state,
+    { showGeofenceHits: action.value },
+  );
+
+const setMaxMarkersHandler =
+  (state: DashboardState, action: SetMaxMarkersAction): DashboardState => cloneState(
+    state,
+    { maxMarkers: action.value },
+  );
+
+const setIsWatchingHandler =
+  (state: DashboardState, action: SetIsWatchingAction): DashboardState => cloneState(
+    state,
+    { isWatching: action.value },
+  );
+
+const setCurrentLocationHandler =
+  (state: DashboardState, action: SetCurrentLocationAction): DashboardState => cloneState(
+    state,
+    { currentLocation: action.location },
+  );
+const setStartDateHandler =
+  (state: DashboardState, action: SetStartDateAction): DashboardState => cloneState(
+    state,
+    { startDate: action.value },
+  );
+const setEndDateHandler =
+  (state: DashboardState, action: SetEndDateAction): DashboardState => cloneState(
+    state,
+    { endDate: action.value },
+  );
+
+const setDeviceHandler = (state: DashboardState, action: SetDeviceAction): DashboardState => cloneState(
+  state,
+  { deviceId: action.deviceId },
+);
+
+const setSelectedLocationHandler =
+  (state: DashboardState, action: SetSelectedLocationAction): DashboardState => cloneState(
+    state,
+    { selectedLocationId: action.locationId },
+  );
+
+const applyExistingSettingsHandler = (
   state: DashboardState,
-  action: ApplyExistingSettinsAction
-): DashboardState {
-  return cloneState(state, action.settings);
-};
-const setActiveTabHandler = function (state: DashboardState, action: SetActiveTabAction) {
-  return cloneState(state, { activeTab: action.tab });
-};
-const setOrgTokenHandler = function (state: DashboardState, action: SetOrgTokenAction) {
-  return cloneState(state, { companyId: action.value });
-};
-const setOrgTokenFromSearchHandler = function (state: DashboardState, action: SetOrgTokenFromSearchAction) {
-  return cloneState(state, { orgTokenFromSearch: action.value });
-};
+  action: ApplyExistingSettinsAction,
+): DashboardState => cloneState(state, action.settings);
 
-const addTestMarkerHandler = function (state: DashboardState, action: AddTestMarkerAction) {
-  let markers = [].concat(state.testMarkers);
+const setActiveTabHandler =
+  (state: DashboardState, action: SetActiveTabAction) => cloneState(state, { activeTab: action.tab });
+
+const setOrgTokenHandler =
+  (state: DashboardState, action: SetOrgTokenAction) => cloneState(state, { companyId: action.value });
+
+const setOrgTokenFromSearchHandler =
+  (state: DashboardState, action: SetOrgTokenFromSearchAction) => cloneState(
+    state,
+    { orgTokenFromSearch: action.value },
+  );
+
+const addTestMarkerHandler = (state: DashboardState, action: AddTestMarkerAction) => {
+  const markers = [].concat(state.testMarkers);
   markers.push(action.value.data);
   return cloneState(state, { testMarkers: markers });
 };
@@ -827,15 +849,15 @@ const addTestMarkerHandler = function (state: DashboardState, action: AddTestMar
 // ------------------------------------
 // Initial State
 // ------------------------------------
-const getStartDate = function () {
-  var startDate = new Date();
+const getStartDate = () => {
+  const startDate = new Date();
   startDate.setHours(0);
   startDate.setMinutes(0);
   return startDate;
 };
 
-const getEndDate = function () {
-  var endDate = new Date();
+const getEndDate = () => {
+  const endDate = new Date();
   endDate.setHours(23);
   endDate.setMinutes(59);
   return endDate;

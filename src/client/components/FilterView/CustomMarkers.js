@@ -1,16 +1,14 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import {
-  Button,
-  Card,
-  CardActions,
-  CardContent,
-  CardHeader,
-  TextField,
-} from '@material-ui/core';
+import Button from '@material-ui/core/Button';
+import TextField from '@material-ui/core/TextField';
+import Card from '@material-ui/core/Card';
+import CardActions from '@material-ui/core/CardActions';
+import CardContent from '@material-ui/core/CardContent';
+import CardHeader from '@material-ui/core/CardHeader';
 
 class CustomMarkers extends React.Component {
-  constructor (props, context) {
+  constructor(props, context) {
     super(props, context);
     this.state = {
       label: '',
@@ -20,85 +18,95 @@ class CustomMarkers extends React.Component {
     };
   }
 
-  onChangeLabel = (value) => {
-    this.setState({
-      label: value,
-    });
-  }
+  onChangeLabel = value => {
+    this.setState({ label: value });
+  };
 
-  onChangePosition = (value) => {
+  onChangePosition = value => {
     this.setState({
-      positionHint: (value.length > 0) ? '' : 'latitude, longitude',
+      positionHint: value.length > 0 ? '' : 'latitude, longitude',
       position: value,
     });
-  }
+  };
 
-  onChangeRadius = (value) => {
-    this.setState({
-      radius: value,
-    });
-  }
+  onChangeRadius = value => {
+    this.setState({ radius: value });
+  };
 
   onAdd = () => {
-    let position = this.state.position;
-    let latlng = position.replace(/\s+/, '').split(',');
-    let radius = this.state.radius;
+    const {
+      position, radius, label,
+    } = this.state;
+    const latlng = position.replace(/\s+/, '').split(',');
+    const { onAddTestMarker } = this.props;
 
-    this.props.onAddTestMarker({
-      type: (!radius.length) ? 'location' : 'geofence',
-      label: this.state.label,
+    onAddTestMarker({
+      type: !radius.length ? 'location' : 'geofence',
+      label,
       position: {
         lat: parseFloat(latlng[0], 10),
         lng: parseFloat(latlng[1], 10),
       },
       radius: parseInt(radius, 10),
     });
-  }
-  render () {
+  };
+
+  render() {
+    const {
+      label, position, positionHint, radius,
+    } = this.state;
     const { classes } = this.props;
     return (
       <Card>
-        <CardHeader className={classes.header} key='header' title='Custom Markers' />
+        <CardHeader
+          className={classes.header}
+          key='header'
+          title='Custom Markers'
+        />
         <CardContent>
           <TextField
             fullWidth
             type='text'
-            value={this.state.label}
+            value={label}
             label='Label'
-            onChange={e => this.onChangeLabel((e.target.value))}
+            onChange={e => this.onChangeLabel(e.target.value)}
           />
           <TextField
             type='text'
             fullWidth
-            value={this.state.position}
+            value={position}
             label='Location'
-            hint={this.state.positionHint}
+            hint={positionHint}
             required
             onChange={e => this.onChangePosition(e.target.value)}
           />
           <TextField
             type='text'
             fullWidth
-            value={this.state.radius}
+            value={radius}
             label='Radius (for geofence circle)'
             onChange={e => this.onChangeRadius(e.target.value)}
           />
         </CardContent>
         <CardActions disableSpacing>
-          <Button fullWidth variant='contained' color='primary' style={{ width: '100%' }} onClick={this.onAdd}>
+          <Button
+            fullWidth
+            variant='contained'
+            color='primary'
+            style={{ width: '100%' }}
+            onClick={this.onAdd}
+          >
             Add Marker
           </Button>
         </CardActions>
       </Card>
     );
   }
-};
+}
 
-export default connect(
-  undefined,
-  {
-    onAddTestMarker: (data) => ({
-      type: 'ADD_TEST_MARKER',
-      value: { data },
-    }),
-  })(CustomMarkers);
+export default connect(undefined, {
+  onAddTestMarker: data => ({
+    type: 'ADD_TEST_MARKER',
+    value: { data },
+  }),
+})(CustomMarkers);

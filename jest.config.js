@@ -6,17 +6,12 @@ module.exports = {
     ...defaults.transform,
     '^.+\\.[t|j]sx?$': '<rootDir>/jest.transform.js',
   },
-  moduleFileExtensions: [
-    'js',
-    'jsx',
-  ],
+  moduleFileExtensions: ['js', 'jsx'],
   testEnvironment: 'node',
   coveragePathIgnorePatterns: [].concat(
     defaults.coveragePathIgnorePatterns,
     []
   ),
-  setupFiles: [
-    '<rootDir>/jest.init.js',
-  ],
+  setupFiles: ['<rootDir>/jest.init.js'],
   verbose: true,
 };

@@ -1,9 +1,11 @@
 // @flow
-import cloneState from '~/utils/cloneState';
 import queryString from 'query-string';
 import isUndefined from 'lodash/isUndefined';
 import omitBy from 'lodash/omitBy';
-import { type Tab } from './reducer/dashboard';
+
+import { type Tab } from 'reducer/state';
+import cloneState from 'utils/cloneState';
+
 export type StoredSettings = {|
   activeTab: Tab,
   startDate: Date,
@@ -18,7 +20,7 @@ export type StoredSettings = {|
 |};
 const getLocalStorageKey = (key: string) => (key ? `settings#${key}` : 'settings');
 
-export function getSettings (key: string): $Shape<StoredSettings> {
+export function getSettings(key: string): $Shape<StoredSettings> {
   const encodedSettings = localStorage.getItem(getLocalStorageKey(key));
   if (encodedSettings) {
     const parsed = JSON.parse(encodedSettings);
@@ -32,15 +34,14 @@ export function getSettings (key: string): $Shape<StoredSettings> {
         showPolyline: parsed.showPolyline,
         maxMarkers: parsed.maxMarkers,
       }),
-      isUndefined
+      isUndefined,
     );
     return result;
-  } else {
-    return {};
   }
+  return {};
 }
 
-function parseStartDate (date: ?string) {
+function parseStartDate(date: ?string) {
   if (!date) {
     return undefined;
   }
@@ -49,7 +50,7 @@ function parseStartDate (date: ?string) {
   }
   return new Date(date);
 }
-function parseEndDate (date: ?string) {
+function parseEndDate(date: ?string) {
   if (!date) {
     return undefined;
   }
@@ -57,13 +58,12 @@ function parseEndDate (date: ?string) {
     return undefined;
   }
   if (date.split(' ').length === 1) {
-    return new Date(date + ' 23:59');
-  } else {
-    return new Date(date);
+    return new Date(`${date} 23:59`);
   }
+  return new Date(date);
 }
 
-function encodeStartDate (date: ?Date) {
+function encodeStartDate(date: ?Date) {
   if (!date) {
     return undefined;
   }
@@ -74,11 +74,10 @@ function encodeStartDate (date: ?Date) {
   const min = date.getMinutes();
   if (h === 0 && min === 0) {
     return `${y}-${mon}-${d}`;
-  } else {
-    return `${y}-${mon}-${d} ${h}:${min}`;
   }
+  return `${y}-${mon}-${d} ${h}:${min}`;
 }
-function encodeEndDate (date: ?Date) {
+function encodeEndDate(date: ?Date) {
   if (!date) {
     return undefined;
   }
@@ -89,29 +88,30 @@ function encodeEndDate (date: ?Date) {
   const min = date.getMinutes();
   if (h === 23 && min === 59) {
     return `${y}-${mon}-${d}`;
-  } else {
-    return `${y}-${mon}-${d} ${h}:${min}`;
   }
+  return `${y}-${mon}-${d} ${h}:${min}`;
 }
-export function getUrlSettings (): $Shape<StoredSettings> {
-  const params = queryString.parse(location.search);
+export function getUrlSettings(): $Shape<StoredSettings> {
+  const params = queryString.parse(window.location.search);
   const result = omitBy(
     {
       deviceId: params.device,
       startDate: parseStartDate(params.start),
       endDate: parseEndDate(params.end),
     },
-    isUndefined
+    isUndefined,
   );
   return result;
 }
-export function setUrlSettings (settings: {|
+export function setUrlSettings(settings: {|
   deviceId: ?string,
   startDate: ?Date,
   endDate: ?Date,
   orgTokenFromSearch: string,
 |}) {
-  const { orgTokenFromSearch, startDate, endDate, deviceId } = settings;
+  const {
+    orgTokenFromSearch, startDate, endDate, deviceId,
+  } = settings;
   const mainPart = orgTokenFromSearch ? `/${orgTokenFromSearch}` : '';
   const search = {
     device: deviceId,
@@ -119,17 +119,21 @@ export function setUrlSettings (settings: {|
     start: encodeStartDate(startDate),
   };
   const url = `${mainPart}?${queryString.stringify(search)}`;
-  history.replaceState({}, '', url);
+  window.history.replaceState({}, '', url);
 }
 
-export function setSettings (key: string, settings: $Shape<StoredSettings>) {
+export function setSettings(key: string, settings: $Shape<StoredSettings>) {
   const existingSettings = getSettings(key);
   const newSettings = cloneState(existingSettings, settings);
   // convert start/endDate to string if they are present
   const stringifiedNewSettings = omitBy(
     {
-      startDate: newSettings.startDate ? newSettings.startDate.toISOString() : undefined,
-      endDate: newSettings.endDate ? newSettings.endDate.toISOString() : undefined,
+      startDate: newSettings.startDate
+        ? newSettings.startDate.toISOString()
+        : undefined,
+      endDate: newSettings.endDate
+        ? newSettings.endDate.toISOString()
+        : undefined,
       showGeofenceHits: newSettings.showGeofenceHits,
       showMarkers: newSettings.showMarkers,
       showPolyline: newSettings.showPolyline,
@@ -138,5 +142,8 @@ export function setSettings (key: string, settings: $Shape<StoredSettings>) {
     isUndefined,
   );
 
-  localStorage.setItem(getLocalStorageKey(key), JSON.stringify(stringifiedNewSettings));
+  localStorage.setItem(
+    getLocalStorageKey(key),
+    JSON.stringify(stringifiedNewSettings),
+  );
 }

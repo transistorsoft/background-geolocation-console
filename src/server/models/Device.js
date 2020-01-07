@@ -1,46 +1,60 @@
 import { Op } from 'sequelize';
 
-import { findOrCreate as findOrCreateCompany } from './Org';
+
 import DeviceModel from '../database/DeviceModel';
 import LocationModel from '../database/LocationModel';
 import {
-  checkCompany,
-  filterByCompany,
-  desc,
+  checkCompany, filterByCompany, desc,
 } from '../libs/utils';
 
-export async function getDevice ({ id }) {
+import { findOrCreate as findOrCreateCompany } from './Org';
+
+export async function getDevice({ id }) {
   const whereConditions = { id };
   const result = await DeviceModel.findOne({
     where: whereConditions,
-    attributes: ['id', 'device_id', 'device_model', 'company_id', 'company_token'],
+    attributes: [
+      'id',
+      'device_id',
+      'device_model',
+      'company_id',
+      'company_token',
+    ],
     raw: true,
   });
   return result;
 }
 
-export async function getDevices (params) {
+export async function getDevices(params) {
   const whereConditions = {};
   if (filterByCompany) {
     params.company_id && (whereConditions.company_id = +params.company_id);
   }
   const result = await DeviceModel.findAll({
     where: whereConditions,
-    attributes: ['id', 'device_id', 'device_model', 'company_id', 'company_token', 'framework'],
-    order: [['updated_at', desc], ['created_at', desc]],
+    attributes: [
+      'id',
+      'device_id',
+      'device_model',
+      'company_id',
+      'company_token',
+      'framework',
+    ],
+    order: [
+      ['updated_at', desc],
+      ['created_at', desc],
+    ],
     raw: true,
   });
   return result;
 }
 
-export async function deleteDevice ({
+export async function deleteDevice({
   id: deviceId,
   start_date: startDate,
   end_date: endDate,
 }) {
-  const whereByDevice = {
-    device_id: deviceId,
-  };
+  const whereByDevice = { device_id: deviceId };
   const where = { ...whereByDevice };
   if (startDate && endDate && new Date(startDate) && new Date(endDate)) {
     where.recorded_at = { [Op.between]: [new Date(startDate), new Date(endDate)] };
@@ -49,9 +63,7 @@ export async function deleteDevice ({
   const locationsCount = await LocationModel.count({ where: whereByDevice });
   if (!locationsCount) {
     await DeviceModel.destroy({
-      where: {
-        id: deviceId,
-      },
+      where: { id: deviceId },
       cascade: true,
     });
   }
@@ -59,12 +71,10 @@ export async function deleteDevice ({
 }
 
 export const findOrCreate = async (
-  org = 'UNKNOWN', {
-    model,
-    uuid,
-    framework,
-    version,
-  }
+  org = 'UNKNOWN',
+  {
+    model, uuid, framework, version,
+  },
 ) => {
   const device = {
     device_id: uuid || 'UNKNOWN',

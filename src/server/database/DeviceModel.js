@@ -1,4 +1,5 @@
 import Sequelize from 'sequelize';
+
 import definedSequelizeDb from './define-sequelize-db';
 
 const DeviceModel = definedSequelizeDb.define(
@@ -9,7 +10,10 @@ const DeviceModel = definedSequelizeDb.define(
       autoIncrement: true,
       primaryKey: true,
     },
-    company_id: { type: Sequelize.INTEGER, references: { model: 'companies', key: 'id' } },
+    company_id: {
+      type: Sequelize.INTEGER,
+      references: { model: 'companies', key: 'id' },
+    },
     // , references: { model: 'companies' }
     company_token: { type: Sequelize.TEXT },
     device_id: { type: Sequelize.TEXT },
@@ -26,10 +30,10 @@ const DeviceModel = definedSequelizeDb.define(
       { fields: ['company_id'] },
       { fields: ['company_token'] },
     ],
-  }
+  },
 );
 
-DeviceModel.associate = (models) => {
+DeviceModel.associate = models => {
   models.Device.hasMany(models.Location, { foreignKey: 'device_id' });
 };
 

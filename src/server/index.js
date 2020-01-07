@@ -1,12 +1,14 @@
-import initializeDatabase from './database/initializeDatabase';
+/* eslint-disable no-console */
+import { resolve, extname } from 'path';
 import express from 'express';
 import morgan from 'morgan';
 import bodyParser from 'body-parser';
-import { resolve, extname } from 'path';
+
 import compress from 'compression';
 import 'colors';
 import opn from 'opn';
 
+import initializeDatabase from './database/initializeDatabase';
 import siteApi from './routes/site-api';
 import api from './routes/api-v2';
 import tests from './routes/tests';
@@ -19,17 +21,15 @@ const app = express();
 const buildPath = resolve(__dirname, '..', '..', 'build');
 const parserLimits = { limit: parserLimit, extended: true };
 
-process
-  .on('uncaughtException', (err) => {
-    // eslint-disable-next-line no-console
-    console.error('<!> Exception %s: ', err.message, err.stack);
-  });
+process.on('uncaughtException', err => {
+  // eslint-disable-next-line no-console
+  console.error('<!> Exception %s: ', err.message, err.stack);
+});
 
-process
-  .on('message', (msg) => {
-    // eslint-disable-next-line no-console
-    console.log('Server %s process.on( message = %s )', msg);
-  });
+process.on('message', msg => {
+  // eslint-disable-next-line no-console
+  console.log('Server %s process.on( message = %s )', msg);
+});
 
 app.disable('etag');
 app.use(morgan(isProduction ? 'short' : 'dev'));
@@ -37,7 +37,7 @@ app.use(compress());
 app.use(bodyParser.json(parserLimits));
 app.use(bodyParser.raw(parserLimits));
 
-(async function () {
+((async () => {
   await initializeDatabase();
 
   app.use(siteApi);
@@ -56,10 +56,11 @@ app.use(bodyParser.raw(parserLimits));
     } else {
       next();
     }
-    app.use((err, req, res, next) => {
-      console.error(err.message, err.stack);
-      res.status(500).send({ message: err.message || 'Something broke!' });
-    });
+  });
+
+  app.use((err, req, res) => {
+    console.error(err.message, err.stack);
+    res.status(500).send({ message: err.message || 'Something broke!' });
   });
 
   app.listen(port, () => {
@@ -69,10 +70,9 @@ app.use(bodyParser.raw(parserLimits));
 
     // Spawning dedicated process on opened port.. only if not deployed on heroku
     if (!dyno) {
-      opn(`http://localhost:8080`)
-        .catch(error => console.error('Optional site open failed:', error));
+      opn('http://localhost:8080').catch(error => console.error('Optional site open failed:', error));
     }
   });
-})();
+})());
 
 module.exports = app;

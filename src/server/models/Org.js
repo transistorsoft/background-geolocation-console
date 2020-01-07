@@ -1,11 +1,10 @@
 import {
-  isAdmin,
-  filterByCompany,
+  isAdmin, filterByCompany, desc,
 } from '../libs/utils';
 import CompanyModel from '../database/CompanyModel';
-import { desc } from '../libs/utils';
 
-export async function getOrgs ({ company_token: org }) {
+
+export async function getOrgs({ company_token: org }) {
   if (!filterByCompany) {
     return [
       {
@@ -20,17 +19,18 @@ export async function getOrgs ({ company_token: org }) {
     attributes: ['id', 'company_token'],
     order: [['updated_at', desc]],
     raw: true,
-
   });
   return result;
 }
 
-export async function findOrCreate ({ company_token: org }) {
+export async function findOrCreate({ company_token: org }) {
   const now = new Date();
   const [company] = await CompanyModel.findOrCreate({
     where: { company_token: org },
-    defaults: { created_at: now, company_token: org, updated_at: now },
+    defaults: {
+      created_at: now, company_token: org, updated_at: now,
+    },
     raw: true,
   });
   return company;
-};
+}

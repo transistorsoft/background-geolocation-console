@@ -2,21 +2,17 @@
 import React from 'react';
 import { createSelector } from 'reselect';
 import find from 'lodash/find';
-import {
-  AppBar,
-  IconButton,
-  Toolbar,
-  Typography,
-  useTheme,
-} from '@material-ui/core';
-import {
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
-} from '@material-ui/icons';
-
+import AppBar from '@material-ui/core/AppBar';
+import IconButton from '@material-ui/core/IconButton';
+import Toolbar from '@material-ui/core/Toolbar';
+import Typography from '@material-ui/core/Typography';
+import { useTheme } from '@material-ui/core/styles';
+import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
+import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import { connect } from 'react-redux';
-import { type Location, unselectLocation } from '~/reducer/dashboard';
-import { type GlobalState } from '~/reducer/state';
+
+import { type Location, unselectLocation } from 'reducer/dashboard';
+import { type GlobalState } from 'reducer/state';
 
 type StateProps = {|
   location: ?Location,
@@ -30,32 +26,39 @@ type Props = {|
   ...DispatchProps,
   classes: {|
     appBar: string,
-    appBarShift: string,
-    appBarWithLocationShift: string,
-    appBarBothShift: string,
-    menuButton: string,
-    hide: string,
-    locationContainer: string,
+      appBarShift: string,
+        appBarWithLocationShift: string,
+          appBarBothShift: string,
+            menuButton: string,
+              hide: string,
+                locationContainer: string,
   |},
 |};
 
-const LocationView = ({ location, onClose, classes }: Props) => (location && (
+const LocationView = ({
+  location, onClose, classes,
+}: Props) => (location && (
   <div>
     <AppBar className={classes.appBar} position='static'>
       <Toolbar style={{ justifyContent: 'space-between' }}>
-        <Typography variant='h6'>
-          Location
-        </Typography>
+        <Typography variant='h6'>Location</Typography>
         <IconButton color='inherit' onClick={onClose}>
-          {useTheme().direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+          {useTheme().direction === 'ltr' ? (
+            <ChevronLeftIcon />
+          ) : (
+            <ChevronRightIcon />
+          )}
         </IconButton>
       </Toolbar>
     </AppBar>
     <div className={classes.locationContainer}>
-      <pre style={{ fontSize: '12px' }}>{JSON.stringify(location, null, 2)}</pre>
+      <pre style={{ fontSize: '12px' }}>
+        {JSON.stringify(location, null, 2)}
+      </pre>
     </div>
   </div>
-)) || '';
+)) ||
+  '';
 
 type LocationArgs = {
   isWatching: boolean,
@@ -73,17 +76,15 @@ export const getLocation = createSelector(
       selectedLocationId: state.dashboard.selectedLocationId,
     }),
   ],
-  ({ isWatching, currentLocation, locations, selectedLocationId }: LocationArgs) =>
-    isWatching
-      ? currentLocation
-      : find(locations, { uuid: selectedLocationId })
+  ({
+    isWatching,
+    currentLocation,
+    locations,
+    selectedLocationId,
+  }: LocationArgs) => (isWatching ? currentLocation : find(locations, { uuid: selectedLocationId })),
 );
 
-const mapStateToProps = (state: GlobalState): StateProps => ({
-  location: getLocation(state),
-});
-const mapDispatchToProps: DispatchProps = {
-  onClose: unselectLocation,
-};
+const mapStateToProps = (state: GlobalState): StateProps => ({ location: getLocation(state) });
+const mapDispatchToProps: DispatchProps = { onClose: unselectLocation };
 
 export default connect(mapStateToProps, mapDispatchToProps)(LocationView);

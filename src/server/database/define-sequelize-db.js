@@ -1,5 +1,5 @@
-import Sequelize from 'sequelize';
-import path from 'path';
+import path from 'path'; import Sequelize from 'sequelize';
+
 
 import { isPostgres } from '../libs/utils';
 
@@ -15,5 +15,5 @@ export default new Sequelize(
     : {
       dialect: 'sqlite',
       storage: path.resolve(__dirname, 'db', 'background-geolocation.db'),
-    }
+    },
 );

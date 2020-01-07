@@ -1,9 +1,10 @@
+/* eslint-disable no-console */
 import { Op } from 'sequelize';
 import Promise from 'bluebird';
+
 import CompanyModel from '../database/CompanyModel';
 import DeviceModel from '../database/DeviceModel';
 import LocationModel from '../database/LocationModel';
-import { findOrCreate } from './Device';
 import {
   AccessDeniedError,
   filterByCompany,
@@ -14,9 +15,12 @@ import {
   jsonb,
 } from '../libs/utils';
 
+import { findOrCreate } from './Device';
+
+
 const include = [{ model: DeviceModel, as: 'device' }];
 
-export async function getStats () {
+export async function getStats() {
   const minDate = await LocationModel.min('created_at');
   const maxDate = await LocationModel.max('created_at');
   const total = await LocationModel.count();
@@ -27,7 +31,7 @@ export async function getStats () {
   };
 }
 
-export async function getLocations (params) {
+export async function getLocations(params) {
   const whereConditions = {};
   if (params.start_date && params.end_date) {
     whereConditions.recorded_at = { [Op.between]: [new Date(params.start_date), new Date(params.end_date)] };
@@ -49,8 +53,8 @@ export async function getLocations (params) {
   return locations;
 }
 
-export async function getLatestLocation (params) {
-  var whereConditions = {};
+export async function getLatestLocation(params) {
+  const whereConditions = {};
   params.device_id && (whereConditions.device_id = +params.device_id);
   if (filterByCompany) {
     params.companyId && (whereConditions.company_id = +params.companyId);
@@ -65,19 +69,23 @@ export async function getLatestLocation (params) {
   return result;
 }
 
-export async function createLocation (params, device = {}) {
+export async function createLocation(params, device = {}) {
   if (Array.isArray(params)) {
-    for (let location of params) {
-      try {
-        await createLocation(location, device);
-      } catch (e) {
-        throw e;
-      }
-    }
-    return;
+    return Promise.reduce(
+      params,
+      async (p, location) => {
+        try {
+          await createLocation(location, device);
+        } catch (e) {
+          console.error('createLocation', e);
+          throw e;
+        }
+      },
+      0,
+    );
   }
   const { company_token: orgToken, id } = device;
-  const { location, company_token: token } = params;
+  const { location: list, company_token: token } = params;
   const deviceInfo = params.device || { model: 'UNKNOWN', uuid: 'UNKNOWN' };
   const companyName = orgToken || token || 'UNKNOWN';
   const now = new Date();
@@ -85,55 +93,66 @@ export async function createLocation (params, device = {}) {
   if (isDeniedCompany(companyName)) {
     throw new AccessDeniedError(
       'This is a question from the CEO of Transistor Software.\n' +
-      'Why are you spamming my demo server1?\n' +
-      'Please email me at chris@transistorsoft.com.'
+        'Why are you spamming my demo server1?\n' +
+        'Please email me at chris@transistorsoft.com.',
     );
   }
 
-  const locations = Array.isArray(location) ? location : (location ? [location] : []);
+  const locations = Array.isArray(list)
+    ? list
+    : list
+      ? [list]
+      : [];
 
-  for (let location of locations) {
-    if (isDeniedDevice(deviceInfo.model)) {
-      throw new AccessDeniedError(
-        'This is a question from the CEO of Transistor Software.\n' +
-        'Why are you spamming my demo server2?\n' +
-        'Please email me at chris@transistorsoft.com.'
+  return Promise.reduce(
+    locations,
+    async (p, location) => {
+      if (isDeniedDevice(deviceInfo.model)) {
+        throw new AccessDeniedError(
+          'This is a question from the CEO of Transistor Software.\n' +
+            'Why are you spamming my demo server2?\n' +
+            'Please email me at chris@transistorsoft.com.',
+        );
+      }
+
+      const currentDevice = id
+        ? device
+        : await findOrCreate(companyName, { ...deviceInfo });
+
+      CompanyModel.update(
+        { updated_at: now },
+        { where: { id: currentDevice.company_id } },
       );
-    }
+      DeviceModel.update(
+        { updated_at: now },
+        { where: { id: currentDevice.id } },
+      );
 
-    const currentDevice = id
-      ? device
-      : await findOrCreate(companyName, { ...deviceInfo });
+      console.info(
+        'location:create'.green,
+        'org:name'.green,
+        companyName,
+        'org:id'.green,
+        currentDevice.company_id,
+        'device:id'.green,
+        currentDevice.id,
+      );
 
-    CompanyModel.update(
-      { updated_at: now },
-      { where: { id: currentDevice.company_id } }
-    );
-    DeviceModel.update(
-      { updated_at: now },
-      { where: { id: currentDevice.id } }
-    );
-
-    console.info(
-      'location:create'.green,
-      'org:name'.green, companyName,
-      'org:id'.green, currentDevice.company_id,
-      'device:id'.green, currentDevice.id,
-    );
-
-    await LocationModel.create({
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-      data: jsonb(location),
-      recorded_at: location.timestamp,
-      created_at: now,
-      company_id: currentDevice.company_id,
-      device_id: currentDevice.id,
-    });
-  }
+      return LocationModel.create({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        data: jsonb(location),
+        recorded_at: location.timestamp,
+        created_at: now,
+        company_id: currentDevice.company_id,
+        device_id: currentDevice.id,
+      });
+    },
+    0,
+  );
 }
 
-export async function deleteLocations (params) {
+export async function deleteLocations(params) {
   const whereConditions = {};
   const verify = {};
   const companyId = params && (params.companyId || params.company_id);
@@ -158,13 +177,9 @@ export async function deleteLocations (params) {
   await LocationModel.destroy({ where: whereConditions });
 
   if (params.deviceId) {
-    const locationsCount = await LocationModel.count({
-      where: verify,
-    });
+    const locationsCount = await LocationModel.count({ where: verify });
     if (!locationsCount && verify.device_id) {
-      await DeviceModel.destroy({
-        where: { id: verify.device_id },
-      });
+      await DeviceModel.destroy({ where: { id: verify.device_id } });
     }
   } else if (companyId) {
     const devices = await LocationModel.findAll({
@@ -174,12 +189,16 @@ export async function deleteLocations (params) {
       raw: true,
     });
     const group = {};
-    devices.forEach(x => (group[x.company_id] = (group[x.company_id] || []).concat([x.device_id])));
+    devices.forEach(
+      x => (group[x.company_id] = (group[x.company_id] || []).concat([
+        x.device_id,
+      ])),
+    );
     const queries = Object.keys(group)
-      .map(companyId => DeviceModel.destroy({
+      .map(id => DeviceModel.destroy({
         where: {
-          company_id: +companyId,
-          id: { $notIn: group[companyId] },
+          company_id: +id,
+          id: { $notIn: group[id] },
         },
         cascade: true,
         raw: true,
