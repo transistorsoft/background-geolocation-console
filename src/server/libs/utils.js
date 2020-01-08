@@ -12,7 +12,7 @@ import { verify } from './jwt';
 // and it will hit /v2/registration once again.
 const DUMMY_TOKEN = 'DUMMY_TOKEN';
 
-export const filterByCompany = !!process.env.SHARED_DASHBOARD;
+export const withoutAuth = !!process.env.SHARED_DASHBOARD;
 export const deniedCompanies = (process.env.DENIED_COMPANY_TOKENS || '').split(',');
 export const deniedDevices = (process.env.DENIED_DEVICE_TOKENS || '').split(',');
 export const ddosBombCompanies = (
@@ -26,8 +26,9 @@ const check = (list, item) => list.find(x => !!x && (item || '').toLowerCase().s
 export const isDDosCompany = orgToken => check(ddosBombCompanies, orgToken);
 export const isDeniedCompany = orgToken => check(deniedCompanies, orgToken);
 export const isDeniedDevice = orgToken => check(deniedDevices, orgToken);
-export const isAdmin = orgToken => !!filterByCompany & !!process.env.ADMIN_TOKEN &&
+export const isAdminToken = orgToken => !!process.env.ADMIN_TOKEN &&
   orgToken === process.env.ADMIN_TOKEN;
+export const isPassword = password => process.env.PASSWORD === password;
 
 export const jsonb = data => (isPostgres ? data || null : JSON.stringify(data));
 
@@ -106,6 +107,23 @@ export const checkAuth = (req, res, next) => {
   } catch (e) {
     return next(raiseError(res, 'Wrong JWT', e));
   }
+};
+
+export const getAuth = (req, res, next) => {
+  const auth = (req.get('Authorization') || '').split(' ');
+
+  if (auth.length >= 2 && auth[0] === 'Bearer') {
+    const [, jwt] = auth;
+    try {
+      const decoded = verify(jwt);
+      req.jwt = decoded;
+      return next();
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('getAuth', e);
+    }
+  }
+  return next();
 };
 
 export const checkCompany = ({ org, model }) => {

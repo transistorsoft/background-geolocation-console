@@ -27,8 +27,8 @@ import TooManyPointsWarning from './TooManyPointsWarning';
 
 type StateProps = {|
   isLocationSelected: boolean,
-    activeTabIndex: 0 | 1,
-      location: ?Location,
+  activeTabIndex: 0 | 1,
+  location: ?Location,
 |};
 type DispatchProps = {|
   onChangeActiveTab: (tab: TabType) => any,
@@ -113,4 +113,5 @@ const mapStateToProps = (state: GlobalState): StateProps => ({
   location: getLocation(state),
 });
 const mapDispatchToProps: DispatchProps = { onChangeActiveTab: changeActiveTab };
+
 export default connect(mapStateToProps, mapDispatchToProps)(Viewport);

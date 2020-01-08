@@ -124,7 +124,7 @@ const config = {
   plugins: isProduction
     ? [
       new webpack.DefinePlugin({
-        'process.env.SHARED_DASHBOARD': !!process.env.SHARED_DASHBOARD || '',
+        'process.env.SHARED_DASHBOARD': !!process.env.SHARED_DASHBOARD || '""',
         'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
       }),
       new webpack.LoaderOptionsPlugin({
@@ -137,7 +137,7 @@ const config = {
     : [
       new webpack.NamedModulesPlugin(),
       new webpack.DefinePlugin({
-        'process.env.SHARED_DASHBOARD': !!process.env.SHARED_DASHBOARD || '',
+        'process.env.SHARED_DASHBOARD': !!process.env.SHARED_DASHBOARD || '""',
         'process.env.NODE_ENV': JSON.stringify(
           process.env.NODE_ENV || 'development',
         ),

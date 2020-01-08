@@ -1,11 +1,9 @@
-import {
-  isAdmin, filterByCompany, desc,
-} from '../libs/utils';
+import { desc } from '../libs/utils';
 import CompanyModel from '../database/CompanyModel';
 
 
-export async function getOrgs({ company_token: org }) {
-  if (!filterByCompany) {
+export async function getOrgs({ company_token: org }, isAdmin) {
+  if (!isAdmin && !org) {
     return [
       {
         id: 1,
@@ -13,7 +11,8 @@ export async function getOrgs({ company_token: org }) {
       },
     ];
   }
-  const whereConditions = isAdmin(org) ? {} : { company_token: org };
+
+  const whereConditions = isAdmin ? {} : { company_token: org };
   const result = await CompanyModel.findAll({
     where: whereConditions,
     attributes: ['id', 'company_token'],

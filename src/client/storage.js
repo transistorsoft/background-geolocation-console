@@ -4,6 +4,7 @@ import isUndefined from 'lodash/isUndefined';
 import omitBy from 'lodash/omitBy';
 
 import { type Tab } from 'reducer/state';
+import { type AuthInfo } from 'reducer/types';
 import cloneState from 'utils/cloneState';
 
 export type StoredSettings = {|
@@ -18,7 +19,27 @@ export type StoredSettings = {|
   showMarkers: boolean,
   maxMarkers: number,
 |};
+
+
 const getLocalStorageKey = (key: string) => (key ? `settings#${key}` : 'settings');
+
+export function getAuth(): AuthSettings {
+  const encodedSettings = localStorage.getItem(getLocalStorageKey('auth'));
+  if (encodedSettings) {
+    const parsed = JSON.parse(encodedSettings);
+    return parsed;
+  }
+  return null;
+}
+
+export function setAuth(settings: AuthSettings): AuthSettings {
+  if (!settings) {
+    return null;
+  }
+  localStorage.setItem(getLocalStorageKey('auth'), JSON.strinfigy(settings));
+
+  return settings;
+}
 
 export function getSettings(key: string): $Shape<StoredSettings> {
   const encodedSettings = localStorage.getItem(getLocalStorageKey(key));
@@ -103,22 +124,27 @@ export function getUrlSettings(): $Shape<StoredSettings> {
   );
   return result;
 }
-export function setUrlSettings(settings: {|
-  deviceId: ?string,
-  startDate: ?Date,
-  endDate: ?Date,
-  orgTokenFromSearch: string,
-|}) {
+export function setUrlSettings(
+  settings: {|
+    deviceId: ?string,
+    startDate: ?Date,
+    endDate: ?Date,
+    orgTokenFromSearch: string,
+  |},
+  auth: AuthInfo,
+) {
   const {
     orgTokenFromSearch, startDate, endDate, deviceId,
   } = settings;
+  const { accessToken } = auth;
+  const hasToken = accessToken || !!process.env.SHARED_DASHBOARD;
   const mainPart = orgTokenFromSearch ? `/${orgTokenFromSearch}` : '';
   const search = {
     device: deviceId,
     end: encodeEndDate(endDate),
     start: encodeStartDate(startDate),
   };
-  const url = `${mainPart}?${queryString.stringify(search)}`;
+  const url = `${!hasToken ? mainPart : ''}?${queryString.stringify(search)}`;
   window.history.replaceState({}, '', url);
 }
 

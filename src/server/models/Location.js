@@ -7,7 +7,6 @@ import DeviceModel from '../database/DeviceModel';
 import LocationModel from '../database/LocationModel';
 import {
   AccessDeniedError,
-  filterByCompany,
   desc,
   hydrate,
   isDeniedCompany,
@@ -31,16 +30,18 @@ export async function getStats() {
   };
 }
 
-export async function getLocations(params) {
+export async function getLocations(params, isAdmin) {
+  if (!isAdmin && !(params.device_id || params.company_id)) {
+    return [];
+  }
+
   const whereConditions = {};
   if (params.start_date && params.end_date) {
     whereConditions.recorded_at = { [Op.between]: [new Date(params.start_date), new Date(params.end_date)] };
   }
 
   params.device_id && (whereConditions.device_id = +params.device_id);
-  if (filterByCompany) {
-    params.company_id && (whereConditions.company_id = +params.company_id);
-  }
+  params.company_id && (whereConditions.company_id = +params.company_id);
 
   const rows = await LocationModel.findAll({
     where: whereConditions,
@@ -53,13 +54,17 @@ export async function getLocations(params) {
   return locations;
 }
 
-export async function getLatestLocation(params) {
-  const whereConditions = {};
-  params.device_id && (whereConditions.device_id = +params.device_id);
-  if (filterByCompany) {
-    params.companyId && (whereConditions.company_id = +params.companyId);
-    params.company_id && (whereConditions.company_id = +params.company_id);
+export async function getLatestLocation(params, isAdmin) {
+  if (!isAdmin && !(params.device_id || params.company_id || params.companyId)) {
+    return [];
   }
+
+  const whereConditions = {};
+
+  params.device_id && (whereConditions.device_id = +params.device_id);
+  params.companyId && (whereConditions.company_id = +params.companyId);
+  params.company_id && (whereConditions.company_id = +params.company_id);
+
   const row = await LocationModel.findOne({
     where: whereConditions,
     order: [['recorded_at', desc]],
@@ -152,13 +157,17 @@ export async function createLocation(params, device = {}) {
   );
 }
 
-export async function deleteLocations(params) {
+export async function deleteLocations(params, isAdmin) {
+  if (!isAdmin && !(params.companyId || params.deviceId)) {
+    return;
+  }
+
   const whereConditions = {};
   const verify = {};
   const companyId = params && (params.companyId || params.company_id);
   const deviceId = params && (params.deviceId || params.device_id);
 
-  if (filterByCompany && !!companyId) {
+  if (companyId) {
     whereConditions.company_id = +companyId;
     verify.company_id = +companyId;
   }

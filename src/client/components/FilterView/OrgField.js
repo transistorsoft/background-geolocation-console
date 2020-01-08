@@ -62,7 +62,7 @@ const styles = (theme: any) => ({
   },
 });
 
-const OrgField = withStyles(styles)((props: Props) => {
+const OrgField = (props: Props) => {
   const {
     onChange, value, source: s, fullScreen, classes,
   } = props;
@@ -221,6 +221,6 @@ const OrgField = withStyles(styles)((props: Props) => {
       </DialogActions>
     </Dialog>,
   ];
-});
+};
 
-export default OrgField;
+export default withStyles(styles)(OrgField);

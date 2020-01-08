@@ -1,5 +1,5 @@
-/* eslint-disable no-console */
 // @flow
+/* eslint-disable no-console */
 import qs from 'querystring';
 import isEqual from 'lodash/isEqual';
 
@@ -7,10 +7,20 @@ import {
   fitBoundsBus, scrollToRowBus, changeTabBus,
 } from 'globalBus';
 import {
-  setSettings, getSettings, getUrlSettings, setUrlSettings, type StoredSettings,
+  setSettings,
+  getSettings,
+  getUrlSettings,
+  setUrlSettings,
+  type StoredSettings,
 } from 'storage';
 import GA from 'utils/GA';
-import { type GlobalState, type Tab } from 'reducer/state';
+import { makeHeaders } from 'utils/request';
+import { type Tab } from 'reducer/state';
+import {
+  type GetState,
+  type Dispatch,
+  type ThunkAction,
+} from 'reducer/types';
 import cloneState from 'utils/cloneState';
 
 import { API_URL } from '../../constants';
@@ -30,6 +40,7 @@ export type DeleteOptions = {|
   startDate: Date,
   endDate: Date,
 |};
+export type AuthParams = { login: string, password: string };
 export type LoadParams = {|
   loadUsers: boolean,
 |};
@@ -92,6 +103,7 @@ export type DashboardState = {|
   showPolyline: boolean,
   startDate: Date,
   testMarkers: Object,
+  auth: AuthInfo,
 |};
 
 // Action Types
@@ -198,12 +210,13 @@ type SetOrgTokenFromSearchAction = {|
   type: 'dashboard/SET_ORG_TOKEN_FROM_SEARCH',
   value: string,
 |};
-// Combining Actions
 
 type AddTestMarkerAction = {|
   type: 'dashboard/ADD_TEST_MARKER',
   value: $Shape<{| data: any |}>,
 |};
+
+// Combining Actions
 
 type Action =
   | AddTestMarkerAction
@@ -231,187 +244,140 @@ type Action =
   | SetShowPolylineAction
   | SetStartDateAction;
 
-type GetState = () => GlobalState;
-type Dispatch = (action: Action | ThunkAction) => Promise<void>; // eslint-disable-line no-use-before-define
-type ThunkAction = (dispatch: Dispatch, getState: GetState) => Promise<void>;
-
 // ------------------------------------
 // Action Creators
 // ------------------------------------
 
-export function setOrgTokens (orgTokens: OrgToken[]): SetOrgTokensAction {
-  return {
-    type: 'dashboard/SET_ORG_TOKENS',
-    orgTokens,
-  };
-}
-export function setDevices (devices: Device[]): SetDevicesAction {
-  return {
-    type: 'dashboard/SET_DEVICES',
-    devices,
-  };
-}
+export const setOrgTokens = (orgTokens: OrgToken[]): SetOrgTokensAction => ({
+  type: 'dashboard/SET_ORG_TOKENS',
+  orgTokens,
+});
+export const setDevices = (devices: Device[]): SetDevicesAction => ({
+  type: 'dashboard/SET_DEVICES',
+  devices,
+});
 
-export function setLocations (locations: Location[]): SetLocationsAction {
-  return {
-    type: 'dashboard/SET_LOCATIONS',
-    locations,
-  };
-}
+export const setLocations = (locations: Location[]): SetLocationsAction => ({
+  type: 'dashboard/SET_LOCATIONS',
+  locations,
+});
 
-export function setHasData (status: boolean): SetHasDataAction {
-  return {
-    type: 'dashboard/SET_HAS_DATA',
-    status,
-  };
-}
+export const setHasData = (status: boolean): SetHasDataAction => ({
+  type: 'dashboard/SET_HAS_DATA',
+  status,
+});
 
-export function setIsLoading (status: boolean): SetIsLoadingAction {
-  return {
-    type: 'dashboard/SET_IS_LOADING',
-    status,
-  };
-}
+export const setIsLoading = (status: boolean): SetIsLoadingAction => ({
+  type: 'dashboard/SET_IS_LOADING',
+  status,
+});
 
-export function autoselectOrInvalidateSelectedOrgToken (): AutoselectOrInvalidateSelectedOrgTokenAction {
-  return { type: 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_ORG_TOKEN' };
-}
+export const autoselectOrInvalidateSelectedOrgToken =
+  (): AutoselectOrInvalidateSelectedOrgTokenAction => (
+    { type: 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_ORG_TOKEN' }
+  );
 
-export function autoselectOrInvalidateSelectedDevice (): AutoselectOrInvalidateSelectedDeviceAction {
-  return { type: 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_DEVICE' };
-}
+export const autoselectOrInvalidateSelectedDevice =
+  (): AutoselectOrInvalidateSelectedDeviceAction => ({ type: 'dashboard/AUTOSELECT_OR_INVALIDATE_SELECTED_DEVICE' });
 
-export function invalidateSelectedLocation (): InvalidateSelectedLocationAction {
-  return { type: 'dashboard/INVALIDATE_SELECTED_LOCATION' };
-}
+export const invalidateSelectedLocation =
+  (): InvalidateSelectedLocationAction => ({ type: 'dashboard/INVALIDATE_SELECTED_LOCATION' });
 
-export function setShowMarkers (value: boolean): SetShowMarkersAction {
-  return {
-    type: 'dashboard/SET_SHOW_MARKERS',
-    value,
-  };
-}
+export const setShowMarkers = (value: boolean): SetShowMarkersAction => ({
+  type: 'dashboard/SET_SHOW_MARKERS',
+  value,
+});
 
-export function setEnableClustering (value: boolean): SetEnableClusteringAction {
-  return {
-    type: 'dashboard/SET_ENABLE_CLUSTERING',
-    value,
-  };
-}
+export const setEnableClustering = (value: boolean): SetEnableClusteringAction => ({
+  type: 'dashboard/SET_ENABLE_CLUSTERING',
+  value,
+});
 
-export function setShowMaxMarkers (value: number): SetMaxMarkersAction {
-  return {
-    type: 'dashboard/SET_MAX_MARKERS',
-    value,
-  };
-}
+export const setShowMaxMarkers = (value: number): SetMaxMarkersAction => ({
+  type: 'dashboard/SET_MAX_MARKERS',
+  value,
+});
 
-export function setShowPolyline (value: boolean): SetShowPolylineAction {
-  return {
-    type: 'dashboard/SET_SHOW_POLYLINE',
-    value,
-  };
-}
-export function setShowGeofenceHits (value: boolean): SetShowGeofenceHitsAction {
-  return {
-    type: 'dashboard/SET_SHOW_GEOFENCE_HITS',
-    value,
-  };
-}
+export const setShowPolyline = (value: boolean): SetShowPolylineAction => ({
+  type: 'dashboard/SET_SHOW_POLYLINE',
+  value,
+});
 
-export function setIsWatching (value: boolean): SetIsWatchingAction {
-  return {
-    type: 'dashboard/SET_IS_WATCHING',
-    value,
-  };
-}
+export const setShowGeofenceHits = (value: boolean): SetShowGeofenceHitsAction => ({
+  type: 'dashboard/SET_SHOW_GEOFENCE_HITS',
+  value,
+});
 
-export function setCurrentLocation (location: ?Location): SetCurrentLocationAction {
-  return {
-    type: 'dashboard/SET_CURRENT_LOCATION',
-    location,
-  };
-}
+export const setIsWatching = (value: boolean): SetIsWatchingAction => ({
+  type: 'dashboard/SET_IS_WATCHING',
+  value,
+});
 
-export function setStartDate (value: Date): SetStartDateAction {
-  return {
-    type: 'dashboard/SET_START_DATE',
-    value,
-  };
-}
+export const setCurrentLocation = (location: ?Location): SetCurrentLocationAction => ({
+  type: 'dashboard/SET_CURRENT_LOCATION',
+  location,
+});
 
-export function setEndDate (value: Date): SetEndDateAction {
-  return {
-    type: 'dashboard/SET_END_DATE',
-    value,
-  };
-}
+export const setStartDate = (value: Date): SetStartDateAction => ({
+  type: 'dashboard/SET_START_DATE',
+  value,
+});
 
-export function setDevice (deviceId: string): SetDeviceAction {
-  return {
-    type: 'dashboard/SET_DEVICE',
-    deviceId,
-  };
-}
+export const setEndDate = (value: Date): SetEndDateAction => ({
+  type: 'dashboard/SET_END_DATE',
+  value,
+});
 
-export function setSelectedLocation (locationId: string): SetSelectedLocationAction {
-  return {
-    type: 'dashboard/SET_SELECTED_LOCATION',
-    locationId,
-  };
-}
+export const setDevice = (deviceId: string): SetDeviceAction => ({
+  type: 'dashboard/SET_DEVICE',
+  deviceId,
+});
 
-export function unselectLocation (): SetSelectedLocationAction {
-  return {
-    type: 'dashboard/SET_SELECTED_LOCATION',
-    locationId: null,
-  };
-}
+export const setSelectedLocation = (locationId: string): SetSelectedLocationAction => ({
+  type: 'dashboard/SET_SELECTED_LOCATION',
+  locationId,
+});
 
-export function applyExistingSettings (settings: StoredSettings): ApplyExistingSettinsAction {
-  return {
-    type: 'dashboard/APPLY_EXISTING_SETTINGS',
-    settings,
-  };
-}
+export const unselectLocation = (): SetSelectedLocationAction => ({
+  type: 'dashboard/SET_SELECTED_LOCATION',
+  locationId: null,
+});
 
-export function setActiveTab (tab: Tab): SetActiveTabAction {
-  return {
-    type: 'dashboard/SET_ACTIVE_TAB',
-    tab,
-  };
-}
+export const applyExistingSettings = (settings: StoredSettings): ApplyExistingSettinsAction => ({
+  type: 'dashboard/APPLY_EXISTING_SETTINGS',
+  settings,
+});
 
-export function setOrgToken (value: string): SetOrgTokenAction {
-  return {
-    type: 'dashboard/SET_ORG_TOKEN',
-    value,
-  };
-}
+export const setActiveTab = (tab: Tab): SetActiveTabAction => ({
+  type: 'dashboard/SET_ACTIVE_TAB',
+  tab,
+});
 
-export function setOrgTokenFromSearch (value: string): SetOrgTokenFromSearchAction {
-  return {
-    type: 'dashboard/SET_ORG_TOKEN_FROM_SEARCH',
-    value,
-  };
-}
+export const setOrgToken = (value: string): SetOrgTokenAction => ({
+  type: 'dashboard/SET_ORG_TOKEN',
+  value,
+});
 
-export function doAddTestMarker (value: Object): AddTestMarkerAction {
-  return {
-    type: 'dashboard/ADD_TEST_MARKER',
-    value,
-  };
-}
+export const setOrgTokenFromSearch = (value: string): SetOrgTokenFromSearchAction => ({
+  type: 'dashboard/SET_ORG_TOKEN_FROM_SEARCH',
+  value,
+});
+
+export const doAddTestMarker = (value: Object): AddTestMarkerAction => ({
+  type: 'dashboard/ADD_TEST_MARKER',
+  value,
+});
 
 // ------------------------------------
 // Thunk Actions
 // ------------------------------------
 
 export const loadOrgTokens = (): ThunkAction => async (dispatch: Dispatch, getState: GetState): Promise<void> => {
-  const { dashboard: { orgTokenFromSearch } } = getState();
+  const { dashboard: { orgTokenFromSearch }, auth } = getState();
   const params = qs.stringify({ company_token: orgTokenFromSearch });
   try {
-    const response = await fetch(`${API_URL}/company_tokens?${params}`);
+    const headers = makeHeaders(auth);
+    const response = await fetch(`${API_URL}/company_tokens?${params}`, { headers });
     const records = await response.json();
     const orgTokens: OrgToken[] = records.map((x: { company_token: string }) => ({
       id: x.id,
@@ -425,13 +391,14 @@ export const loadOrgTokens = (): ThunkAction => async (dispatch: Dispatch, getSt
 };
 
 export const loadDevices = (): ThunkAction => async (dispatch: Dispatch, getState: GetState): Promise<void> => {
-  const { dashboard: { companyId, orgToken } } = getState();
+  const { dashboard: { companyId, orgToken }, auth } = getState();
   const params = qs.stringify({
     company_id: companyId,
     company_token: orgToken,
   });
   try {
-    const response = await fetch(`${API_URL}/devices?${params}`);
+    const headers = makeHeaders(auth);
+    const response = await fetch(`${API_URL}/devices?${params}`, { headers });
     const records = await response.json();
     const devices: Device[] = records
       .map((record: Object) => ({
@@ -448,8 +415,11 @@ export const loadDevices = (): ThunkAction => async (dispatch: Dispatch, getStat
 
 export const loadLocations = (): ThunkAction => async (dispatch: Dispatch, getState: GetState): Promise<void> => {
   const {
-    deviceId, orgToken, companyId, startDate, endDate, maxMarkers,
-  } = getState().dashboard;
+    dashboard: {
+      deviceId, orgToken, companyId, startDate, endDate, maxMarkers,
+    },
+    auth,
+  } = getState();
   GA.sendEvent('tracker', 'loadLocations', orgToken);
 
   const params = qs.stringify({
@@ -461,7 +431,8 @@ export const loadLocations = (): ThunkAction => async (dispatch: Dispatch, getSt
     start_date: startDate.toISOString(),
   });
   try {
-    const response = await fetch(`${API_URL}/locations?${params}`);
+    const headers = makeHeaders(auth);
+    const response = await fetch(`${API_URL}/locations?${params}`, { headers });
     const records = await response.json();
     return dispatch(setLocations(records));
   } catch (e) {
@@ -472,8 +443,11 @@ export const loadLocations = (): ThunkAction => async (dispatch: Dispatch, getSt
 
 export const loadCurrentLocation = (): ThunkAction => async (dispatch: Dispatch, getState: GetState): Promise<void> => {
   const {
-    deviceId, companyId, company_token: orgToken,
-  } = getState().dashboard;
+    dashboard: {
+      deviceId, companyId, company_token: orgToken,
+    },
+    auth,
+  } = getState();
   if (deviceId) {
     const params = qs.stringify({
       device_id: deviceId,
@@ -481,7 +455,8 @@ export const loadCurrentLocation = (): ThunkAction => async (dispatch: Dispatch,
       company_token: orgToken,
     });
     try {
-      const response = await fetch(`${API_URL}/locations/latest?${params}`);
+      const headers = makeHeaders(auth);
+      const response = await fetch(`${API_URL}/locations/latest?${params}`, { headers });
       const currentLocation = await response.json();
       return await dispatch(setCurrentLocation(currentLocation));
     } catch (e) {
@@ -527,9 +502,9 @@ export const loadInitialData =
     GA.sendEvent('tracker', `load:${id}`);
   };
 
-export function deleteActiveDevice (deleteOptions: ?DeleteOptions): ThunkAction {
-  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
-    const { dashboard: { deviceId } } = getState();
+export const deleteActiveDevice =
+  (deleteOptions: ?DeleteOptions): ThunkAction => async (dispatch: Dispatch, getState: GetState): Promise<void> => {
+    const { dashboard: { deviceId }, auth } = getState();
     if (!deviceId) {
       return;
     }
@@ -539,43 +514,43 @@ export function deleteActiveDevice (deleteOptions: ?DeleteOptions): ThunkAction 
         end_date: deleteOptions.endDate.toISOString(),
       })}`
       : '';
+    const headers = makeHeaders(auth);
     try {
-      await fetch(`${API_URL}/devices/${deviceId}${params}`, { method: 'delete' });
+      await fetch(`${API_URL}/devices/${deviceId}${params}`, { method: 'delete', headers });
       await dispatch(reload({ loadUsers: false }));
       GA.sendEvent('tracker', `delete device:${deviceId}`);
     } catch (e) {
       console.error('deleteActiveDevice', e);
     }
   };
-}
 
 export function changeStartDate (value: Date) {
   return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setStartDate(value));
-    setSettings(getState().dashboard.orgTokenFromSearch, { startDate: value });
-    const { dashboard } = getState();
+    const { dashboard, auth } = getState();
+    setSettings(dashboard.orgTokenFromSearch, { startDate: value });
     setUrlSettings({
       startDate: dashboard.startDate,
       endDate: dashboard.endDate,
       deviceId: dashboard.deviceId,
       companyId: dashboard.companyId,
       orgTokenFromSearch: dashboard.orgTokenFromSearch,
-    });
+    }, auth);
     await dispatch(reload({ loadUsers: false }));
   };
 }
 export function changeEndDate (value: Date) {
   return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setEndDate(value));
-    setSettings(getState().dashboard.orgTokenFromSearch, { endDate: value });
-    const { dashboard } = getState();
+    const { dashboard, auth } = getState();
+    setSettings(dashboard.orgTokenFromSearch, { endDate: value });
     setUrlSettings({
       startDate: dashboard.startDate,
       endDate: dashboard.endDate,
       deviceId: dashboard.deviceId,
       companyId: dashboard.companyId,
       orgTokenFromSearch: dashboard.orgTokenFromSearch,
-    });
+    }, auth);
     await dispatch(reload({ loadUsers: false }));
   };
 }
@@ -590,15 +565,15 @@ export function changeOrgToken (value: string) {
 export function changeDeviceId (value: string) {
   return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setDevice(value));
-    setSettings(getState().dashboard.orgTokenFromSearch, { deviceId: value });
-    const { dashboard } = getState();
+    const { dashboard, auth } = getState();
+    setSettings(dashboard.orgTokenFromSearch, { deviceId: value });
     setUrlSettings({
       startDate: dashboard.startDate,
       endDate: dashboard.endDate,
       deviceId: dashboard.deviceId,
       companyId: dashboard.companyId,
       orgTokenFromSearch: dashboard.orgTokenFromSearch,
-    });
+    }, auth);
     await dispatch(reload({ loadUsers: false }));
   };
 }
@@ -606,42 +581,48 @@ export function changeDeviceId (value: string) {
 export function changeIsWatching (value: boolean) {
   return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setIsWatching(value));
-    setSettings(getState().dashboard.orgTokenFromSearch, { isWatching: value });
+    const { dashboard } = getState();
+    setSettings(dashboard.orgTokenFromSearch, { isWatching: value });
   };
 }
 
 export function changeShowMarkers (value: boolean) {
   return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setShowMarkers(value));
-    setSettings(getState().dashboard.orgTokenFromSearch, { showMarkers: value });
+    const { dashboard } = getState();
+    setSettings(dashboard.orgTokenFromSearch, { showMarkers: value });
   };
 }
 
 export function changeEnableClustering (value: boolean) {
   return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setEnableClustering(value));
-    setSettings(getState().dashboard.orgTokenFromSearch, { enableClustering: value });
+    const { dashboard } = getState();
+    setSettings(dashboard.orgTokenFromSearch, { enableClustering: value });
   };
 }
 
 export function changeShowPolyline (value: boolean) {
   return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setShowPolyline(value));
-    setSettings(getState().dashboard.orgTokenFromSearch, { showPolyline: value });
+    const { dashboard } = getState();
+    setSettings(dashboard.orgTokenFromSearch, { showPolyline: value });
   };
 }
 
 export function changeShowGeofenceHits (value: boolean) {
   return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setShowGeofenceHits(value));
-    setSettings(getState().dashboard.orgTokenFromSearch, { showGeofenceHits: value });
+    const { dashboard } = getState();
+    setSettings(dashboard.orgTokenFromSearch, { showGeofenceHits: value });
   };
 }
 
 export function changeMaxMarkers (value: number) {
   return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setShowMaxMarkers(value));
-    setSettings(getState().dashboard.orgTokenFromSearch, { maxMarkers: value });
+    const { dashboard } = getState();
+    setSettings(dashboard.orgTokenFromSearch, { maxMarkers: value });
   };
 }
 
@@ -660,11 +641,8 @@ export function changeActiveTab (tab: Tab) {
   };
 }
 
-export function addTestMarker (value: Object): ThunkAction {
-  return async (dispatch: Dispatch): Promise<void> => {
-    dispatch(doAddTestMarker(value));
-  };
-}
+export const addTestMarker =
+  (value: Object): ThunkAction => async (dispatch: Dispatch): Promise<void> => dispatch(doAddTestMarker(value));
 // ------------------------------------
 // Action Handlers
 // ------------------------------------

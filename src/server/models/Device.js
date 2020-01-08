@@ -3,9 +3,7 @@ import { Op } from 'sequelize';
 
 import DeviceModel from '../database/DeviceModel';
 import LocationModel from '../database/LocationModel';
-import {
-  checkCompany, filterByCompany, desc,
-} from '../libs/utils';
+import { checkCompany, desc } from '../libs/utils';
 
 import { findOrCreate as findOrCreateCompany } from './Org';
 
@@ -25,11 +23,13 @@ export async function getDevice({ id }) {
   return result;
 }
 
-export async function getDevices(params) {
-  const whereConditions = {};
-  if (filterByCompany) {
-    params.company_id && (whereConditions.company_id = +params.company_id);
+export async function getDevices(params, isAdmin) {
+  if (!isAdmin && !params.company_id) {
+    return [];
   }
+
+  const whereConditions = {};
+  params.company_id && (whereConditions.company_id = +params.company_id);
   const result = await DeviceModel.findAll({
     where: whereConditions,
     attributes: [

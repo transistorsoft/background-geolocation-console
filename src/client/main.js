@@ -1,8 +1,8 @@
 import React from 'react';
 import { render } from 'react-dom';
 
-import App from './client';
-import store from './store';
+import App from 'client';
+import store from 'store';
 
 // Detect users incorrectly hitting /locations/username instead of /username.
 // It seems people think because the plugin is POSTing -> /location/username that they must
