@@ -12,7 +12,7 @@ import { verify } from './jwt';
 // and it will hit /v2/registration once again.
 const DUMMY_TOKEN = 'DUMMY_TOKEN';
 
-export const withoutAuth = !!process.env.SHARED_DASHBOARD;
+export const withAuth = !!process.env.SHARED_DASHBOARD;
 export const deniedCompanies = (process.env.DENIED_COMPANY_TOKENS || '').split(',');
 export const deniedDevices = (process.env.DENIED_DEVICE_TOKENS || '').split(',');
 export const ddosBombCompanies = (

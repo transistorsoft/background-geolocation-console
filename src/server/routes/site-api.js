@@ -11,7 +11,7 @@ import {
   isPassword,
   return1Gbfile,
   getAuth,
-  withoutAuth,
+  withAuth,
 } from '../libs/utils';
 import { deleteDevice, getDevices } from '../models/Device';
 import {
@@ -30,7 +30,7 @@ const router = new Router();
  */
 router.get('/company_tokens', getAuth, async (req, res) => {
   try {
-    const orgs = await getOrgs(req.query, !!req.jwt || withoutAuth);
+    const orgs = await getOrgs(req.query, !!req.jwt || !withAuth);
     res.send(orgs);
   } catch (err) {
     console.error('/company_tokens', err);
@@ -43,7 +43,7 @@ router.get('/company_tokens', getAuth, async (req, res) => {
  */
 router.get('/devices', getAuth, async (req, res) => {
   try {
-    const devices = await getDevices(req.query, !!req.jwt || withoutAuth);
+    const devices = await getDevices(req.query, !!req.jwt || !withAuth);
     res.send(devices);
   } catch (err) {
     console.error('/devices', err);
@@ -82,7 +82,7 @@ router.get('/stats', getAuth, async (req, res) => {
 router.get('/locations/latest', getAuth, async (req, res) => {
   console.log('GET /locations %s'.green, JSON.stringify(req.query));
   try {
-    const latest = await getLatestLocation(req.query, !!req.jwt || withoutAuth);
+    const latest = await getLatestLocation(req.query, !!req.jwt || !withAuth);
     res.send(latest);
   } catch (err) {
     console.info('/locations/latest', JSON.stringify(req.query), err);
@@ -97,7 +97,7 @@ router.get('/locations', getAuth, async (req, res) => {
   console.log('GET /locations %s'.green, JSON.stringify(req.query));
 
   try {
-    const locations = await getLocations(req.query, !!req.jwt || withoutAuth);
+    const locations = await getLocations(req.query, !!req.jwt || !withAuth);
     res.send(locations);
   } catch (err) {
     console.info('get /locations', JSON.stringify(req.query), err);
@@ -163,7 +163,7 @@ router.delete('/locations', getAuth, async (req, res) => {
   console.info('locations:delete:query'.green, JSON.stringify(req.query));
 
   try {
-    await deleteLocations(req.query, !!req.jwt || withoutAuth);
+    await deleteLocations(req.query, !!req.jwt || !withAuth);
 
     res.send({ success: true });
     res.status(500).send({ error: 'Something failed!' });

@@ -34,8 +34,8 @@ type LocationRow = {|
 |};
 type StateProps = {|
   locations: LocationRow[],
-    selectedLocationId: string,
-      isActiveTab: boolean,
+  selectedLocationId: string,
+  isActiveTab: boolean,
 |};
 
 type DispatchProps = {|

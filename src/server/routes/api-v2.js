@@ -218,11 +218,11 @@ router.get('/locations/latest', checkAuth, async (req, res) => {
       device_id: deviceId,
       company_id: device.company_id,
     });
-    res.send(latest);
+    return res.send(latest);
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('/locations/latest', req.query, err);
-    res.status(500).send({ error: err.message });
+    return res.status(500).send({ error: err.message });
   }
 });
 

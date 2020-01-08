@@ -26,12 +26,12 @@ type Props = {|
   ...DispatchProps,
   classes: {|
     appBar: string,
-      appBarShift: string,
-        appBarWithLocationShift: string,
-          appBarBothShift: string,
-            menuButton: string,
-              hide: string,
-                locationContainer: string,
+    appBarShift: string,
+    appBarWithLocationShift: string,
+    appBarBothShift: string,
+    menuButton: string,
+    hide: string,
+    locationContainer: string,
   |},
 |};
 

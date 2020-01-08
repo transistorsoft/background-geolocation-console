@@ -22,14 +22,15 @@ const WrappedViewport = ({
   org,
 }: StateProps) => {
   const { token } = match.params;
-  const hasToken = !!org || !!token || !!process.env.SHARED_DASHBOARD;
-  const action = !hasToken
+  const shared = !!process.env.SHARED_DASHBOARD;
+  const hasToken = (!!org || !!token);
+  const action = !hasToken && !!shared
     ? showAuthDialog()
     : loadInitialData(token);
 
   !hasData && store.dispatch(action);
 
-  return hasToken
+  return hasToken || !shared
     ? <Viewport />
     : <AuthForm />;
 };

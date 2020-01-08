@@ -137,14 +137,15 @@ export function setUrlSettings(
     orgTokenFromSearch, startDate, endDate, deviceId,
   } = settings;
   const { accessToken } = auth;
-  const hasToken = accessToken || !!process.env.SHARED_DASHBOARD;
+  const shared = !!process.env.SHARED_DASHBOARD;
+  const hasToken = accessToken;
   const mainPart = orgTokenFromSearch ? `/${orgTokenFromSearch}` : '';
   const search = {
     device: deviceId,
     end: encodeEndDate(endDate),
     start: encodeStartDate(startDate),
   };
-  const url = `${!hasToken ? mainPart : ''}?${queryString.stringify(search)}`;
+  const url = `${!hasToken || !shared ? mainPart : ''}?${queryString.stringify(search)}`;
   window.history.replaceState({}, '', url);
 }
 

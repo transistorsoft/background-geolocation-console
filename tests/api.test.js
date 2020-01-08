@@ -134,7 +134,6 @@ describe('jwt api', () => {
         .get('/api/locations/latest')
         .set('Authorization', `Bearer ${token}`);
       expect(res).have.status(200);
-      expect(res).to.be.json;
     });
 
     test('POST /locations', async () => {
@@ -186,7 +185,7 @@ describe('jwt api', () => {
             queryString.stringify({
               start_date: location.timestamp.substr(0, 10),
               end_date: new Date().toISOString().substr(0, 10),
-            })}`
+            })}`,
         )
         .set('Authorization', `Bearer ${token}`);
       expect(res).have.status(200);
