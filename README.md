@@ -21,9 +21,13 @@ Environment variables:
 ```
 export DATABASE_URL=postgres://postgres:password@localhost:5432/geolocation
 export GOOGLE_MAPS_API_KEY=AIz...vNkg
-export SHARED_DASHBOARD=1
-export ADMIN_TOKEN=admin256
+export SHARED_DASHBOARD=1      # with auth
+export ADMIN_TOKEN=admin256    # admin login
+export PASSWORD=test           # admin password
 ```
+
+# auth
+
 
 ### Production mode:
 
