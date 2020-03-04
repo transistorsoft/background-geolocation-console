@@ -11,12 +11,16 @@ import opn from 'opn';
 import initializeDatabase from './database/initializeDatabase';
 import siteApi from './routes/site-api';
 import api from './routes/api-v2';
+import firebase from './routes/firebase-api';
 import tests from './routes/tests';
+import {
+  dyno,
+  firebaseURL,
+  isProduction,
+  parserLimit,
+  port,
+} from './config';
 
-const isProduction = process.env.NODE_ENV === 'production';
-const parserLimit = process.env.BODY_PARSER_LIMIT || '1mb';
-const port = process.env.PORT || 9000;
-const dyno = process.env.DYNO;
 const app = express();
 const buildPath = resolve(__dirname, '..', '..', 'build');
 const parserLimits = { limit: parserLimit, extended: true };
@@ -42,7 +46,9 @@ app.use(bodyParser.raw(parserLimits));
 
   app.use(siteApi);
   app.use('/api/site', siteApi);
-  app.use('/api', api);
+  app.use('/api/firebase', firebase);
+  app.use('/api/jwt', api);
+  app.use('/api', firebaseURL ? firebase : api);
   app.use('/api', tests);
 
   if (isProduction) {

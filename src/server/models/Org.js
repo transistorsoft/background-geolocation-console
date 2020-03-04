@@ -1,8 +1,8 @@
-import { desc } from '../libs/utils';
 import CompanyModel from '../database/CompanyModel';
+import { hydrate } from '../libs/utils';
+import { desc } from '../config';
 
-
-export async function getOrgs({ company_token: org }, isAdmin) {
+export async function getOrgs({ org }, isAdmin) {
   if (!isAdmin && !org) {
     return [
       {
@@ -22,14 +22,26 @@ export async function getOrgs({ company_token: org }, isAdmin) {
   return result;
 }
 
-export async function findOrCreate({ company_token: org }) {
+export async function findOrCreate({ org }) {
   const now = new Date();
   const [company] = await CompanyModel.findOrCreate({
     where: { company_token: org },
     defaults: {
-      created_at: now, company_token: org, updated_at: now,
+      company_token: org,
+      created_at: now,
+      updated_at: now,
     },
     raw: true,
   });
   return company;
 }
+
+export const findOne = async ({ org }) => {
+  const co = await CompanyModel.findOne({
+    where: { company_token: org },
+    order: [['recorded_at', desc]],
+    raw: true,
+  });
+  const company = co ? hydrate(co) : null;
+  return company;
+};

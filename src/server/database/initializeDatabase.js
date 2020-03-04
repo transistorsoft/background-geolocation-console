@@ -1,15 +1,26 @@
+import {
+  isPostgres,
+  isProduction,
+} from '../config';
+
 import definedSequelizeDb from './define-sequelize-db';
 import Location from './LocationModel';
 import Device from './DeviceModel';
 import Company from './CompanyModel';
 
-const isProduction = process.env.NODE_ENV === 'production';
+
 const syncOptions = { logging: true };
 
 /**
  * Init / create location table
  */
 export default async function initializeDatabase() {
+  if (!definedSequelizeDb) {
+    // eslint-disable-next-line no-console
+    console.warn('definedSequelizeDb undefined');
+    return;
+  }
+
   Device.associate({
     Location, Device, Company,
   });
@@ -27,7 +38,7 @@ export default async function initializeDatabase() {
     console.error('Unable to connect to the database:', err);
   }
 
-  if (isProduction && process.env.DATABASE_URL) {
+  if (isProduction && isPostgres) {
     return;
   }
   try {

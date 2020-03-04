@@ -504,14 +504,15 @@ export const loadInitialData =
 
 export const deleteActiveDevice =
   (deleteOptions: ?DeleteOptions): ThunkAction => async (dispatch: Dispatch, getState: GetState): Promise<void> => {
-    const { dashboard: { deviceId }, auth } = getState();
+    const { dashboard: { deviceId, orgTokenFromSearch }, auth } = getState();
     if (!deviceId) {
       return;
     }
     const params = deleteOptions
       ? `?${qs.stringify({
-        start_date: deleteOptions.startDate.toISOString(),
+        company_token: orgTokenFromSearch,
         end_date: deleteOptions.endDate.toISOString(),
+        start_date: deleteOptions.startDate.toISOString(),
       })}`
       : '';
     const headers = makeHeaders(auth);

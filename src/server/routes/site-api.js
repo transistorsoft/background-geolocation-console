@@ -2,16 +2,17 @@
 import fs from 'fs';
 import { Router } from 'express';
 
-import { sign } from '../libs/jwt';
+import { sign, verify } from '../libs/jwt';
 import { decrypt, isEncryptedRequest } from '../libs/RNCrypto';
 import {
   AccessDeniedError,
+  checkAuth,
+  getAuth,
+  isAdmin,
   isAdminToken,
   isDDosCompany,
   isPassword,
   return1Gbfile,
-  getAuth,
-  withAuth,
 } from '../libs/utils';
 import { deleteDevice, getDevices } from '../models/Device';
 import {
@@ -21,19 +22,20 @@ import {
   getLocations,
   getStats,
 } from '../models/Location';
-import { getOrgs } from '../models/Org';
+import { getOrgs, findOne } from '../models/Org';
 
 const router = new Router();
 
 /**
  * GET /company_tokens
  */
-router.get('/company_tokens', getAuth, async (req, res) => {
+router.get('/company_tokens', checkAuth(verify), async (req, res) => {
   try {
-    const orgs = await getOrgs(req.query, !!req.jwt || !withAuth);
+    const { org } = req.jwt;
+    const orgs = await getOrgs({ org }, isAdmin(req.jwt));
     res.send(orgs);
   } catch (err) {
-    console.error('/company_tokens', err);
+    console.error('v1', '/company_tokens', err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -41,25 +43,36 @@ router.get('/company_tokens', getAuth, async (req, res) => {
 /**
  * GET /devices
  */
-router.get('/devices', getAuth, async (req, res) => {
+router.get('/devices', checkAuth(verify), async (req, res) => {
+  const { org } = req.jwt;
   try {
-    const devices = await getDevices(req.query, !!req.jwt || !withAuth);
+    const devices = await getDevices({ ...req.query, org }, isAdmin(req.jwt));
     res.send(devices);
   } catch (err) {
-    console.error('/devices', err);
+    console.error('v1', '/devices', err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
 
-router.delete('/devices/:id', getAuth, async (req, res) => {
+router.delete('/devices/:id', checkAuth(verify), async (req, res) => {
+  const { org, companyId } = req.jwt;
   try {
     console.log(
       `DELETE /devices/${req.params.id}?${JSON.stringify(req.query)}\n`.green,
     );
-    await deleteDevice({ ...req.query, id: req.params.id });
+    await deleteDevice(
+      {
+        ...req.query,
+        id: req.params.id,
+        org,
+        companyId,
+      },
+      isAdmin(req.jwt),
+    );
     res.send({ success: true });
   } catch (err) {
     console.error(
+      'v1',
       '/devices',
       JSON.stringify(req.params),
       JSON.stringify(req.query),
@@ -69,7 +82,7 @@ router.delete('/devices/:id', getAuth, async (req, res) => {
   }
 });
 
-router.get('/stats', getAuth, async (req, res) => {
+router.get('/stats', checkAuth(verify), async (req, res) => {
   try {
     const stats = await getStats();
     res.send(stats);
@@ -79,10 +92,15 @@ router.get('/stats', getAuth, async (req, res) => {
   }
 });
 
-router.get('/locations/latest', getAuth, async (req, res) => {
+router.get('/locations/latest', checkAuth(verify), async (req, res) => {
+  const { org, companyId } = req.jwt;
   console.log('GET /locations %s'.green, JSON.stringify(req.query));
   try {
-    const latest = await getLatestLocation(req.query, !!req.jwt || !withAuth);
+    const latest = await getLatestLocation({
+      ...req.query,
+      org,
+      companyId,
+    }, isAdmin(req.jwt));
     res.send(latest);
   } catch (err) {
     console.info('/locations/latest', JSON.stringify(req.query), err);
@@ -93,11 +111,16 @@ router.get('/locations/latest', getAuth, async (req, res) => {
 /**
  * GET /locations
  */
-router.get('/locations', getAuth, async (req, res) => {
+router.get('/locations', checkAuth(verify), async (req, res) => {
+  const { org, companyId } = req.jwt;
   console.log('GET /locations %s'.green, JSON.stringify(req.query));
 
   try {
-    const locations = await getLocations(req.query, !!req.jwt || !withAuth);
+    const locations = await getLocations({
+      ...req.query,
+      org,
+      companyId,
+    }, isAdmin(req.jwt));
     res.send(locations);
   } catch (err) {
     console.info('get /locations', JSON.stringify(req.query), err);
@@ -108,7 +131,7 @@ router.get('/locations', getAuth, async (req, res) => {
 /**
  * POST /locations
  */
-router.post('/locations', getAuth, async (req, res) => {
+router.post('/locations', getAuth(verify), async (req, res) => {
   const { body } = req;
   const data = isEncryptedRequest(req) ? decrypt(body.toString()) : body;
   const locations = Array.isArray(data) ? data : data ? [data] : [];
@@ -124,7 +147,7 @@ router.post('/locations', getAuth, async (req, res) => {
     if (err instanceof AccessDeniedError) {
       return res.status(403).send({ error: err.toString() });
     }
-    console.error('post /locations', err);
+    console.error('v1', 'post /locations', err);
     return res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -154,21 +177,26 @@ router.post('/locations/:company_token', getAuth, async (req, res) => {
     if (err instanceof AccessDeniedError) {
       return res.status(403).send({ error: err.toString() });
     }
-    console.error('post /locations', org, err);
+    console.error('v1', 'post /locations', org, err);
     return res.status(500).send({ error: 'Something failed!' });
   }
 });
 
-router.delete('/locations', getAuth, async (req, res) => {
+router.delete('/locations', checkAuth(verify), async (req, res) => {
+  const { org, companyId } = req.jwt;
   console.info('locations:delete:query'.green, JSON.stringify(req.query));
 
   try {
-    await deleteLocations(req.query, !!req.jwt || !withAuth);
+    await deleteLocations({
+      ...req.query,
+      companyId,
+      org,
+    }, isAdmin(req.jwt));
 
     res.send({ success: true });
     res.status(500).send({ error: 'Something failed!' });
   } catch (err) {
-    console.info('delete /locations', JSON.stringify(req.query), err);
+    console.info('v1', 'delete /locations', JSON.stringify(req.query), err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -196,7 +224,7 @@ router.post('/auth', async (req, res) => {
 
   try {
     if (isAdminToken(login) && isPassword(password)) {
-      const jwtInfo = { org: login };
+      const jwtInfo = { org: login, admin: true };
 
       const accessToken = sign(jwtInfo);
       return res.send({
@@ -206,7 +234,37 @@ router.post('/auth', async (req, res) => {
       });
     }
   } catch (e) {
-    console.error('/auth', e);
+    console.error('v1', '/auth', e);
+  }
+
+  return res.status(401)
+    .send({ org: login, error: 'Await not public account and right password' });
+});
+
+router.post('/jwt', async (req, res) => {
+  const {
+    login,
+    org,
+    password,
+  } = req.body || {};
+
+  try {
+    const token = org || login;
+    const admin = isAdminToken(token) && isPassword(password);
+    const { id } = !admin ? findOne(token) : {};
+    const jwtInfo = {
+      admin,
+      companyId: id,
+      org: token,
+    };
+    const accessToken = sign(jwtInfo);
+    return res.send({
+      access_token: accessToken,
+      token_type: 'Bearer',
+      org: login,
+    });
+  } catch (e) {
+    console.error('v3', '/jwt', e);
   }
 
   return res.status(401).send({ org: login, error: 'Await not public account and right password' });

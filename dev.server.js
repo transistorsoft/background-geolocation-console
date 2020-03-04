@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+/* eslint-disable import/no-extraneous-dependencies */
 import path from 'path';
 import express from 'express';
 import webpack from 'webpack';
@@ -5,13 +7,15 @@ import webpackDevMiddleware from 'webpack-dev-middleware';
 import webpackHotMiddleware from 'webpack-hot-middleware';
 import httpProxy from 'http-proxy';
 
+import {
+  port,
+  devPort,
+} from './src/server/config';
 import webpackConfig from './webpack.config';
 
-const devPort = process.env.DEV_PORT || 8080;
-const port = process.env.DEV_PORT || 9000;
 const app = express();
 const compiler = webpack(webpackConfig);
-const make = (apiAddress) => {
+const make = apiAddress => {
   const proxy = apiAddress
     ? httpProxy.createProxyServer({ target: apiAddress })
     : httpProxy.createProxyServer();
@@ -29,10 +33,10 @@ const make = (apiAddress) => {
 
   return proxy;
 };
-const register = (app, proxy, path, apiAddress) => {
-  console.log(`Server ${app.name} will proxy ${path} to ${apiAddress}`);
+const register = (a, proxy, p, apiAddress) => {
+  console.log(`Server ${a.name} will proxy ${p} to ${apiAddress}`);
 
-  app.use(path, (req, res) => {
+  a.use(p, (req, res) => {
     proxy.web(req, res, { target: apiAddress });
   });
 };
@@ -54,7 +58,7 @@ const middleware = [
 
 app.use(middleware);
 
-[{ address: `http://localhost:${port}/api`, path: '/api' }].forEach((cfg) => {
+[{ address: `http://localhost:${port}/api`, path: '/api' }].forEach(cfg => {
   const proxy = make(cfg.address);
   app.on('stop', () => proxy.close());
   register(app, proxy, cfg.path, cfg.address);
@@ -68,7 +72,7 @@ app.get('*', (req, res, next) => {
     }
     res.set('content-type', 'text/html');
     res.send(result);
-    res.end();
+    return res.end();
   });
 });
 
@@ -76,7 +80,7 @@ app.listen(devPort, () => {
   console.log('Developer Server | port: %s', devPort);
 });
 
-process.on('dev server Uncaught Exception', (err) => {
+process.on('dev server Uncaught Exception', err => {
   // eslint-disable-next-line no-console
   console.error('<!> Exception %s: ', err.message, err.stack);
 });

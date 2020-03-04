@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-'use strict';
 
+// eslint-disable-next-line import/no-extraneous-dependencies, global-require
 if (!require('piping')({
   hook: true,
   ignore: /(\/\.|~$|\.json$)/i,

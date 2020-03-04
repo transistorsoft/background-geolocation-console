@@ -1,6 +1,9 @@
 /* eslint-disable no-console */
 import crypto from 'crypto';
 
+// Decryption password.  Same as used by BackgroundGeolocation SDK to encrypt.
+import { ENCRYPTION_PASSWORD as password } from '../config';
+
 export const isEncryptedRequest = req => {
   const contentType = req.get('Content-Type');
   const result = contentType && contentType.indexOf('application/octet-stream') === 0;
@@ -14,8 +17,6 @@ export const isEncryptedRequest = req => {
  * @return {String} decrypted JSON
  */
 export const decrypt = data => {
-  // Decryption password.  Same as used by BackgroundGeolocation SDK to encrypt.
-  const password = process.env.ENCRYPTION_PASSWORD;
   // Decode base64 data from HTTP body.
   const buffer = Buffer.from(data, 'base64');
   // Byte 0 is version of encryption spec (3)

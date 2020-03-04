@@ -37,7 +37,7 @@ describe('site api', () => {
     });
 
     test('DELETE /devices/test', async () => {
-      const res = await chai.request(server).delete('/api/site/devices/371');
+      const res = await chai.request(server).delete('/api/site/devices/371?company_token=test');
 
       expect(res).have.status(200);
       expect(res).to.be.json;
@@ -111,7 +111,7 @@ describe('site api', () => {
           queryString.stringify({
             start_date: location.timestamp.substr(0, 10),
             end_date: new Date().toISOString().substr(0, 10),
-          })}`
+          })}`,
       );
 
       expect(res).have.status(200);

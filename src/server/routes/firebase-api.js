@@ -2,11 +2,12 @@ import crypto from 'crypto';
 import { Router } from 'express';
 
 import { decrypt, isEncryptedRequest } from '../libs/RNCrypto';
-import { sign, verify } from '../libs/jwt';
 import {
   AccessDeniedError,
   checkAuth,
+  isAdminToken,
   isDDosCompany,
+  isPassword,
   isProduction,
   RegistrationRequiredError,
   return1Gbfile,
@@ -16,21 +17,19 @@ import {
   findOrCreate,
   getDevice,
   getDevices,
-} from '../models/Device';
+} from '../firebase/Device';
 import {
   createLocation,
   deleteLocations,
   getLatestLocation,
   getLocations,
   getStats,
-} from '../models/Location';
-import { getOrgs } from '../models/Org';
+} from '../firebase/Location';
+import { serviceApp, verify } from '../firebase';
+import { getOrgs } from '../firebase/Org';
 
 const router = new Router();
 
-// curl -v -X POST http://localhost:9000/v2/register \
-//  -d '{"company_token":"test","device_id":"test"}' \
-//  -H 'Content-Type: application/json'
 router.post('/register', async (req, res) => {
   const {
     framework,
@@ -66,10 +65,7 @@ router.post('/register', async (req, res) => {
   }
 
   try {
-    const {
-      company_id: companyId,
-      id: deviceId,
-    } = await findOrCreate(org, {
+    await findOrCreate(org, {
       framework,
       model,
       uuid,
@@ -77,14 +73,26 @@ router.post('/register', async (req, res) => {
     });
 
     const jwtInfo = {
-      companyId,
-      deviceId,
+      deviceId: uuid,
       model,
       org,
       uuid,
     };
 
-    const accessToken = sign(jwtInfo);
+    try {
+      await serviceApp.auth()
+        .createUser({
+          disabled: false,
+          email: `${org}@bgc.com`,
+          uid: org,
+        });
+    } catch (e) {
+      if (e.code !== 'auth/uid-already-exists') {
+        // eslint-disable-next-line no-console
+        console.error('v3', 'createUser:error', e);
+      }
+    }
+    const accessToken = await serviceApp.auth().createCustomToken(org, jwtInfo);
     const refreshToken = crypto
       .createHash('md5')
       .update(accessToken)
@@ -92,29 +100,27 @@ router.post('/register', async (req, res) => {
 
     return res.send({
       accessToken,
-      expires: -1,
       refreshToken,
+      expires: -1,
     });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
       return res.status(403).send({ error: err.message });
     }
     // eslint-disable-next-line no-console
-    console.error('v2', '/register', err);
+    console.error('v3', '/register', err);
     return res.status(500).send(!isProduction ? err : err.message);
   }
 });
 
 router.all('/refresh_token', checkAuth(verify), async (req, res) => {
   const {
-    companyId,
     deviceId,
     model,
     org,
     uuid,
   } = req.jwt;
   const jwtInfo = {
-    companyId,
     deviceId,
     model,
     org,
@@ -129,7 +135,7 @@ router.all('/refresh_token', checkAuth(verify), async (req, res) => {
     deviceId,
   );
   try {
-    const accessToken = sign(jwtInfo);
+    const accessToken = await serviceApp.auth().createCustomToken(org, jwtInfo);
     const refreshToken = crypto
       .createHash('md5')
       .update(accessToken)
@@ -137,15 +143,15 @@ router.all('/refresh_token', checkAuth(verify), async (req, res) => {
 
     return res.send({
       accessToken,
-      expires: -1,
       refreshToken,
+      expires: -1,
     });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
       return res.status(403).send({ error: err.message });
     }
     // eslint-disable-next-line no-console
-    console.error('v2', '/register', req.body, err);
+    console.error('v3', '/register', req.body, err);
     return res.status(500).send(!isProduction ? err : err.message);
   }
 });
@@ -153,84 +159,73 @@ router.all('/refresh_token', checkAuth(verify), async (req, res) => {
 // curl -v http://localhost:9000/v2/company_tokens \
 //   -H 'Authorization: Bearer ey...Pg'
 //
-router.get('/company_tokens', checkAuth(verify), async (req, res) => {
+router.get('/company_tokens', checkAuth, async (req, res) => {
   const { org } = req.jwt;
   try {
     const orgTokens = await getOrgs({ org });
     res.send(orgTokens);
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error('v2', '/company_tokens', err);
+    console.error('v3', '/company_tokens', err);
     res.status(500).send({ error: err.message });
   }
 });
 
-router.get('/devices', checkAuth(verify), async (req, res) => {
+router.get('/devices', checkAuth, async (req, res) => {
   try {
-    const { org, deviceId } = req.jwt;
-    let { companyId } = req.jwt;
-    ({ company_id: companyId } = await getDevice({ id: deviceId, org }) || {});
-    const devices = await getDevices({ company_id: companyId, org });
+    const { org } = req.jwt;
+    // const device = await getDevice({ id: uuid, org });
+    const devices = await getDevices({ org });
     res.send(devices || []);
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error('v2', '/devices', err);
+    console.error('v3', '/devices', err);
     res.status(500).send({ error: err.message });
   }
 });
 
-router.delete('/devices/:id', checkAuth(verify), async (req, res) => {
-  const {
-    deviceId,
-    org,
-  } = req.jwt;
-  let { companyId } = req.jwt;
-  ({ company_id: companyId } = await getDevice({ id: deviceId, org }) || {});
-  const {
-    id,
-    end_date: endDate,
-    start_date: startDate,
-  } = req.params;
+router.delete('/devices/:id', checkAuth, async (req, res) => {
+  const { uuid } = req.jwt;
 
   // eslint-disable-next-line no-console
   console.info(
     'devices:delete'.green,
     'device:id'.green,
-    id || deviceId,
+    uuid,
     JSON.stringify(req.query),
   );
 
+  const {
+    id, end_date: endDate, start_date: startDate,
+  } = req.params;
   try {
     await deleteDevice({
-      companyId,
+      id: uuid,
       end_date: endDate,
-      id: id || deviceId,
-      org,
       start_date: startDate,
     });
     res.send({ success: true });
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error('v2', `DELETE /devices/${id}`, id || deviceId, req.query, err);
+    console.error('v3', `/devices/${id}`, uuid, req.query, err);
     res.status(500).send({ error: err.message });
   }
 });
 
-router.get('/stats', checkAuth(verify), async (req, res) => {
+router.get('/stats', checkAuth, async (req, res) => {
   try {
     const stats = await getStats();
     res.send(stats);
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error('v2', '/stats', err);
+    console.error('v3', '/stats', err);
     res.status(500).send({ error: err.message });
   }
 });
 
-router.get('/locations/latest', checkAuth(verify), async (req, res) => {
+router.get('/locations/latest', checkAuth, async (req, res) => {
   const { deviceId, org } = req.jwt;
-  let { companyId } = req.jwt;
-  ({ company_id: companyId } = await getDevice({ id: deviceId, org }) || {});
+  const device = await getDevice({ id: deviceId, org });
   // eslint-disable-next-line no-console
   console.info(
     'locations:latest'.green,
@@ -243,12 +238,12 @@ router.get('/locations/latest', checkAuth(verify), async (req, res) => {
   try {
     const latest = await getLatestLocation({
       device_id: deviceId,
-      company_id: companyId,
+      company_id: device.company_id,
     });
     return res.send(latest);
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error('v2', '/locations/latest', req.query, err);
+    console.error('v3', '/locations/latest', req.query, err);
     return res.status(500).send({ error: err.message });
   }
 });
@@ -256,7 +251,7 @@ router.get('/locations/latest', checkAuth(verify), async (req, res) => {
 /**
  * GET /locations
  */
-router.get('/locations', checkAuth(verify), async (req, res) => {
+router.get('/locations', checkAuth, async (req, res) => {
   const { deviceId, org } = req.jwt;
   // eslint-disable-next-line no-console
   console.info(
@@ -278,7 +273,7 @@ router.get('/locations', checkAuth(verify), async (req, res) => {
     res.send(locations);
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error('v2', '/locations', req.query, err);
+    console.error('v3', '/locations', req.query, err);
     res.status(500).send({ error: err.message });
   }
 });
@@ -286,10 +281,11 @@ router.get('/locations', checkAuth(verify), async (req, res) => {
 /**
  * POST /locations
  */
-router.post('/locations', checkAuth(verify), async (req, res) => {
+router.post('/locations', checkAuth, async (req, res) => {
   const { deviceId, org } = req.jwt;
   // eslint-disable-next-line no-console
   console.info(
+    'v3',
     'locations:post'.green,
     'org:name'.green,
     org,
@@ -301,9 +297,10 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
   const data = isEncryptedRequest(req) ? decrypt(body.toString()) : body;
 
   // Can happen if Device is deleted from Dashboard but a JWT is still posting locations for it.
-  if (!device) {
+  if (device == null) {
     // eslint-disable-next-line no-console
     console.error(
+      'v3',
       'Device ID %s not found.  Was it deleted from dashboard?'.red,
       deviceId,
     );
@@ -318,10 +315,10 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
     ...x,
     company_id: device.company_id,
     device_id: deviceId,
-    company_token: org,
+    company_token: device.company_token,
   }));
 
-  if (isDDosCompany(org)) {
+  if (isDDosCompany(device.company_token)) {
     return return1Gbfile(res);
   }
 
@@ -336,7 +333,7 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
       return res.status(406).send({ error: err.toString() });
     }
     // eslint-disable-next-line no-console
-    console.error('v2', 'POST /locations', body, err);
+    console.error('v3', 'POST /locations', body, err);
     return res.status(500).send({ error: err.message });
   }
 });
@@ -344,13 +341,12 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
 /**
  * POST /locations
  */
-router.post('/locations/:company_token', checkAuth(verify), async (req, res) => {
+router.post('/locations/:company_token', checkAuth, async (req, res) => {
   const { deviceId, org } = req.jwt;
-  let { companyId } = req.jwt;
-  ({ company_id: companyId } = await getDevice({ id: deviceId, org }) || {});
 
   // eslint-disable-next-line no-console
   console.info(
+    'v3',
     'locations:post'.green,
     'org:name'.green,
     org,
@@ -358,27 +354,24 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
     deviceId,
   );
 
-  if (isDDosCompany(org)) {
+  const device = await getDevice({ id: deviceId, org });
+  if (isDDosCompany(device.company_token)) {
     return return1Gbfile(res);
   }
 
   const data = isEncryptedRequest(req)
     ? decrypt(req.body.toString())
     : req.body;
-  data.company_token = org;
+  data.company_token = device.company_token;
 
   try {
     await createLocation(
       {
         ...data,
-        company_id: companyId,
-        company_token: org,
+        company_id: device.company_id,
+        company_token: device.company_token,
       },
-      {
-        company_id: companyId,
-        company_token: org,
-        id: deviceId,
-      },
+      device,
     );
     return res.send({ success: true });
   } catch (err) {
@@ -386,16 +379,14 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
       return res.status(403).send({ error: err.toString() });
     }
     // eslint-disable-next-line no-console
-    console.error(`POST /locations/${org}`, err);
+    console.error('v3', `POST /locations${device.company_token}`, err);
     return res.status(500).send({ error: err.message });
   }
 });
 
-router.delete('/locations', checkAuth(verify), async (req, res) => {
+router.delete('/locations', checkAuth, async (req, res) => {
   try {
     const { deviceId, org } = req.jwt;
-    let { companyId } = req.jwt;
-    ({ company_id: companyId } = await getDevice({ id: deviceId, org }) || {});
 
     // eslint-disable-next-line no-console
     console.info(
@@ -407,10 +398,11 @@ router.delete('/locations', checkAuth(verify), async (req, res) => {
       JSON.stringify(req.query),
     );
 
+    const device = await getDevice({ id: deviceId, org });
     const { start_date: startDate, end_date: endDate } = req.query;
 
     await deleteLocations({
-      companyId,
+      companyId: device.company_id,
       deviceId,
       end_date: endDate,
       start_date: startDate,
@@ -418,9 +410,55 @@ router.delete('/locations', checkAuth(verify), async (req, res) => {
     res.send({ success: true });
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.info('DELETE /locations', req.query, err);
+    console.info('v3', 'DELETE /locations', req.query, err);
     res.status(500).send({ error: err.message });
   }
+});
+
+router.post('/auth', async (req, res) => {
+  const { login, password } = req.body || {};
+
+  try {
+    if (isAdminToken(login) && isPassword(password)) {
+      const jwtInfo = { org: login, admin: true };
+
+      const accessToken = await serviceApp.auth().createCustomToken(login, jwtInfo);
+      return res.send({
+        access_token: accessToken,
+        token_type: 'Bearer',
+        org: login,
+      });
+    }
+  } catch (e) {
+    console.error('v3', '/auth', e);
+  }
+
+  return res.status(401).send({ org: login, error: 'Await not public account and right password' });
+});
+
+router.post('/jwt', async (req, res) => {
+  const {
+    login,
+    org,
+    password,
+  } = req.body || {};
+
+  try {
+    const token = org || login;
+    const admin = isAdminToken(token) && isPassword(password);
+    const jwtInfo = { org: token, admin };
+
+    const accessToken = serviceApp.auth().createCustomToken(jwtInfo);
+    return res.send({
+      access_token: accessToken,
+      token_type: 'Bearer',
+      org: login,
+    });
+  } catch (e) {
+    console.error('v3', '/jwt', e);
+  }
+
+  return res.status(401).send({ org: login, error: 'Await not public account and right password' });
 });
 
 export default router;

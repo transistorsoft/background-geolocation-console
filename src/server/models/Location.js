@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 /* eslint-disable no-console */
 import { Op } from 'sequelize';
 import Promise from 'bluebird';
@@ -7,15 +8,14 @@ import DeviceModel from '../database/DeviceModel';
 import LocationModel from '../database/LocationModel';
 import {
   AccessDeniedError,
-  desc,
   hydrate,
   isDeniedCompany,
   isDeniedDevice,
   jsonb,
 } from '../libs/utils';
+import { desc } from '../config';
 
 import { findOrCreate } from './Device';
-
 
 const include = [{ model: DeviceModel, as: 'device' }];
 
@@ -55,15 +55,13 @@ export async function getLocations(params, isAdmin) {
 }
 
 export async function getLatestLocation(params, isAdmin) {
-  if (!isAdmin && !(params.device_id || params.company_id || params.companyId)) {
+  const { companyId } = params || {};
+  if (!isAdmin && !(params.device_id || companyId)) {
     return [];
   }
-
-  const whereConditions = {};
+  const whereConditions = { company_id: companyId };
 
   params.device_id && (whereConditions.device_id = +params.device_id);
-  params.companyId && (whereConditions.company_id = +params.companyId);
-  params.company_id && (whereConditions.company_id = +params.company_id);
 
   const row = await LocationModel.findOne({
     where: whereConditions,
@@ -74,13 +72,27 @@ export async function getLatestLocation(params, isAdmin) {
   return result;
 }
 
-export async function createLocation(params, device = {}) {
+export async function createLocation(
+  params,
+  {
+    company_id: companyId,
+    company_token: orgToken,
+    id,
+  } = {},
+) {
   if (Array.isArray(params)) {
     return Promise.reduce(
       params,
       async (p, location) => {
         try {
-          await createLocation(location, device);
+          await createLocation(
+            location,
+            {
+              company_id: companyId,
+              company_token: orgToken,
+              id,
+            },
+          );
         } catch (e) {
           console.error('createLocation', e);
           throw e;
@@ -89,7 +101,6 @@ export async function createLocation(params, device = {}) {
       0,
     );
   }
-  const { company_token: orgToken, id } = device;
   const { location: list, company_token: token } = params;
   const deviceInfo = params.device || { model: 'UNKNOWN', uuid: 'UNKNOWN' };
   const companyName = orgToken || token || 'UNKNOWN';
@@ -120,17 +131,25 @@ export async function createLocation(params, device = {}) {
         );
       }
 
-      const currentDevice = id
-        ? device
-        : await findOrCreate(companyName, { ...deviceInfo });
+      ({
+        company_id: companyId,
+        company_token: orgToken,
+        id,
+      } = !orgToken
+        ? await findOrCreate(companyName, { ...deviceInfo })
+        : {
+          company_id: companyId,
+          company_token: orgToken,
+          id,
+        });
 
       CompanyModel.update(
         { updated_at: now },
-        { where: { id: currentDevice.company_id } },
+        { where: { id: companyId } },
       );
       DeviceModel.update(
         { updated_at: now },
-        { where: { id: currentDevice.id } },
+        { where: { id } },
       );
 
       console.info(
@@ -138,20 +157,20 @@ export async function createLocation(params, device = {}) {
         'org:name'.green,
         companyName,
         'org:id'.green,
-        currentDevice.company_id,
+        companyId,
         'device:id'.green,
-        currentDevice.id,
+        id,
       );
-
-      return LocationModel.create({
+      const row = {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
         data: jsonb(location),
         recorded_at: location.timestamp,
-        created_at: now,
-        company_id: currentDevice.company_id,
-        device_id: currentDevice.id,
-      });
+        created_at: now.toISOString(),
+        company_id: companyId,
+        device_id: id,
+      };
+      return LocationModel.create(row);
     },
     0,
   );
@@ -164,10 +183,10 @@ export async function deleteLocations(params, isAdmin) {
 
   const whereConditions = {};
   const verify = {};
-  const companyId = params && (params.companyId || params.company_id);
+  const companyId = params && params.companyId;
   const deviceId = params && (params.deviceId || params.device_id);
 
-  if (companyId) {
+  if (!isAdmin) {
     whereConditions.company_id = +companyId;
     verify.company_id = +companyId;
   }

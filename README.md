@@ -25,6 +25,14 @@ export SHARED_DASHBOARD=1      # with auth
 export ADMIN_TOKEN=admin256    # admin login
 export PASSWORD=test           # admin password
 ```
+### Firestore
+
+```
+export FIREBASE_URL=https://YOUR-PROJECT-DATABASE.firebaseio.com
+export FIREBASE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMII...=\n-----END PRIVATE KEY-----\n
+```
+
+[additional details](./src/server/firebase/README.md)
 
 # auth
 
@@ -57,6 +65,8 @@ Application have a jest api tests
 ```
 npm run test
 ```
+
+Works with `npm run dev`
 
 If you are in an environment that supports opening a web browser, a browser window will automatically launch the front-end web app at the end of the server startup procedure.
 

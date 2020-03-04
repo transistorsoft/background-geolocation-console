@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-'use strict';
+
 
 const isProduction = process.env.NODE_ENV === 'production';
 
 if (!isProduction) {
+  // eslint-disable-next-line import/no-extraneous-dependencies, global-require
   if (!require('piping')({
     hook: true,
     ignore: /(\/\.|~$|\.json$)/i,

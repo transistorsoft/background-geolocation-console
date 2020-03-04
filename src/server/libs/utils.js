@@ -1,36 +1,26 @@
 /* eslint-disable max-classes-per-file */
 import { createReadStream } from 'fs';
 import { resolve } from 'path';
+import { firestore } from 'firebase-admin';
 
-import { verify } from './jwt';
-
-// If client registration fails due to not being connected to network,
-// an accessToken: "DUMMY_TOKEN" is provided to the SDK.
-// If the server receives this token,
-// send an HTTP response status "406 Not Acceptable".
-// This signal will be detected by the client
-// and it will hit /v2/registration once again.
-const DUMMY_TOKEN = 'DUMMY_TOKEN';
-
-export const withAuth = !!process.env.SHARED_DASHBOARD;
-export const deniedCompanies = (process.env.DENIED_COMPANY_TOKENS || '').split(',');
-export const deniedDevices = (process.env.DENIED_DEVICE_TOKENS || '').split(',');
-export const ddosBombCompanies = (
-  process.env.DDOS_BOMB_COMPANY_TOKENS || ''
-).split(',');
-export const isProduction = process.env.NODE_ENV === 'production';
-export const isPostgres = !!process.env.DATABASE_URL;
-export const desc = isPostgres ? 'DESC NULLS LAST' : 'DESC';
+import {
+  adminToken,
+  ddosBombCompanies,
+  deniedCompanies,
+  deniedDevices,
+  dummyToken,
+  password,
+  withAuth,
+} from '../config';
 
 const check = (list, item) => list.find(x => !!x && (item || '').toLowerCase().startsWith(x.toLowerCase()));
 export const isDDosCompany = orgToken => check(ddosBombCompanies, orgToken);
 export const isDeniedCompany = orgToken => check(deniedCompanies, orgToken);
 export const isDeniedDevice = orgToken => check(deniedDevices, orgToken);
-export const isAdminToken = orgToken => !!process.env.ADMIN_TOKEN &&
-  orgToken === process.env.ADMIN_TOKEN;
-export const isPassword = password => process.env.PASSWORD === password;
-
-export const jsonb = data => (isPostgres ? data || null : JSON.stringify(data));
+export const isAdminToken = orgToken => !!adminToken && orgToken === adminToken;
+export const isPassword = p => password === p;
+export const isAdmin = ({ admin } = {}) => !!admin || !withAuth;
+export const jsonb = data => (!data ? null : JSON.stringify(data));
 
 export class AccessDeniedError extends Error {}
 export class RegistrationRequiredError extends Error {}
@@ -39,6 +29,28 @@ export const raiseError = (res, message, error) => {
   const result = new AccessDeniedError(message);
   res.status(403).json({ status: 401, error: message });
   return error || result;
+};
+
+export const toRow = fObj => {
+  if (!fObj) {
+    return null;
+  }
+  const result = fObj.data({ serverTimestamps: 'previous' });
+  result.id = fObj.id;
+  [
+    'created_at',
+    'recorded_at',
+    'updated_at',
+  ]
+    .filter(x => x in result && result[x] instanceof firestore.Timestamp)
+    .forEach(x => (result[x] = result[x].toDate()));
+  return result;
+};
+
+export const toRows = fObject => {
+  const result = [];
+  fObject.forEach(x => result.push(toRow(x)));
+  return result;
 };
 
 export function hydrate(row) {
@@ -81,7 +93,7 @@ export function return1Gbfile(res) {
   createReadStream(file1gb).pipe(res);
 }
 
-export const checkAuth = (req, res, next) => {
+export const checkAuth = verifier => (req, res, next) => {
   const auth = (req.get('Authorization') || '').split(' ');
 
   if (auth.length < 2 || auth[0] !== 'Bearer') {
@@ -89,17 +101,20 @@ export const checkAuth = (req, res, next) => {
   }
   const [, jwt] = auth;
 
-  if (jwt === DUMMY_TOKEN) {
+  if (jwt === dummyToken) {
     // const error = new RegistrationRequiredError('Registration required');
     // TODO would rather throw error here but
     // I couldn't figure out where these thrown errors end up.
     // Ideally some global error handler would check instanceof RegistrationRequiredError and res.status(406).
-    // @see const DUMMY_TOKEN above for more information.
+    // @see const dummyToken above for more information.
     return res.status(406).send();
   }
   try {
-    const decoded = verify(jwt);
-    req.jwt = decoded;
+    const decoded = verifier(jwt);
+    req.jwt = {
+      ...decoded,
+      ...decoded.claims,
+    };
     if (!decoded) {
       return next(raiseError(res, 'Could not decode JWT'));
     }
@@ -109,14 +124,17 @@ export const checkAuth = (req, res, next) => {
   }
 };
 
-export const getAuth = (req, res, next) => {
+export const getAuth = verifier => (req, res, next) => {
   const auth = (req.get('Authorization') || '').split(' ');
 
   if (auth.length >= 2 && auth[0] === 'Bearer') {
     const [, jwt] = auth;
     try {
-      const decoded = verify(jwt);
-      req.jwt = decoded;
+      const decoded = verifier(jwt);
+      req.jwt = {
+        ...decoded,
+        ...decoded.claims,
+      };
       return next();
     } catch (e) {
       // eslint-disable-next-line no-console

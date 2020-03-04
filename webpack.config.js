@@ -1,3 +1,13 @@
+import {
+  firebaseURL,
+  GOOGLE_ANALYTICS_ID,
+  GOOGLE_MAPS_API_KEY,
+  isProduction,
+  NODE_ENV,
+  PURE_CHAT_ID,
+  withAuth,
+} from './src/server/config';
+
 const path = require('path'); const webpack = require('webpack');
 
 const HtmlWebpackPlugin = require('html-webpack-plugin');
@@ -6,7 +16,6 @@ const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 
 const copyAssets = new CopyPlugin([{ from: 'assets/images', to: 'images' }]);
-const isProduction = process.env.NODE_ENV === 'production';
 
 const htmlWebpackPlugin = new HtmlWebpackPlugin({
   template: 'index.ejs',
@@ -24,9 +33,9 @@ const htmlWebpackPlugin = new HtmlWebpackPlugin({
     minifyCSS: true,
     minifyURLs: true,
   },
-  GOOGLE_ANALYTICS_ID: process.env.GOOGLE_ANALYTICS_ID,
-  PURE_CHAT_ID: process.env.PURE_CHAT_ID,
-  GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
+  GOOGLE_ANALYTICS_ID,
+  PURE_CHAT_ID,
+  GOOGLE_MAPS_API_KEY,
 });
 
 const config = {
@@ -124,8 +133,9 @@ const config = {
   plugins: isProduction
     ? [
       new webpack.DefinePlugin({
-        'process.env.SHARED_DASHBOARD': !!process.env.SHARED_DASHBOARD || '""',
-        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+        'process.env.FIREBASE_URL': JSON.stringify(firebaseURL),
+        'process.env.NODE_ENV': JSON.stringify(NODE_ENV),
+        'process.env.SHARED_DASHBOARD': !!withAuth || '""',
       }),
       new webpack.LoaderOptionsPlugin({
         minimize: true,
@@ -137,10 +147,9 @@ const config = {
     : [
       new webpack.NamedModulesPlugin(),
       new webpack.DefinePlugin({
-        'process.env.SHARED_DASHBOARD': !!process.env.SHARED_DASHBOARD || '""',
-        'process.env.NODE_ENV': JSON.stringify(
-          process.env.NODE_ENV || 'development',
-        ),
+        'process.env.FIREBASE_URL': JSON.stringify(firebaseURL),
+        'process.env.NODE_ENV': JSON.stringify(NODE_ENV || 'development'),
+        'process.env.SHARED_DASHBOARD': !!withAuth || '""',
       }),
       copyAssets,
       new webpack.HotModuleReplacementPlugin(),

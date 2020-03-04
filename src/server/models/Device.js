@@ -3,7 +3,8 @@ import { Op } from 'sequelize';
 
 import DeviceModel from '../database/DeviceModel';
 import LocationModel from '../database/LocationModel';
-import { checkCompany, desc } from '../libs/utils';
+import { checkCompany } from '../libs/utils';
+import { desc } from '../config';
 
 import { findOrCreate as findOrCreateCompany } from './Org';
 
@@ -24,12 +25,13 @@ export async function getDevice({ id }) {
 }
 
 export async function getDevices(params, isAdmin) {
-  if (!isAdmin && !params.company_id) {
+  const { org } = params || {};
+  if (!isAdmin && !org) {
     return [];
   }
 
-  const whereConditions = {};
-  params.company_id && (whereConditions.company_id = +params.company_id);
+  const whereConditions = { company_token: org };
+
   const result = await DeviceModel.findAll({
     where: whereConditions,
     attributes: [
@@ -49,11 +51,30 @@ export async function getDevices(params, isAdmin) {
   return result;
 }
 
-export async function deleteDevice({
-  id: deviceId,
-  start_date: startDate,
-  end_date: endDate,
-}) {
+export async function deleteDevice(
+  {
+    end_date: endDate,
+    id: deviceId,
+    org,
+    start_date: startDate,
+  },
+) {
+  const device = await DeviceModel.findOne({
+    where: { company_token: org, id: deviceId },
+    attributes: [
+      'id',
+      'device_id',
+      'device_model',
+      'company_id',
+      'company_token',
+    ],
+    raw: true,
+  });
+
+  if (!device) {
+    return null;
+  }
+
   const whereByDevice = { device_id: deviceId };
   const where = { ...whereByDevice };
   if (startDate && endDate && new Date(startDate) && new Date(endDate)) {
@@ -73,7 +94,10 @@ export async function deleteDevice({
 export const findOrCreate = async (
   org = 'UNKNOWN',
   {
-    model, uuid, framework, version,
+    framework,
+    model,
+    uuid,
+    version,
   },
 ) => {
   const device = {
@@ -84,7 +108,7 @@ export const findOrCreate = async (
 
   checkCompany({ org, model: device.model });
 
-  const company = await findOrCreateCompany({ company_token: org });
+  const company = await findOrCreateCompany({ org });
   const where = { company_id: company.id };
 
   uuid && (where.device_id = uuid);
