@@ -118,7 +118,7 @@ const OrgField = (props: Props) => {
       open={isLong ? false : undefined}
       onOpen={handleOpen}
       style={flex}
-      label={`Companies (${s.length})`}
+      label={`Companies (${s && s.length})`}
       onChange={({ target }: MaterialInputElement) => onChange(target.value)}
       value={value}
     >

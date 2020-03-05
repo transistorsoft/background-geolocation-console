@@ -16,7 +16,7 @@ import {
 } from '../libs/utils';
 import { deleteDevice, getDevices } from '../models/Device';
 import {
-  createLocation,
+  create,
   deleteLocations,
   getLatestLocation,
   getLocations,
@@ -94,13 +94,16 @@ router.get('/stats', checkAuth(verify), async (req, res) => {
 
 router.get('/locations/latest', checkAuth(verify), async (req, res) => {
   const { org, companyId } = req.jwt;
-  console.log('GET /locations %s'.green, JSON.stringify(req.query));
+  console.log('GET /locations/latest %s'.green, JSON.stringify(req.query));
   try {
-    const latest = await getLatestLocation({
-      ...req.query,
-      org,
-      companyId,
-    }, isAdmin(req.jwt));
+    const latest = await getLatestLocation(
+      {
+        ...req.query,
+        org,
+        company_id: companyId,
+      },
+      isAdmin(req.jwt),
+    );
     res.send(latest);
   } catch (err) {
     console.info('/locations/latest', JSON.stringify(req.query), err);
@@ -133,15 +136,17 @@ router.get('/locations', checkAuth(verify), async (req, res) => {
  */
 router.post('/locations', getAuth(verify), async (req, res) => {
   const { body } = req;
-  const data = isEncryptedRequest(req) ? decrypt(body.toString()) : body;
-  const locations = Array.isArray(data) ? data : data ? [data] : [];
+  const data = isEncryptedRequest(req)
+    ? decrypt(body.toString())
+    : body;
+  const { company_token: org } = data;
 
-  if (locations.find(({ company_token: org }) => isDDosCompany(org))) {
+  if (isDDosCompany(org)) {
     return return1Gbfile(res);
   }
 
   try {
-    await createLocation(locations);
+    await create(data);
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
@@ -155,7 +160,7 @@ router.post('/locations', getAuth(verify), async (req, res) => {
 /**
  * POST /locations
  */
-router.post('/locations/:company_token', getAuth, async (req, res) => {
+router.post('/locations/:company_token', getAuth(verify), async (req, res) => {
   const { company_token: org } = req.params;
 
   console.info('locations:post'.green, 'org:name'.green, org);
@@ -170,7 +175,7 @@ router.post('/locations/:company_token', getAuth, async (req, res) => {
   data.company_token = org;
 
   try {
-    await createLocation(data);
+    await create(data);
 
     return res.send({ success: true });
   } catch (err) {
@@ -242,32 +247,30 @@ router.post('/auth', async (req, res) => {
 });
 
 router.post('/jwt', async (req, res) => {
-  const {
-    login,
-    org,
-    password,
-  } = req.body || {};
+  const { org } = req.body || {};
 
   try {
-    const token = org || login;
-    const admin = isAdminToken(token) && isPassword(password);
-    const { id } = !admin ? findOne(token) : {};
+    const { id } = findOne(org) || {};
+
+    if (!id) {
+      res.status(401).send({ org, error: 'Org not found' });
+    }
+
     const jwtInfo = {
-      admin,
       companyId: id,
-      org: token,
+      org,
     };
     const accessToken = sign(jwtInfo);
     return res.send({
       access_token: accessToken,
       token_type: 'Bearer',
-      org: login,
+      org,
     });
   } catch (e) {
     console.error('v3', '/jwt', e);
   }
 
-  return res.status(401).send({ org: login, error: 'Await not public account and right password' });
+  return res.status(401).send({ org, error: 'Await not public account and right password' });
 });
 
 /**

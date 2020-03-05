@@ -401,9 +401,13 @@ export const loadDevices = (): ThunkAction => async (dispatch: Dispatch, getStat
     const response = await fetch(`${API_URL}/devices?${params}`, { headers });
     const records = await response.json();
     const devices: Device[] = records
-      .map((record: Object) => ({
-        id: record.id,
-        name: `${record.device_id}(${record.framework})`,
+      .map(({
+        id, device_id: deviceId, framework,
+      }: Object) => ({
+        id,
+        name: framework
+          ? `${deviceId}(${framework})`
+          : `${deviceId}`,
       }));
     return dispatch(setDevices(devices));
   } catch (e) {

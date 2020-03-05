@@ -12,8 +12,8 @@ const App = ({ store }) => (
   <Provider store={store}>
     <Router>
       <Switch>
-        <Route path='/:token' component={WrappedViewport} />
-        <Route path='/' component={WrappedViewport} />
+        <Route path='/:token' component={WrappedViewport} exact />
+        <Route path='/' component={WrappedViewport} exact />
       </Switch>
     </Router>
   </Provider>

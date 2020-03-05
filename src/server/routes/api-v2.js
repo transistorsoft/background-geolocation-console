@@ -18,7 +18,7 @@ import {
   getDevices,
 } from '../models/Device';
 import {
-  createLocation,
+  create,
   deleteLocations,
   getLatestLocation,
   getLocations,
@@ -107,12 +107,13 @@ router.post('/register', async (req, res) => {
 
 router.all('/refresh_token', checkAuth(verify), async (req, res) => {
   const {
-    companyId,
     deviceId,
     model,
     org,
     uuid,
   } = req.jwt;
+  let { companyId } = req.jwt;
+  !companyId && ({ company_id: companyId } = await getDevice({ id: deviceId, org }) || {});
   const jwtInfo = {
     companyId,
     deviceId,
@@ -167,10 +168,8 @@ router.get('/company_tokens', checkAuth(verify), async (req, res) => {
 
 router.get('/devices', checkAuth(verify), async (req, res) => {
   try {
-    const { org, deviceId } = req.jwt;
-    let { companyId } = req.jwt;
-    ({ company_id: companyId } = await getDevice({ id: deviceId, org }) || {});
-    const devices = await getDevices({ company_id: companyId, org });
+    const { org } = req.jwt;
+    const devices = await getDevices({ org });
     res.send(devices || []);
   } catch (err) {
     // eslint-disable-next-line no-console
@@ -180,12 +179,7 @@ router.get('/devices', checkAuth(verify), async (req, res) => {
 });
 
 router.delete('/devices/:id', checkAuth(verify), async (req, res) => {
-  const {
-    deviceId,
-    org,
-  } = req.jwt;
-  let { companyId } = req.jwt;
-  ({ company_id: companyId } = await getDevice({ id: deviceId, org }) || {});
+  const { org } = req.jwt;
   const {
     id,
     end_date: endDate,
@@ -196,22 +190,21 @@ router.delete('/devices/:id', checkAuth(verify), async (req, res) => {
   console.info(
     'devices:delete'.green,
     'device:id'.green,
-    id || deviceId,
+    id,
     JSON.stringify(req.query),
   );
 
   try {
     await deleteDevice({
-      companyId,
       end_date: endDate,
-      id: id || deviceId,
+      id,
       org,
       start_date: startDate,
     });
     res.send({ success: true });
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error('v2', `DELETE /devices/${id}`, id || deviceId, req.query, err);
+    console.error('v2', `DELETE /devices/${id}`, id, req.query, err);
     res.status(500).send({ error: err.message });
   }
 });
@@ -228,22 +221,25 @@ router.get('/stats', checkAuth(verify), async (req, res) => {
 });
 
 router.get('/locations/latest', checkAuth(verify), async (req, res) => {
-  const { deviceId, org } = req.jwt;
+  const { org } = req.jwt;
+  let { deviceId } = req.jwt;
+  ({ device_id: deviceId = deviceId } = req.query);
   let { companyId } = req.jwt;
-  ({ company_id: companyId } = await getDevice({ id: deviceId, org }) || {});
+  !companyId && ({ company_id: companyId } = await getDevice({ id: deviceId, org }) || {});
   // eslint-disable-next-line no-console
   console.info(
     'locations:latest'.green,
     'org:name'.green,
     org,
+    companyId,
     'device:id'.green,
     deviceId,
     JSON.stringify(req.query),
   );
   try {
     const latest = await getLatestLocation({
-      device_id: deviceId,
-      company_id: companyId,
+      device_id: +deviceId,
+      company_id: +companyId,
     });
     return res.send(latest);
   } catch (err) {
@@ -257,7 +253,9 @@ router.get('/locations/latest', checkAuth(verify), async (req, res) => {
  * GET /locations
  */
 router.get('/locations', checkAuth(verify), async (req, res) => {
-  const { deviceId, org } = req.jwt;
+  const { org } = req.jwt;
+  let { deviceId } = req.jwt;
+  ({ device_id: deviceId = deviceId } = req.query);
   // eslint-disable-next-line no-console
   console.info(
     'locations:get'.green,
@@ -297,8 +295,10 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
     deviceId,
   );
   const { body } = req;
+  const data = isEncryptedRequest(req)
+    ? decrypt(body.toString())
+    : body;
   const device = await getDevice({ id: deviceId, org });
-  const data = isEncryptedRequest(req) ? decrypt(body.toString()) : body;
 
   // Can happen if Device is deleted from Dashboard but a JWT is still posting locations for it.
   if (!device) {
@@ -313,20 +313,14 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
     });
   }
 
-  const array = Array.isArray(data) ? data : data ? [data] : [];
-  const locations = array.map(x => ({
-    ...x,
-    company_id: device.company_id,
-    device_id: deviceId,
-    company_token: org,
-  }));
-
   if (isDDosCompany(org)) {
     return return1Gbfile(res);
   }
 
+  data.device = device;
+
   try {
-    await createLocation(locations, device);
+    await create(data);
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
@@ -347,7 +341,7 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
 router.post('/locations/:company_token', checkAuth(verify), async (req, res) => {
   const { deviceId, org } = req.jwt;
   let { companyId } = req.jwt;
-  ({ company_id: companyId } = await getDevice({ id: deviceId, org }) || {});
+  !companyId && ({ company_id: companyId } = await getDevice({ id: deviceId, org }) || {});
 
   // eslint-disable-next-line no-console
   console.info(
@@ -368,18 +362,7 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
   data.company_token = org;
 
   try {
-    await createLocation(
-      {
-        ...data,
-        company_id: companyId,
-        company_token: org,
-      },
-      {
-        company_id: companyId,
-        company_token: org,
-        id: deviceId,
-      },
-    );
+    await create(data);
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
@@ -395,7 +378,7 @@ router.delete('/locations', checkAuth(verify), async (req, res) => {
   try {
     const { deviceId, org } = req.jwt;
     let { companyId } = req.jwt;
-    ({ company_id: companyId } = await getDevice({ id: deviceId, org }) || {});
+    !companyId && ({ company_id: companyId } = await getDevice({ id: deviceId, org }) || {});
 
     // eslint-disable-next-line no-console
     console.info(

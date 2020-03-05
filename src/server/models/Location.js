@@ -55,13 +55,16 @@ export async function getLocations(params, isAdmin) {
 }
 
 export async function getLatestLocation(params, isAdmin) {
-  const { companyId } = params || {};
-  if (!isAdmin && !(params.device_id || companyId)) {
+  const {
+    company_id: companyId,
+    device_id: deviceId,
+  } = params || {};
+  if (!isAdmin && !(deviceId || companyId)) {
     return [];
   }
   const whereConditions = { company_id: companyId };
 
-  params.device_id && (whereConditions.device_id = +params.device_id);
+  deviceId && (whereConditions.device_id = +deviceId);
 
   const row = await LocationModel.findOne({
     where: whereConditions,
@@ -72,41 +75,54 @@ export async function getLatestLocation(params, isAdmin) {
   return result;
 }
 
-export async function createLocation(
-  params,
-  {
-    company_id: companyId,
-    company_token: orgToken,
-    id,
-  } = {},
-) {
-  if (Array.isArray(params)) {
-    return Promise.reduce(
-      params,
-      async (p, location) => {
-        try {
-          await createLocation(
-            location,
-            {
-              company_id: companyId,
-              company_token: orgToken,
-              id,
-            },
-          );
-        } catch (e) {
-          console.error('createLocation', e);
-          throw e;
-        }
-      },
-      0,
+export async function createLocation(location, deviceInfo, org) {
+  if (isDeniedDevice(deviceInfo.model)) {
+    throw new AccessDeniedError(
+      'This is a question from the CEO of Transistor Software.\n' +
+        'Why are you spamming my demo server2?\n' +
+        'Please email me at chris@transistorsoft.com.',
     );
   }
-  const { location: list, company_token: token } = params;
-  const deviceInfo = params.device || { model: 'UNKNOWN', uuid: 'UNKNOWN' };
-  const companyName = orgToken || token || 'UNKNOWN';
-  const now = new Date();
 
-  if (isDeniedCompany(companyName)) {
+  const now = new Date();
+  const device = await findOrCreate(org, { ...deviceInfo });
+
+  CompanyModel.update(
+    { updated_at: now },
+    { where: { id: device.company_id } },
+  );
+  DeviceModel.update(
+    { updated_at: now },
+    { where: { id: device.id } },
+  );
+
+  console.info(
+    'location:create'.green,
+    'org:name'.green,
+    org,
+    'org:id'.green,
+    device.company_id,
+    'device:id'.green,
+    device.uuid,
+  );
+  const row = {
+    latitude: location.coords.latitude,
+    longitude: location.coords.longitude,
+    data: jsonb(location),
+    recorded_at: location.timestamp,
+    created_at: now.toISOString(),
+    company_id: device.company_id,
+    device_id: device.id,
+  };
+  return LocationModel.create(row);
+}
+
+export async function createLocations(
+  locations,
+  device,
+  org,
+) {
+  if (isDeniedCompany(org)) {
     throw new AccessDeniedError(
       'This is a question from the CEO of Transistor Software.\n' +
         'Why are you spamming my demo server1?\n' +
@@ -114,66 +130,41 @@ export async function createLocation(
     );
   }
 
-  const locations = Array.isArray(list)
-    ? list
-    : list
-      ? [list]
-      : [];
-
   return Promise.reduce(
     locations,
     async (p, location) => {
-      if (isDeniedDevice(deviceInfo.model)) {
-        throw new AccessDeniedError(
-          'This is a question from the CEO of Transistor Software.\n' +
-            'Why are you spamming my demo server2?\n' +
-            'Please email me at chris@transistorsoft.com.',
+      try {
+        await createLocation(
+          location,
+          device,
+          org,
         );
+      } catch (e) {
+        console.error('createLocation', e);
+        throw e;
       }
-
-      ({
-        company_id: companyId,
-        company_token: orgToken,
-        id,
-      } = !orgToken
-        ? await findOrCreate(companyName, { ...deviceInfo })
-        : {
-          company_id: companyId,
-          company_token: orgToken,
-          id,
-        });
-
-      CompanyModel.update(
-        { updated_at: now },
-        { where: { id: companyId } },
-      );
-      DeviceModel.update(
-        { updated_at: now },
-        { where: { id } },
-      );
-
-      console.info(
-        'location:create'.green,
-        'org:name'.green,
-        companyName,
-        'org:id'.green,
-        companyId,
-        'device:id'.green,
-        id,
-      );
-      const row = {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        data: jsonb(location),
-        recorded_at: location.timestamp,
-        created_at: now.toISOString(),
-        company_id: companyId,
-        device_id: id,
-      };
-      return LocationModel.create(row);
     },
     0,
   );
+}
+
+export async function create(
+  params,
+) {
+  const {
+    company_token: token = 'UNKNOWN',
+    location: list = [],
+    device = { model: 'UNKNOWN', uuid: 'UNKNOWN' },
+  } = params;
+  const locations = Array.isArray(list)
+    ? list
+    : (
+      list
+        ? [list]
+        : []
+    );
+
+  return createLocations(locations, device, token);
 }
 
 export async function deleteLocations(params, isAdmin) {

@@ -8,8 +8,12 @@ import { desc } from '../config';
 
 import { findOrCreate as findOrCreateCompany } from './Org';
 
-export async function getDevice({ id }) {
-  const whereConditions = { id };
+export async function getDevice({
+  id, uuid, org,
+}) {
+  const whereConditions = id
+    ? { id, company_token: org }
+    : { uuid, company_token: org };
   const result = await DeviceModel.findOne({
     where: whereConditions,
     attributes: [

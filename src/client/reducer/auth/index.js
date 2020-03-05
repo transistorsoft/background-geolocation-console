@@ -23,6 +23,10 @@ type SetAuthModalOpenAction = {|
   value: boolean,
 |};
 
+type SetTokenLoadingAction = {|
+  type: 'auth/ACCESS_TOKEN_LOADING',
+|};
+
 type AuthErrorAction = {|
   type: 'auth/ERROR',
   value: string,
@@ -31,9 +35,10 @@ type AuthErrorAction = {|
 // Combining Actions
 
 type Action =
-  | SetAccessTokenAction
+  | AuthErrorAction
   | CloseAuthModalAction
-  | AuthErrorAction;
+  | SetAccessTokenAction
+  | SetTokenLoadingAction;
 
 // ------------------------------------
 // Action Creators
@@ -44,6 +49,8 @@ export const setAccessToken = (value: AuthPayload): SetAccessTokenAction => ({ t
 export const setAuthModalOpen = (value: boolean): SetAuthModalOpenAction => ({ type: 'auth/SET_MODAL_OPEN', value });
 
 export const setAuthError = (value: string): AuthErrorAction => ({ type: 'auth/ERROR', value });
+
+export const setTokenLoading = (): SetTokenLoadingAction => ({ type: 'auth/ACCESS_TOKEN_LOADING' });
 
 // ------------------------------------
 // Thunk Actions
@@ -58,6 +65,7 @@ export const showAuthDialog =
 export const checkAuth =
   ({ login, password }: AuthParams): ThunkAction => async (dispatch: Dispatch): Promise<void> => {
     try {
+      await dispatch(setTokenLoading());
       const response = await fetch(
         `${API_URL}/auth`,
         {
@@ -85,26 +93,66 @@ export const checkAuth =
       console.error('checkAuth', e);
     }
   };
+
+
+export const getDefaultJwt = (token: string): ThunkAction => async (dispatch: Dispatch): Promise<void> => {
+  try {
+    const response = await fetch(
+      `${API_URL}/jwt`,
+      {
+        method: 'post',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ org: token }),
+      },
+    );
+    const {
+      access_token: accessToken,
+      org,
+      error,
+    } = await response.json();
+    if (accessToken) {
+      await dispatch(setAccessToken({ accessToken, org }));
+      await dispatch(setAuthModalOpen(false));
+      await dispatch(setAuthError(''));
+      // setAuth({ org, accessToken });
+      await dispatch(loadInitialData(org));
+    } else {
+      await dispatch(setAuthError(error));
+    }
+  } catch (e) {
+    console.error('loadLocations', e);
+  }
+};
+
 // ------------------------------------
 // Action Handlers
 // ------------------------------------
 const setAccessTokenHandler =
   (state: AuthState, action: SetAccessTokenAction): AuthState => cloneState(
     state,
-    action.value,
+    {
+      ...action.value,
+      loading: false,
+    },
   );
 
 const setAuthModalOpenHandler =
   (state: AuthState, action: SetAuthModalOpenAction): AuthState => cloneState(
     state,
-    { modal: action.value },
+    { modal: action.value, loading: false },
   );
 
 const setAuthErrorHandler =
   (state: AuthState, action: AuthErrorAction): AuthState => cloneState(
     state,
-    { error: action.value },
+    { error: action.value, loading: false },
   );
+
+const setTokenLoadingHandler =
+(state: AuthState): AuthState => cloneState(
+  state,
+  { loading: true },
+);
 
 // ------------------------------------
 // Initial State
@@ -127,6 +175,8 @@ export default function spotsReducer (state: AuthState = initialState, action: A
       return setAuthModalOpenHandler(state, action);
     case 'auth/ERROR':
       return setAuthErrorHandler(state, action);
+    case 'auth/ACCESS_TOKEN_LOADING':
+      return setTokenLoadingHandler(state, action);
     default:
       // eslint-disable-next-line no-unused-expressions
       (action: empty);

@@ -7,6 +7,8 @@ import {
   location, regData, server,
 } from './data';
 
+regData.org = 'org';
+
 chai.use(chaiHttp);
 chai.should();
 
@@ -131,7 +133,7 @@ describe('jwt api', () => {
     test('/locations/latest', async () => {
       const res = await chai
         .request(server)
-        .get('/api/firebase/locations/latest')
+        .get('/api/firebase/locations/latest?device_id=uuid')
         .set('Authorization', `Bearer ${token}`);
       expect(res).have.status(200);
     });
@@ -141,17 +143,11 @@ describe('jwt api', () => {
         .request(server)
         .post('/api/firebase/locations')
         .set('Authorization', `Bearer ${token}`)
-        .send({ location });
-      expect(res).have.status(200);
-      expect(res).to.be.json;
-    });
-
-    test('POST /locations []', async () => {
-      const res = await chai
-        .request(server)
-        .post('/api/firebase/locations')
-        .set('Authorization', `Bearer ${token}`)
-        .send([{ location }]);
+        .send({
+          location,
+          device: { model: 'test', uuid: 'uuid' },
+          company_token: 'org',
+        });
       expect(res).have.status(200);
       expect(res).to.be.json;
     });
@@ -172,7 +168,11 @@ describe('jwt api', () => {
         .request(server)
         .post('/api/firebase/locations/test')
         .set('Authorization', `Bearer ${token}`)
-        .send({ location });
+        .send({
+          location,
+          device: { model: 'test', uuid: 'uuid' },
+          company_token: 'org',
+        });
       expect(res).have.status(200);
       expect(res).to.be.json;
     });
@@ -183,6 +183,7 @@ describe('jwt api', () => {
         .delete(
           `/api/firebase/locations?${
             queryString.stringify({
+              device_id: 'uuid',
               start_date: location.timestamp.substr(0, 10),
               end_date: new Date().toISOString().substr(0, 10),
             })}`,

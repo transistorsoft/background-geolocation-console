@@ -31,6 +31,27 @@ export const firestore = databaseURL && serviceApp.firestore();
 
 export { firebase };
 
+export const createUser = async ({ org }) => {
+  try {
+    await serviceApp.auth()
+      .createUser({
+        disabled: false,
+        email: `${org}@bgc.com`,
+        uid: org,
+      });
+  } catch (e) {
+    if (e.code !== 'auth/uid-already-exists') {
+      // eslint-disable-next-line no-console
+      console.error('v3', 'createUser:uid:already-exists', e);
+    }
+    if (e.code !== 'auth/email-already-exists') {
+      // eslint-disable-next-line no-console
+      console.error('v3', 'createUser:email:already-exists', e);
+    }
+  }
+  return null;
+};
+
 export const getToken = async ({ org }) => {
   try {
     await serviceApp.auth().createUser({

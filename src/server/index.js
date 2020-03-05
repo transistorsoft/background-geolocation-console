@@ -32,7 +32,7 @@ process.on('uncaughtException', err => {
 
 process.on('message', msg => {
   // eslint-disable-next-line no-console
-  console.log('Server %s process.on( message = %s )', msg);
+  console.log('Server %s process.on( message = %s )', JSON.stringify(msg));
 });
 
 app.disable('etag');

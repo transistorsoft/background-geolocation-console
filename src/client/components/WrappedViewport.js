@@ -1,14 +1,14 @@
 // @flow
-import React from 'react';
+import React, { useEffect } from 'react';
 import { connect } from 'react-redux';
 
 import type { GlobalState } from 'reducer/state';
-import { loadInitialData } from 'reducer/dashboard';
-import { showAuthDialog } from 'reducer/auth';
+import { showAuthDialog, getDefaultJwt } from 'reducer/auth';
 
 import store from '../store';
 
 import Viewport from './Viewport';
+import Loading from './Loading';
 import AuthForm from './AuthForm';
 
 type StateProps = {|
@@ -18,25 +18,28 @@ type StateProps = {|
 
 const WrappedViewport = ({
   hasData,
+  loading,
   match,
   org,
 }: StateProps) => {
   const { token } = match.params;
   const shared = !!process.env.SHARED_DASHBOARD;
   const hasToken = (!!org || !!token);
-  const action = !hasToken && !!shared
-    ? showAuthDialog()
-    : loadInitialData(token);
+  useEffect(() => {
+    const action = !hasToken && !!shared
+      ? showAuthDialog()
+      : getDefaultJwt(token);
 
-  !hasData && store.dispatch(action);
-
+    !hasData && store.dispatch(action);
+  });
   return hasToken || !shared
-    ? <Viewport />
+    ? (!loading ? <Viewport /> : <Loading />)
     : <AuthForm />;
 };
 
 const mapStateToProps = (state: GlobalState): StateProps => ({
   org: state.auth.org,
+  loading: state.auth.loading,
   hasData: state.dashboard.hasData,
 });
 

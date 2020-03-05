@@ -4,7 +4,9 @@ import chaiHttp from 'chai-http';
 
 
 import {
-  location, regData, server,
+  location,
+  regData,
+  server,
 } from './data';
 
 chai.use(chaiHttp);
@@ -131,7 +133,7 @@ describe('jwt api', () => {
     test('/locations/latest', async () => {
       const res = await chai
         .request(server)
-        .get('/api/jwt/locations/latest')
+        .get('/api/jwt/locations/latest?device_id=372')
         .set('Authorization', `Bearer ${token}`);
       expect(res).have.status(200);
     });
@@ -142,16 +144,6 @@ describe('jwt api', () => {
         .post('/api/jwt/locations')
         .set('Authorization', `Bearer ${token}`)
         .send({ location });
-      expect(res).have.status(200);
-      expect(res).to.be.json;
-    });
-
-    test('POST /locations []', async () => {
-      const res = await chai
-        .request(server)
-        .post('/api/jwt/locations')
-        .set('Authorization', `Bearer ${token}`)
-        .send([{ location }]);
       expect(res).have.status(200);
       expect(res).to.be.json;
     });
