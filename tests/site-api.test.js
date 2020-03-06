@@ -89,6 +89,20 @@ describe('site api', () => {
       expect(res).to.be.json;
     });
 
+    test('POST /locations []', async () => {
+      const res = await chai
+        .request(server)
+        .post('/api/site/locations')
+        .set('Authorization', `Bearer ${token}`)
+        .send([{
+          location,
+          device: { model: 'test', uuid: 'test' },
+          company_token: 'test',
+        }]);
+      expect(res).have.status(200);
+      expect(res).to.be.json;
+    });
+
     test('/locations', async () => {
       const res = await chai
         .request(server)

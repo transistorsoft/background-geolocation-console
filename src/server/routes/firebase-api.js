@@ -271,13 +271,12 @@ router.get('/locations', checkAuth(verify), async (req, res) => {
  * POST /locations
  */
 router.post('/locations', checkAuth(verify), async (req, res) => {
-  const { org } = req.jwt;
+  const { org, deviceId } = req.jwt;
   const { body } = req;
   const data = isEncryptedRequest(req)
     ? decrypt(body.toString())
     : body;
-  const { device: { uuid = 'UNKNOWN' } } = data || { device: {} };
-  const device = await getDevice({ id: uuid, org });
+  const device = await getDevice({ id: deviceId, org });
   // eslint-disable-next-line no-console
   console.info(
     'v3',

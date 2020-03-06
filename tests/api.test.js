@@ -148,6 +148,16 @@ describe('jwt api', () => {
       expect(res).to.be.json;
     });
 
+    test('POST /locations []', async () => {
+      const res = await chai
+        .request(server)
+        .post('/api/jwt/locations')
+        .set('Authorization', `Bearer ${token}`)
+        .send([{ location }]);
+      expect(res).have.status(200);
+      expect(res).to.be.json;
+    });
+
     test('/locations', async () => {
       const res = await chai
         .request(server)

@@ -76,14 +76,6 @@ export async function getLatestLocation(params, isAdmin) {
 }
 
 export async function createLocation(location, deviceInfo, org) {
-  if (isDeniedDevice(deviceInfo.model)) {
-    throw new AccessDeniedError(
-      'This is a question from the CEO of Transistor Software.\n' +
-        'Why are you spamming my demo server2?\n' +
-        'Please email me at chris@transistorsoft.com.',
-    );
-  }
-
   const now = new Date();
   const device = await findOrCreate(org, { ...deviceInfo });
 
@@ -122,14 +114,6 @@ export async function createLocations(
   device,
   org,
 ) {
-  if (isDeniedCompany(org)) {
-    throw new AccessDeniedError(
-      'This is a question from the CEO of Transistor Software.\n' +
-        'Why are you spamming my demo server1?\n' +
-        'Please email me at chris@transistorsoft.com.',
-    );
-  }
-
   return Promise.reduce(
     locations,
     async (p, location) => {
@@ -151,6 +135,21 @@ export async function createLocations(
 export async function create(
   params,
 ) {
+  if (Array.isArray(params)) {
+    return Promise.reduce(
+      params,
+      async (p, pp) => {
+        try {
+          await create(pp);
+        } catch (e) {
+          console.error('create', e);
+          throw e;
+        }
+      },
+      0,
+    );
+  }
+
   const {
     company_token: token = 'UNKNOWN',
     location: list = [],
@@ -163,7 +162,20 @@ export async function create(
         ? [list]
         : []
     );
-
+  if (isDeniedCompany(token)) {
+    throw new AccessDeniedError(
+      'This is a question from the CEO of Transistor Software.\n' +
+          'Why are you spamming my demo server1?\n' +
+          'Please email me at chris@transistorsoft.com.',
+    );
+  }
+  if (isDeniedDevice(device.model)) {
+    throw new AccessDeniedError(
+      'This is a question from the CEO of Transistor Software.\n' +
+        'Why are you spamming my demo server2?\n' +
+        'Please email me at chris@transistorsoft.com.',
+    );
+  }
   return createLocations(locations, device, token);
 }
 

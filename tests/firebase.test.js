@@ -23,7 +23,7 @@ beforeAll(async () => {
   ({ accessToken: token } = res.body);
 });
 
-describe('jwt api', () => {
+describe('firebase api', () => {
   test('/register', async () => {
     const res = await chai
       .request(server)
@@ -148,6 +148,20 @@ describe('jwt api', () => {
           device: { model: 'test', uuid: 'uuid' },
           company_token: 'org',
         });
+      expect(res).have.status(200);
+      expect(res).to.be.json;
+    });
+
+    test('POST /locations []', async () => {
+      const res = await chai
+        .request(server)
+        .post('/api/firebase/locations')
+        .set('Authorization', `Bearer ${token}`)
+        .send([{
+          location,
+          device: { model: 'test', uuid: 'uuid' },
+          company_token: 'org',
+        }]);
       expect(res).have.status(200);
       expect(res).to.be.json;
     });

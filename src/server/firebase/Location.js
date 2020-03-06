@@ -135,21 +135,6 @@ export async function createLocations(
   device,
   org,
 ) {
-  if (isDeniedCompany(org)) {
-    throw new AccessDeniedError(
-      'This is a question from the CEO of Transistor Software.\n' +
-        'Why are you spamming my demo server1?\n' +
-        'Please email me at chris@transistorsoft.com.',
-    );
-  }
-
-  if (isDeniedDevice(device.model)) {
-    throw new AccessDeniedError(
-      'This is a question from the CEO of Transistor Software.\n' +
-        'Why are you spamming my demo server2?\n' +
-        'Please email me at chris@transistorsoft.com.',
-    );
-  }
   const batch = firestore.batch();
   await Promise.reduce(
     locations,
@@ -172,6 +157,21 @@ export async function createLocations(
 }
 
 export async function create(params) {
+  if (Array.isArray(params)) {
+    return Promise.reduce(
+      params,
+      async (p, pp) => {
+        try {
+          await create(pp);
+        } catch (e) {
+          console.error('create', e);
+          throw e;
+        }
+      },
+      0,
+    );
+  }
+
   const {
     company_token: token = 'UNKNOWN',
     location: list = [],
@@ -185,6 +185,21 @@ export async function create(params) {
         : []
     );
 
+  if (isDeniedCompany(token)) {
+    throw new AccessDeniedError(
+      'This is a question from the CEO of Transistor Software.\n' +
+          'Why are you spamming my demo server1?\n' +
+          'Please email me at chris@transistorsoft.com.',
+    );
+  }
+
+  if (isDeniedDevice(device.model)) {
+    throw new AccessDeniedError(
+      'This is a question from the CEO of Transistor Software.\n' +
+          'Why are you spamming my demo server2?\n' +
+          'Please email me at chris@transistorsoft.com.',
+    );
+  }
   return createLocations(locations, device, token);
 }
 
