@@ -29,12 +29,15 @@ export async function getDevice({
 }
 
 export async function getDevices(params, isAdmin) {
-  const { org } = params || {};
-  if (!isAdmin && !org) {
+  const { org, companyId } = params || {};
+
+  if (!isAdmin && !(org || companyId)) {
     return [];
   }
 
-  const whereConditions = { company_token: org };
+  const whereConditions = isAdmin
+    ? { company_id: companyId }
+    : { company_token: org };
 
   const result = await DeviceModel.findAll({
     where: whereConditions,

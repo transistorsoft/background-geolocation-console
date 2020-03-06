@@ -37,11 +37,9 @@ export async function findOrCreate({ org }) {
 }
 
 export const findOne = async ({ org }) => {
-  const co = await CompanyModel.findOne({
+  const company = await CompanyModel.findOne({
     where: { company_token: org },
-    order: [['recorded_at', desc]],
     raw: true,
   });
-  const company = co ? hydrate(co) : null;
   return company;
 };

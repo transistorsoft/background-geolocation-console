@@ -45,8 +45,9 @@ router.get('/company_tokens', checkAuth(verify), async (req, res) => {
  */
 router.get('/devices', checkAuth(verify), async (req, res) => {
   const { org } = req.jwt;
+  const { company_id: companyId } = req.query;
   try {
-    const devices = await getDevices({ ...req.query, org }, isAdmin(req.jwt));
+    const devices = await getDevices({ companyId, org }, isAdmin(req.jwt));
     res.send(devices);
   } catch (err) {
     console.error('v1', '/devices', err);
@@ -250,10 +251,10 @@ router.post('/jwt', async (req, res) => {
   const { org } = req.body || {};
 
   try {
-    const { id } = findOne(org) || {};
+    const { id } = await findOne({ org }) || {};
 
     if (!id) {
-      res.status(401).send({ org, error: 'Org not found' });
+      return res.status(401).send({ org, error: 'Org not found' });
     }
 
     const jwtInfo = {
