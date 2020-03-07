@@ -58,15 +58,14 @@ export const transfer = async () => {
       const locations = await LocationModel.findAll({
         where: { device_id: dev.id },
         id: { [Op.notIn]: locs.map(loc => loc.id) },
-        uuid: { [Op.ne]: null },
         order: [['recorded_at', 'desc']],
         raw: true,
       });
       await batch.set(devRef, dev);
       counter = await checkLimit(counter, batch);
       await Promise.reduce(locations, async (ppp, loc) => {
-        console.log('Org/', x.company_token, '/Devices/', dev.device_id, '/Locations/', loc.uuid);
-        const locRef = locsRef.doc(`${loc.uuid}`);
+        console.log('Org/', x.company_token, '/Devices/', dev.device_id, '/Locations/', loc.id);
+        const locRef = locsRef.doc(`${loc.id}`);
         await batch.set(locRef, loc);
         counter = await checkLimit(counter, batch);
       });
