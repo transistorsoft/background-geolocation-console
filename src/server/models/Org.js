@@ -1,5 +1,4 @@
 import CompanyModel from '../database/CompanyModel';
-import { hydrate } from '../libs/utils';
 import { desc } from '../config';
 
 export async function getOrgs({ org }, isAdmin) {
@@ -12,9 +11,9 @@ export async function getOrgs({ org }, isAdmin) {
     ];
   }
 
-  const whereConditions = isAdmin ? {} : { company_token: org };
+  const where = isAdmin ? {} : { company_token: org };
   const result = await CompanyModel.findAll({
-    where: whereConditions,
+    where,
     attributes: ['id', 'company_token'],
     order: [['updated_at', desc]],
     raw: true,

@@ -8,11 +8,11 @@ import {
 
 import { toRows, toRow } from '../libs/utils';
 
-export async function getDevice({ id: uuid, org }) {
+export async function getDevice({ device_id: deviceId, org }) {
   try {
     const snapshot = await firestore
       .collection('Org').doc(org)
-      .collection('Devices').doc(uuid)
+      .collection('Devices').doc(deviceId)
       .get();
     const result = toRow(snapshot);
 
@@ -41,7 +41,7 @@ export async function getDevices({ org }, isAdmin) {
 }
 
 export async function deleteDevice({
-  id: uuid,
+  device_id: deviceId,
   start_date: startDate,
   end_date: endDate,
   org,
@@ -52,7 +52,7 @@ export async function deleteDevice({
       'recorded_at',
       firestore
         .collection('Org').doc(org)
-        .collection('Devices').doc(uuid)
+        .collection('Devices').doc(deviceId)
         .collection('Locations')
         .where('recorded_at', '>', new Date(startDate))
         .where('recorded_at', '<', new Date(endDate)),
@@ -61,7 +61,7 @@ export async function deleteDevice({
 
   return firestore
     .collection('Org').doc(org)
-    .collection('Devices').doc(uuid)
+    .collection('Devices').doc(deviceId)
     .delete();
 }
 

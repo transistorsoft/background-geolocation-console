@@ -17,13 +17,14 @@ export const dyno = process.env.DYNO;
 // This signal will be detected by the client
 // and it will hit /v2/registration once again.
 export const dummyToken = 'DUMMY_TOKEN';
+export const isPostgres = !!process.env.DATABASE_URL;
+export const desc = isPostgres ? 'DESC NULLS LAST' : 'DESC';
+export const isProduction = process.env.NODE_ENV === 'production';
+export const firebaseOperationLimit = !isProduction ? 500 : -1;
 export const firebaseURL = process.env.FIREBASE_URL;
 export const firebasePrivateKey = (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/img, '\n');
 export const firebaseProjectId = process.env.FIREBASE_PROJECT_ID;
 export const firebaseClientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-export const isPostgres = !!process.env.DATABASE_URL;
-export const desc = isPostgres ? 'DESC NULLS LAST' : 'DESC';
-export const isProduction = process.env.NODE_ENV === 'production';
 export const parserLimit = process.env.BODY_PARSER_LIMIT || '1mb';
 export const password = process.env.PASSWORD;
 export const pgConnectionString = process.env.DATABASE_URL;

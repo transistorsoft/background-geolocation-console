@@ -49,3 +49,9 @@ export export GOOGLE_MAPS_API_KEY=AIz...Nkg && \
 
 ./src/server/firebase/run.js
 ```
+
+# Migration from DB
+
+```
+./bin/migration.js
+```

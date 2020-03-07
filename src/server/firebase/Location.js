@@ -30,17 +30,17 @@ export async function getLocations(params, isAdmin) {
     org,
     end_date: endDate,
     start_date: startDate,
-    uuid,
+    device_id: deviceId,
   } = params || {};
 
-  if (!isAdmin && !(uuid || org)) {
+  if (!isAdmin && !(deviceId || org)) {
     return [];
   }
 
   try {
     let query = firestore
       .collection('Org').doc(org)
-      .collection('Devices').doc(uuid)
+      .collection('Devices').doc(deviceId)
       .collection('Locations');
 
     if (startDate && endDate) {
@@ -55,7 +55,7 @@ export async function getLocations(params, isAdmin) {
 
     return toRows(snapshot);
   } catch (e) {
-    console.error('v3:getLocations', org, uuid, e);
+    console.error('v3:getLocations', org, deviceId, e);
     return [];
   }
 }
@@ -63,24 +63,24 @@ export async function getLocations(params, isAdmin) {
 export async function getLatestLocation(params, isAdmin) {
   const {
     org,
-    uuid,
+    deviceId,
   } = params || {};
 
-  if (!isAdmin && !(uuid || org)) {
+  if (!isAdmin && !(deviceId || org)) {
     return [];
   }
 
   try {
     const lastLocation = await firestore
       .collection('Org').doc(org)
-      .collection('Devices').doc(uuid)
+      .collection('Devices').doc(deviceId)
       .collection('Locations')
       .orderBy('recorded_at', 'desc')
       .limit(1)
       .get();
     return toRows(lastLocation);
   } catch (e) {
-    console.error('v3:getLatestLocation', org, uuid, e);
+    console.error('v3:getLatestLocation', org, deviceId, e);
     return [];
   }
 }
@@ -88,7 +88,7 @@ export async function getLatestLocation(params, isAdmin) {
 
 export async function createLocation(location, deviceInfo, org, batch) {
   const now = new Date();
-  const { uuid } = deviceInfo;
+  const { uuid: deviceId } = deviceInfo;
 
   const currentDevice = await findOrCreate(org, { ...deviceInfo });
 
@@ -97,8 +97,8 @@ export async function createLocation(location, deviceInfo, org, batch) {
     'org:name'.green,
     org,
     'org'.green,
-    'device:uuid'.green,
-    currentDevice.uuid,
+    'device:id'.green,
+    currentDevice.device_id,
   );
 
   const orgRef = firestore
@@ -107,7 +107,7 @@ export async function createLocation(location, deviceInfo, org, batch) {
 
   const deviceRef = firestore
     .collection('Org').doc(org)
-    .collection('Devices').doc(uuid);
+    .collection('Devices').doc(deviceId);
   batch.update(deviceRef, { updated_at: now });
 
   const data = omitBy(
@@ -118,14 +118,14 @@ export async function createLocation(location, deviceInfo, org, batch) {
       recorded_at: location.timestamp,
       created_at: now,
       org,
-      uuid,
+      uuid: deviceId,
     },
     isUndefined,
   );
 
   return firestore
     .collection('Org').doc(org)
-    .collection('Devices').doc(uuid)
+    .collection('Devices').doc(deviceId)
     .collection('Locations')
     .add(data);
 }
@@ -208,10 +208,10 @@ export async function deleteLocations(params, isAdmin) {
     org,
     end_date: endDate,
     start_date: startDate,
-    uuid,
+    device_id: deviceId,
   } = params || {};
 
-  if (!isAdmin && !(org || uuid)) {
+  if (!isAdmin && !(org || deviceId)) {
     return;
   }
 
@@ -221,7 +221,7 @@ export async function deleteLocations(params, isAdmin) {
       'recorded_at',
       firestore
         .collection('Org').doc(org)
-        .collection('Devices').doc(uuid)
+        .collection('Devices').doc(deviceId)
         .collection('Locations')
         .where('recorded_at', '>', new Date(startDate))
         .where('recorded_at', '<', new Date(endDate)),
@@ -230,7 +230,7 @@ export async function deleteLocations(params, isAdmin) {
 
   const first = await firestore
     .collection('Org').doc(org)
-    .collection('Devices').doc(uuid)
+    .collection('Devices').doc(deviceId)
     .collection('Locations')
     .limit(1)
     .get();
@@ -238,7 +238,7 @@ export async function deleteLocations(params, isAdmin) {
   if (!first.exists) {
     await firestore
       .collection('Org').doc(org)
-      .collection('Devices').doc(uuid)
+      .collection('Devices').doc(deviceId)
       .delete();
   }
 }

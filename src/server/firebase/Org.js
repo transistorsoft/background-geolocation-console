@@ -29,7 +29,7 @@ export async function findOrCreate({ org }) {
   const snapshot = await ref.get();
 
   if (!snapshot.exists) {
-    ref.set({
+    await ref.set({
       created_at: now,
       company_token: org,
       updated_at: now,

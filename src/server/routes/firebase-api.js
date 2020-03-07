@@ -175,13 +175,13 @@ router.get('/devices', checkAuth(verify), async (req, res) => {
 
 router.delete('/devices/:id', checkAuth(verify), async (req, res) => {
   const { org } = req.jwt;
-  const { id: uuid } = req.params;
+  const { id: deviceId } = req.params;
 
   // eslint-disable-next-line no-console
   console.info(
     'devices:delete'.green,
     'device:id'.green,
-    uuid,
+    deviceId,
     JSON.stringify(req.query),
   );
 
@@ -189,14 +189,14 @@ router.delete('/devices/:id', checkAuth(verify), async (req, res) => {
   try {
     await deleteDevice({
       end_date: endDate,
-      id: uuid,
+      device_id: deviceId,
       org,
       start_date: startDate,
     });
     res.send({ success: true });
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error('v3', `/devices/${uuid}`, org, req.query, err);
+    console.error('v3', `/devices/${deviceId}`, org, req.query, err);
     res.status(500).send({ error: err.message });
   }
 });
@@ -214,19 +214,19 @@ router.get('/stats', checkAuth(verify), async (req, res) => {
 
 router.get('/locations/latest', checkAuth(verify), async (req, res) => {
   const { org } = req.jwt;
-  const { device_id: uuid } = req.query;
+  const { device_id: deviceId } = req.query;
   // eslint-disable-next-line no-console
   console.info(
     'locations:latest'.green,
     'org:name'.green,
     org,
     'device:id'.green,
-    uuid,
+    deviceId,
     JSON.stringify(req.query),
   );
   try {
     const latest = await getLatestLocation({
-      uuid,
+      deviceId,
       org,
     });
     return res.send(latest);
@@ -284,7 +284,7 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
     'org:name'.green,
     org,
     'device:id'.green,
-    device.uuid,
+    device.device_id,
   );
 
   // Can happen if Device is deleted from Dashboard but a JWT is still posting locations for it.
@@ -293,7 +293,7 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
     console.error(
       'v3',
       'Device ID %s not found.  Was it deleted from dashboard?'.red,
-      device.uuid,
+      device.device_id,
     );
     return res.status(410).send({
       error: 'DEVICE_ID_NOT_FOUND',
@@ -361,7 +361,7 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
 router.delete('/locations', checkAuth(verify), async (req, res) => {
   try {
     const { org } = req.jwt;
-    const { device_id: uuid } = req.query;
+    const { device_id: deviceId } = req.query;
 
     // eslint-disable-next-line no-console
     console.info(
@@ -369,7 +369,7 @@ router.delete('/locations', checkAuth(verify), async (req, res) => {
       'org:name'.green,
       org,
       'device:id'.green,
-      uuid,
+      deviceId,
       JSON.stringify(req.query),
     );
 
@@ -377,7 +377,7 @@ router.delete('/locations', checkAuth(verify), async (req, res) => {
 
     await deleteLocations({
       org,
-      uuid,
+      device_id: deviceId,
       end_date: endDate,
       start_date: startDate,
     });
