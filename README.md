@@ -25,6 +25,10 @@ export SHARED_DASHBOARD=1
 export ADMIN_TOKEN=admin256
 ```
 
+Database will createe automaticaly in non production.
+
+[PgSQL script for production](./src/server/database/psql/create.sql)
+
 ### Production mode:
 
 ```bash
