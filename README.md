@@ -37,6 +37,10 @@ export FIREBASE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMII...=\n-----END PRIVA
 # auth
 
 
+Database will createe automaticaly in non production.
+
+[PgSQL script for production](./src/server/database/psql/create.sql)
+
 ### Production mode:
 
 ```bash
