@@ -89,7 +89,7 @@ export async function createLocation(location, deviceInfo, org) {
   );
 
   console.info(
-    'location:create'.green,
+    'v1:location:create'.green,
     'org:name'.green,
     org,
     'org:id'.green,
@@ -124,7 +124,7 @@ export async function createLocations(
           org,
         );
       } catch (e) {
-        console.error('createLocation', e);
+        console.error('v1:createLocation', e);
         throw e;
       }
     },
@@ -142,7 +142,7 @@ export async function create(
         try {
           await create(pp);
         } catch (e) {
-          console.error('create', e);
+          console.error('v1:create', e);
           throw e;
         }
       },

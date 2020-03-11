@@ -162,9 +162,10 @@ router.get('/company_tokens', checkAuth(verify), async (req, res) => {
 });
 
 router.get('/devices', checkAuth(verify), async (req, res) => {
+  const { org, admin } = req.jwt;
+  const { company_id: orgId } = req.query;
   try {
-    const { org } = req.jwt;
-    const devices = await getDevices({ org });
+    const devices = await getDevices({ org: !admin ? org : orgId });
     res.send(devices || []);
   } catch (err) {
     // eslint-disable-next-line no-console
@@ -174,7 +175,8 @@ router.get('/devices', checkAuth(verify), async (req, res) => {
 });
 
 router.delete('/devices/:id', checkAuth(verify), async (req, res) => {
-  const { org } = req.jwt;
+  const { org, admin } = req.jwt;
+  const { company_id: orgId } = req.query;
   const { id: deviceId } = req.params;
 
   // eslint-disable-next-line no-console
@@ -190,7 +192,7 @@ router.delete('/devices/:id', checkAuth(verify), async (req, res) => {
     await deleteDevice({
       end_date: endDate,
       device_id: deviceId,
-      org,
+      org: admin ? orgId : admin,
       start_date: startDate,
     });
     res.send({ success: true });
@@ -213,8 +215,11 @@ router.get('/stats', checkAuth(verify), async (req, res) => {
 });
 
 router.get('/locations/latest', checkAuth(verify), async (req, res) => {
-  const { org } = req.jwt;
-  const { device_id: deviceId } = req.query;
+  const { org, admin } = req.jwt;
+  const {
+    company_id: orgId,
+    device_id: deviceId,
+  } = req.query;
   // eslint-disable-next-line no-console
   console.info(
     'locations:latest'.green,
@@ -227,7 +232,7 @@ router.get('/locations/latest', checkAuth(verify), async (req, res) => {
   try {
     const latest = await getLatestLocation({
       deviceId,
-      org,
+      org: admin ? orgId : org,
     });
     return res.send(latest);
   } catch (err) {
@@ -241,13 +246,16 @@ router.get('/locations/latest', checkAuth(verify), async (req, res) => {
  * GET /locations
  */
 router.get('/locations', checkAuth(verify), async (req, res) => {
-  const { org } = req.jwt;
-  const { device_id: deviceId } = req.query;
+  const { org, admin } = req.jwt;
+  const {
+    company_id: orgId,
+    device_id: deviceId,
+  } = req.query;
   // eslint-disable-next-line no-console
   console.info(
     'locations:get'.green,
     'org:name'.green,
-    org,
+    admin ? orgId : org,
     'device:id'.green,
     deviceId,
     JSON.stringify(req.query),
@@ -255,9 +263,10 @@ router.get('/locations', checkAuth(verify), async (req, res) => {
   const { end_date: endDate, start_date: startDate } = req.params;
   try {
     const locations = await getLocations({
-      start_date: startDate,
+      device_id: deviceId,
       end_date: endDate,
-      org,
+      org: admin ? orgId : org,
+      start_date: startDate,
     });
     res.send(locations);
   } catch (err) {
@@ -271,12 +280,11 @@ router.get('/locations', checkAuth(verify), async (req, res) => {
  * POST /locations
  */
 router.post('/locations', checkAuth(verify), async (req, res) => {
-  const { org, deviceId } = req.jwt;
+  const { org, uuid } = req.jwt;
   const { body } = req;
   const data = isEncryptedRequest(req)
     ? decrypt(body.toString())
     : body;
-  const device = await getDevice({ id: deviceId, org });
   // eslint-disable-next-line no-console
   console.info(
     'v3',
@@ -284,8 +292,9 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
     'org:name'.green,
     org,
     'device:id'.green,
-    device.device_id,
+    uuid,
   );
+  const device = await getDevice({ device_id: uuid, org });
 
   // Can happen if Device is deleted from Dashboard but a JWT is still posting locations for it.
   if (!device) {
@@ -326,7 +335,7 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
  */
 router.post('/locations/:company_token', checkAuth(verify), async (req, res) => {
   const { org } = req.jwt;
-  // const { device_id: deviceId } = req.query;
+  const { company_id: orgId } = req.params;
 
   // eslint-disable-next-line no-console
   console.info(
@@ -337,7 +346,7 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
     'device:id'.green,
   );
 
-  if (isDDosCompany(org)) {
+  if (isDDosCompany(org) || isDDosCompany(orgId)) {
     return return1Gbfile(res);
   }
 
@@ -360,14 +369,14 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
 
 router.delete('/locations', checkAuth(verify), async (req, res) => {
   try {
-    const { org } = req.jwt;
-    const { device_id: deviceId } = req.query;
+    const { org, admin } = req.jwt;
+    const { device_id: deviceId, company_id: orgId } = req.query;
 
     // eslint-disable-next-line no-console
     console.info(
       'locations:delete'.green,
       'org:name'.green,
-      org,
+      admin ? orgId : org,
       'device:id'.green,
       deviceId,
       JSON.stringify(req.query),
@@ -376,7 +385,7 @@ router.delete('/locations', checkAuth(verify), async (req, res) => {
     const { start_date: startDate, end_date: endDate } = req.query;
 
     await deleteLocations({
-      org,
+      org: admin ? orgId : org,
       device_id: deviceId,
       end_date: endDate,
       start_date: startDate,

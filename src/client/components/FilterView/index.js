@@ -129,7 +129,7 @@ const FilterView = ({
           >
             <RefreshIcon />
           </IconButton>
-          <Typography variant='h6'>Filter!</Typography>
+          <Typography variant='h6'>Filter</Typography>
           <IconButton edge='end' color='inherit' onClick={() => setOpen(false)}>
             {theme.direction === 'ltr'
               ? <ChevronLeftIcon />

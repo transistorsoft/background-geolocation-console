@@ -373,8 +373,8 @@ export const doAddTestMarker = (value: Object): AddTestMarkerAction => ({
 // ------------------------------------
 
 export const loadOrgTokens = (): ThunkAction => async (dispatch: Dispatch, getState: GetState): Promise<void> => {
-  const { dashboard: { orgTokenFromSearch }, auth } = getState();
-  const params = qs.stringify({ company_token: orgTokenFromSearch });
+  const { dashboard: { orgTokenFromSearch, company_token: orgToken }, auth } = getState();
+  const params = qs.stringify({ company_token: orgToken || orgTokenFromSearch });
   try {
     const headers = makeHeaders(auth);
     const response = await fetch(`${API_URL}/company_tokens?${params}`, { headers });
@@ -428,7 +428,7 @@ export const loadLocations = (): ThunkAction => async (dispatch: Dispatch, getSt
 
   const params = qs.stringify({
     company_id: companyId,
-    company_token: orgToken,
+    company_token: orgToken || companyId,
     device_id: deviceId,
     end_date: endDate.toISOString(),
     limit: maxMarkers,
@@ -456,7 +456,7 @@ export const loadCurrentLocation = (): ThunkAction => async (dispatch: Dispatch,
     const params = qs.stringify({
       device_id: deviceId,
       company_id: companyId,
-      company_token: orgToken,
+      company_token: orgToken || companyId,
     });
     try {
       const headers = makeHeaders(auth);
@@ -508,13 +508,20 @@ export const loadInitialData =
 
 export const deleteActiveDevice =
   (deleteOptions: ?DeleteOptions): ThunkAction => async (dispatch: Dispatch, getState: GetState): Promise<void> => {
-    const { dashboard: { deviceId, orgTokenFromSearch }, auth } = getState();
+    const {
+      dashboard: {
+        deviceId,
+        orgTokenFromSearch,
+        company_token: orgToken,
+      },
+      auth,
+    } = getState();
     if (!deviceId) {
       return;
     }
     const params = deleteOptions
       ? `?${qs.stringify({
-        company_token: orgTokenFromSearch,
+        company_token: orgToken || orgTokenFromSearch,
         end_date: deleteOptions.endDate.toISOString(),
         start_date: deleteOptions.startDate.toISOString(),
       })}`
@@ -687,7 +694,7 @@ const autoselectOrInvalidateSelectedOrgTokenHandler = (
     return cloneState(state, { companyId: `${orgTokens[0].id}` });
   }
   if (orgTokens.length > 1) {
-    const existingOrgToken = orgTokens && orgTokens.find((x: Device) => x.id === +companyId);
+    const existingOrgToken = orgTokens && orgTokens.find((x: Device) => `${x.id}` === `${companyId}`);
     if (!existingOrgToken) {
       return cloneState(state, { companyId: `${orgTokens[0].id}` });
     }
@@ -700,6 +707,7 @@ const autoselectOrInvalidateSelectedDeviceHandler = (
   state: DashboardState,
 ): DashboardState => {
   const { devices, deviceId } = state;
+
   if (devices.length === 0) {
     return cloneState(state, { deviceId: null });
   }
@@ -707,7 +715,7 @@ const autoselectOrInvalidateSelectedDeviceHandler = (
     return cloneState(state, { deviceId: `${devices[0].id}` });
   }
   if (devices.length > 1) {
-    const existingDevice = devices && devices.find((x: Device) => x.id === +deviceId);
+    const existingDevice = devices && devices.find((x: Device) => `${x.id}` === `${deviceId}`);
     if (!existingDevice) {
       return cloneState(state, { deviceId: `${devices[0].id}` });
     }

@@ -43,7 +43,7 @@ router.post('/register', async (req, res) => {
 
   // eslint-disable-next-line no-console
   console.info(
-    'POST /register '.green,
+    'v2: POST /register '.green,
     'org'.green,
     org,
     'uuid'.green,
@@ -123,7 +123,7 @@ router.all('/refresh_token', checkAuth(verify), async (req, res) => {
   };
   // eslint-disable-next-line no-console
   console.info(
-    'auth:refresh'.green,
+    'v2:auth:refresh'.green,
     'org:name'.green,
     org,
     'device:id'.green,
@@ -188,7 +188,7 @@ router.delete('/devices/:id', checkAuth(verify), async (req, res) => {
 
   // eslint-disable-next-line no-console
   console.info(
-    'devices:delete'.green,
+    'v2:devices:delete'.green,
     'device:id'.green,
     id,
     JSON.stringify(req.query),
@@ -228,7 +228,7 @@ router.get('/locations/latest', checkAuth(verify), async (req, res) => {
   !companyId && ({ company_id: companyId } = await getDevice({ id: deviceId, org }) || {});
   // eslint-disable-next-line no-console
   console.info(
-    'locations:latest'.green,
+    'v2:locations:latest'.green,
     'org:name'.green,
     org,
     companyId,
@@ -258,7 +258,7 @@ router.get('/locations', checkAuth(verify), async (req, res) => {
   ({ device_id: deviceId = deviceId } = req.query);
   // eslint-disable-next-line no-console
   console.info(
-    'locations:get'.green,
+    'v2:locations:get'.green,
     'org:name'.green,
     org,
     'device:id'.green,
@@ -288,7 +288,7 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
   const { deviceId, org } = req.jwt;
   // eslint-disable-next-line no-console
   console.info(
-    'locations:post'.green,
+    'v2:locations:post'.green,
     'org:name'.green,
     org,
     'device:id'.green,
@@ -304,7 +304,7 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
   if (!device) {
     // eslint-disable-next-line no-console
     console.error(
-      'Device ID %s not found.  Was it deleted from dashboard?'.red,
+      'v2:Device ID %s not found.  Was it deleted from dashboard?'.red,
       deviceId,
     );
     return res.status(410).send({
@@ -345,7 +345,7 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
 
   // eslint-disable-next-line no-console
   console.info(
-    'locations:post'.green,
+    'v2:locations:post'.green,
     'org:name'.green,
     org,
     'device:id'.green,
@@ -369,7 +369,7 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
       return res.status(403).send({ error: err.toString() });
     }
     // eslint-disable-next-line no-console
-    console.error(`POST /locations/${org}`, err);
+    console.error(`v2: POST /locations/${org}`, err);
     return res.status(500).send({ error: err.message });
   }
 });
@@ -382,7 +382,7 @@ router.delete('/locations', checkAuth(verify), async (req, res) => {
 
     // eslint-disable-next-line no-console
     console.info(
-      'locations:delete'.green,
+      'v2:locations:delete'.green,
       'org:name'.green,
       org,
       'device:id'.green,
@@ -401,7 +401,7 @@ router.delete('/locations', checkAuth(verify), async (req, res) => {
     res.send({ success: true });
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.info('DELETE /locations', req.query, err);
+    console.info('v2: DELETE /locations', req.query, err);
     res.status(500).send({ error: err.message });
   }
 });

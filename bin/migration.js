@@ -5,11 +5,11 @@ require('@babel/register')();
 
 const {
   // default: check,
-  transfer,
+  migrate,
 } = require('../src/server/firebase/migration');
 
 // check({ org: 'test', uuid: 'UNKNOWN' })
 //   .then(() => process.exit(1));
 
-transfer()
+migrate()
   .then(() => process.exit(1));

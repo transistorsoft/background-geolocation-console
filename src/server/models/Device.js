@@ -65,9 +65,12 @@ export async function deleteDevice(
     org,
     start_date: startDate,
   },
+  isAdmin,
 ) {
   const device = await DeviceModel.findOne({
-    where: { company_token: org, id: deviceId },
+    where: !isAdmin
+      ? { company_token: org, id: deviceId }
+      : { id: deviceId },
     attributes: [
       'id',
       'device_id',

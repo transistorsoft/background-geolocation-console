@@ -20,7 +20,7 @@ export const dummyToken = 'DUMMY_TOKEN';
 export const isPostgres = !!process.env.DATABASE_URL;
 export const desc = isPostgres ? 'DESC NULLS LAST' : 'DESC';
 export const isProduction = process.env.NODE_ENV === 'production';
-export const firebaseOperationLimit = !isProduction ? 500 : -1;
+export const firebaseOperationLimit = 500;
 export const firebaseURL = process.env.FIREBASE_URL;
 export const firebasePrivateKey = (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/img, '\n');
 export const firebaseProjectId = process.env.FIREBASE_PROJECT_ID;

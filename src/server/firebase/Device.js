@@ -18,7 +18,7 @@ export async function getDevice({ device_id: deviceId, org }) {
 
     return result;
   } catch (e) {
-    console.error('v3:getDevice', e);
+    console.error('v3:getDevice', org, deviceId, e);
     return null;
   }
 }

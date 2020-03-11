@@ -93,7 +93,7 @@ export async function createLocation(location, deviceInfo, org, batch) {
   const currentDevice = await findOrCreate(org, { ...deviceInfo });
 
   console.info(
-    'location:create'.green,
+    'v3:location:create'.green,
     'org:name'.green,
     org,
     'org'.green,
@@ -147,7 +147,7 @@ export async function createLocations(
           batch,
         );
       } catch (e) {
-        console.error('createLocation', e);
+        console.error('v3:createLocation', e);
         throw e;
       }
     },
@@ -164,7 +164,7 @@ export async function create(params) {
         try {
           await create(pp);
         } catch (e) {
-          console.error('create', e);
+          console.error('v3:create', e);
           throw e;
         }
       },
