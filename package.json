@@ -9,7 +9,7 @@
     "start": "better-npm-run start",
     "dev": "better-npm-run dev",
     "test": "jest",
-    "server": "node server.js",
+    "server": "node ./bin/server.js",
     "heroku-postbuild": "rm -rf build/ && webpack -p --progress && NPM_CONFIG_PRODUCTION=true npm prune --production",
     "migrate": "babel-node ./src/server/database/migrate.js"
   },
