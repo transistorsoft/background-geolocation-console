@@ -8,6 +8,7 @@ import {
 import {
   AccessDeniedError,
   checkAuth,
+  dataLogOn,
   isAdmin,
   isAdminToken,
   isDDosCompany,
@@ -69,19 +70,23 @@ router.post('/register', async (req, res) => {
   }
 
   try {
-    const company = await findOrCreate(org, {
-      framework,
-      model,
-      uuid,
-      version,
-    });
+    // eslint-disable-next-line no-unused-vars
+    const device = await findOrCreate(
+      org,
+      {
+        framework,
+        model,
+        uuid,
+        version,
+      },
+    );
 
     const jwtInfo = {
       deviceId: uuid,
       model,
       org,
       uuid,
-      companyId: company.id,
+      companyId: org,
     };
 
     await createUser(org);
@@ -249,13 +254,14 @@ router.get('/locations', checkAuth(verify), async (req, res) => {
   const { org, admin } = req.jwt;
   const {
     company_id: orgId,
-    device_id: deviceId,
+    device_id: deviceId = 'UNKNOWN',
   } = req.query;
+  const name = admin ? orgId : org;
   // eslint-disable-next-line no-console
   console.info(
     'locations:get'.green,
     'org:name'.green,
-    admin ? orgId : org,
+    name,
     'device:id'.green,
     deviceId,
     JSON.stringify(req.query),
@@ -265,7 +271,7 @@ router.get('/locations', checkAuth(verify), async (req, res) => {
     const locations = await getLocations({
       device_id: deviceId,
       end_date: endDate,
-      org: admin ? orgId : org,
+      org: name,
       start_date: startDate,
     });
     res.send(locations);
@@ -294,6 +300,9 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
     'device:id'.green,
     uuid,
   );
+  // eslint-disable-next-line no-console
+  dataLogOn && console.log('v3:post:locations'.green, org, JSON.stringify(data));
+
   const device = await getDevice({ device_id: uuid, org });
 
   // Can happen if Device is deleted from Dashboard but a JWT is still posting locations for it.
@@ -302,7 +311,7 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
     console.error(
       'v3',
       'Device ID %s not found.  Was it deleted from dashboard?'.red,
-      device.device_id,
+      device.device_id || device.uuid,
     );
     return res.status(410).send({
       error: 'DEVICE_ID_NOT_FOUND',
@@ -315,7 +324,7 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
   }
 
   try {
-    await create(data);
+    await create(data, org, device);
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
@@ -335,18 +344,17 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
  */
 router.post('/locations/:company_token', checkAuth(verify), async (req, res) => {
   const { org } = req.jwt;
-  const { company_id: orgId } = req.params;
+  const { company_token: orgId } = req.params;
 
   // eslint-disable-next-line no-console
   console.info(
     'v3',
     'locations:post'.green,
     'org:name'.green,
-    org,
+    org || orgId,
     'device:id'.green,
   );
-
-  if (isDDosCompany(org) || isDDosCompany(orgId)) {
+  if ((org && isDDosCompany(org)) || (orgId && isDDosCompany(orgId))) {
     return return1Gbfile(res);
   }
 
@@ -354,8 +362,11 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
     ? decrypt(req.body.toString())
     : req.body;
 
+  // eslint-disable-next-line no-console
+  dataLogOn && console.log(`v3:post:locations:${org}`.green, JSON.stringify(data));
+
   try {
-    await create(data);
+    await create(data, orgId || org);
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
@@ -413,6 +424,7 @@ router.post('/auth', async (req, res) => {
       });
     }
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.error('v3', '/auth', e);
   }
 
@@ -433,6 +445,7 @@ router.post('/jwt', async (req, res) => {
       org,
     });
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.error('v3', '/jwt', e);
   }
 

@@ -5,6 +5,7 @@ import { firestore } from 'firebase-admin';
 
 import {
   adminToken,
+  dataLogOn,
   ddosBombCompanies,
   deniedCompanies,
   deniedDevices,
@@ -21,6 +22,7 @@ export const isAdminToken = orgToken => !!adminToken && orgToken === adminToken;
 export const isPassword = p => password === p;
 export const isAdmin = ({ admin } = {}) => !!admin || !withAuth;
 export const jsonb = data => (!data ? null : JSON.stringify(data));
+export { dataLogOn };
 
 export class AccessDeniedError extends Error {}
 export class RegistrationRequiredError extends Error {}

@@ -86,19 +86,16 @@ export async function getLatestLocation(params, isAdmin) {
 }
 
 
-export async function createLocation(location, deviceInfo, org, batch) {
+export async function createLocation(location, device, org, batch) {
   const now = new Date();
-  const { uuid: deviceId } = deviceInfo;
-
-  const currentDevice = await findOrCreate(org, { ...deviceInfo });
+  const { device_id: deviceId } = device;
 
   console.info(
     'v3:location:create'.green,
     'org:name'.green,
     org,
-    'org'.green,
     'device:id'.green,
-    currentDevice.device_id,
+    device.device_id,
   );
 
   const orgRef = firestore
@@ -156,13 +153,13 @@ export async function createLocations(
   await batch.commit();
 }
 
-export async function create(params) {
+export async function create(params, org, dev = false) {
   if (Array.isArray(params)) {
     return Promise.reduce(
       params,
       async (p, pp) => {
         try {
-          await create(pp);
+          await create(pp, org, dev);
         } catch (e) {
           console.error('v3:create', e);
           throw e;
@@ -173,10 +170,17 @@ export async function create(params) {
   }
 
   const {
-    company_token: token = 'UNKNOWN',
     location: list = [],
-    device = { model: 'UNKNOWN', uuid: 'UNKNOWN' },
+    device: deviceInfo = { device_model: 'UNKNOWN', device_id: 'UNKNOWN' },
   } = params;
+  const token = org ||
+    params.company_token ||
+    (deviceInfo && deviceInfo.company_token) ||
+    'UNKNOWN';
+  const device = dev || await findOrCreate(
+    token,
+    { ...deviceInfo },
+  );
   const locations = Array.isArray(list)
     ? list
     : (
@@ -184,6 +188,8 @@ export async function create(params) {
         ? [list]
         : []
     );
+
+  console.log('v3:create:device', token, JSON.stringify(deviceInfo), JSON.stringify(device));
 
   if (isDeniedCompany(token)) {
     throw new AccessDeniedError(
@@ -193,13 +199,15 @@ export async function create(params) {
     );
   }
 
-  if (isDeniedDevice(device.model)) {
+  if (isDeniedDevice(device.model || device.device_model)) {
     throw new AccessDeniedError(
       'This is a question from the CEO of Transistor Software.\n' +
           'Why are you spamming my demo server2?\n' +
           'Please email me at chris@transistorsoft.com.',
     );
   }
+
+
   return createLocations(locations, device, token);
 }
 

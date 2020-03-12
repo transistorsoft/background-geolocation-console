@@ -68,18 +68,26 @@ export async function deleteDevice({
 export const findOrCreate = async (
   org = 'UNKNOWN',
   {
-    model, uuid, framework, version,
+    device_id: deviceId,
+    device_model: deviceModel,
+    framework,
+    model,
+    uuid,
+    version,
   },
 ) => {
+  const dev = {
+    device_id: uuid || deviceId || 'UNKNOWN',
+    device_model: model || deviceModel || 'UNKNOWN',
+  };
   const now = new Date();
   const ref = await firestore
     .collection('Org').doc(org)
-    .collection('Devices').doc(uuid);
+    .collection('Devices').doc(dev.device_id);
   const snapshot = await ref.get();
   const device = omitBy(
     {
-      device_id: uuid || 'UNKNOWN',
-      device_model: model || 'UNKNOWN',
+      ...dev,
       company_token: org,
       created_at: now,
       framework,

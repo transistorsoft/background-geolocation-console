@@ -191,6 +191,16 @@ describe('firebase api', () => {
       expect(res).to.be.json;
     });
 
+    test('POST /locations/test', async () => {
+      const res = await chai
+        .request(server)
+        .post('/api/firebase/locations/test')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ location });
+      expect(res).have.status(200);
+      expect(res).to.be.json;
+    });
+
     test('DELETE /locations', async () => {
       const res = await chai
         .request(server)

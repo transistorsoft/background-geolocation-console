@@ -7,6 +7,7 @@ import { decrypt, isEncryptedRequest } from '../libs/RNCrypto';
 import {
   AccessDeniedError,
   checkAuth,
+  dataLogOn,
   getAuth,
   isAdmin,
   isAdminToken,
@@ -135,7 +136,7 @@ router.get('/locations', checkAuth(verify), async (req, res) => {
   const { org, companyId: orgId } = req.jwt;
   const { company_id: companyId } = req.query;
   const admin = isAdmin(req.jwt);
-  console.log('v1: GET /locations %s'.green, JSON.stringify(req.query));
+  console.log('v1: GET /locations'.green, JSON.stringify(req.query));
 
   try {
     const locations = await getLocations(
@@ -148,7 +149,7 @@ router.get('/locations', checkAuth(verify), async (req, res) => {
     );
     res.send(locations);
   } catch (err) {
-    console.info('v1: get /locations', JSON.stringify(req.query), err);
+    console.error('v1', 'GET /locations', JSON.stringify(req.query), err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -167,8 +168,10 @@ router.post('/locations', getAuth(verify), async (req, res) => {
     return return1Gbfile(res);
   }
 
+  dataLogOn && console.log('v1:post:locations'.green, org, JSON.stringify(data));
+
   try {
-    await create(data);
+    await create(data, org);
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
@@ -194,10 +197,11 @@ router.post('/locations/:company_token', getAuth(verify), async (req, res) => {
   const data = isEncryptedRequest(req)
     ? decrypt(req.body.toString())
     : req.body;
-  data.company_token = org;
+
+  dataLogOn && console.log(`v1:post:locations:${org}`.green, JSON.stringify(data));
 
   try {
-    await create(data);
+    await create(data, org);
 
     return res.send({ success: true });
   } catch (err) {
@@ -226,7 +230,6 @@ router.delete('/locations', checkAuth(verify), async (req, res) => {
     );
 
     res.send({ success: true });
-    res.status(500).send({ error: 'Something failed!' });
   } catch (err) {
     console.info('v1', 'delete /locations', JSON.stringify(req.query), err);
     res.status(500).send({ error: 'Something failed!' });

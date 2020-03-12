@@ -5,6 +5,7 @@ import chaiHttp from 'chai-http';
 
 import {
   location,
+  location2,
   regData,
   server,
 } from './data';
@@ -143,7 +144,14 @@ describe('jwt api', () => {
         .request(server)
         .post('/api/jwt/locations')
         .set('Authorization', `Bearer ${token}`)
-        .send({ location });
+        .send({
+          location: [location, location2],
+          device: {
+            company_token: 'test',
+            device_id: 'uuid',
+            device_model: 'test',
+          },
+        });
       expect(res).have.status(200);
       expect(res).to.be.json;
     });

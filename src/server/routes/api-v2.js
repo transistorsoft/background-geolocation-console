@@ -6,6 +6,7 @@ import { sign, verify } from '../libs/jwt';
 import {
   AccessDeniedError,
   checkAuth,
+  dataLogOn,
   isDDosCompany,
   isProduction,
   RegistrationRequiredError,
@@ -298,29 +299,13 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
   const data = isEncryptedRequest(req)
     ? decrypt(body.toString())
     : body;
-  const device = await getDevice({ id: deviceId, org });
-
-  // Can happen if Device is deleted from Dashboard but a JWT is still posting locations for it.
-  if (!device) {
-    // eslint-disable-next-line no-console
-    console.error(
-      'v2:Device ID %s not found.  Was it deleted from dashboard?'.red,
-      deviceId,
-    );
-    return res.status(410).send({
-      error: 'DEVICE_ID_NOT_FOUND',
-      background_geolocation: ['stop'],
-    });
-  }
 
   if (isDDosCompany(org)) {
     return return1Gbfile(res);
   }
 
-  data.device = device;
-
   try {
-    await create(data);
+    await create(data, org);
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
@@ -341,7 +326,8 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
 router.post('/locations/:company_token', checkAuth(verify), async (req, res) => {
   const { deviceId, org } = req.jwt;
   let { companyId } = req.jwt;
-  !companyId && ({ company_id: companyId } = await getDevice({ id: deviceId, org }) || {});
+  const { company_token: orgId } = req.params;
+  !companyId && ({ company_id: companyId } = await getDevice({ id: deviceId, org: org || orgId }) || {});
 
   // eslint-disable-next-line no-console
   console.info(
@@ -359,10 +345,12 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
   const data = isEncryptedRequest(req)
     ? decrypt(req.body.toString())
     : req.body;
-  data.company_token = org;
+
+  // eslint-disable-next-line no-console
+  dataLogOn && console.log(`v2:post:locations:${org}`.green, JSON.stringify(data));
 
   try {
-    await create(data);
+    await create(data, org || orgId);
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {

@@ -75,9 +75,8 @@ export async function getLatestLocation(params, isAdmin) {
   return result;
 }
 
-export async function createLocation(location, deviceInfo, org) {
+export async function createLocation(location, device, org) {
   const now = new Date();
-  const device = await findOrCreate(org, { ...deviceInfo });
 
   CompanyModel.update(
     { updated_at: now },
@@ -95,7 +94,7 @@ export async function createLocation(location, deviceInfo, org) {
     'org:id'.green,
     device.company_id,
     'device:id'.green,
-    device.uuid,
+    device.device_id,
   );
   const row = {
     latitude: location.coords.latitude,
@@ -106,6 +105,7 @@ export async function createLocation(location, deviceInfo, org) {
     company_id: device.company_id,
     device_id: device.id,
   };
+  console.info('v1:location:create'.green, JSON.stringify(device), JSON.stringify(row));
   return LocationModel.create(row);
 }
 
@@ -134,13 +134,15 @@ export async function createLocations(
 
 export async function create(
   params,
+  org,
+  dev = false,
 ) {
   if (Array.isArray(params)) {
     return Promise.reduce(
       params,
       async (p, pp) => {
         try {
-          await create(pp);
+          await create(pp, org, dev);
         } catch (e) {
           console.error('v1:create', e);
           throw e;
@@ -151,10 +153,17 @@ export async function create(
   }
 
   const {
-    company_token: token = 'UNKNOWN',
     location: list = [],
-    device = { model: 'UNKNOWN', uuid: 'UNKNOWN' },
+    device: deviceInfo = { device_model: 'UNKNOWN', device_id: 'UNKNOWN' },
   } = params;
+  const token = org ||
+    params.company_token ||
+    (deviceInfo && deviceInfo.company_token) ||
+    'UNKNOWN';
+  const device = dev || await findOrCreate(
+    token,
+    { ...deviceInfo },
+  );
   const locations = Array.isArray(list)
     ? list
     : (
@@ -162,6 +171,9 @@ export async function create(
         ? [list]
         : []
     );
+
+  console.log('v1:create:device'.green, token, JSON.stringify(deviceInfo), JSON.stringify(device));
+
   if (isDeniedCompany(token)) {
     throw new AccessDeniedError(
       'This is a question from the CEO of Transistor Software.\n' +
@@ -169,13 +181,14 @@ export async function create(
           'Please email me at chris@transistorsoft.com.',
     );
   }
-  if (isDeniedDevice(device.model)) {
+  if (isDeniedDevice(device.model || device.device_model)) {
     throw new AccessDeniedError(
       'This is a question from the CEO of Transistor Software.\n' +
         'Why are you spamming my demo server2?\n' +
         'Please email me at chris@transistorsoft.com.',
     );
   }
+
   return createLocations(locations, device, token);
 }
 

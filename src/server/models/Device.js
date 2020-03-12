@@ -104,6 +104,8 @@ export async function deleteDevice(
 export const findOrCreate = async (
   org = 'UNKNOWN',
   {
+    device_id: deviceId,
+    device_model: deviceModel,
     framework,
     model,
     uuid,
@@ -111,17 +113,17 @@ export const findOrCreate = async (
   },
 ) => {
   const device = {
-    device_id: uuid || 'UNKNOWN',
-    model: model || 'UNKNOWN',
+    device_id: uuid || deviceId || 'UNKNOWN',
+    device_model: model || deviceModel || 'UNKNOWN',
   };
   const now = new Date();
 
-  checkCompany({ org, model: device.model });
+  checkCompany({ org, model: device.device_model });
 
   const company = await findOrCreateCompany({ org });
   const where = { company_id: company.id };
 
-  uuid && (where.device_id = uuid);
+  where.device_id = device.device_id;
 
   const [row] = await DeviceModel.findOrCreate({
     where,

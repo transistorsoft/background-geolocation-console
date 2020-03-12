@@ -5,6 +5,7 @@ import chaiHttp from 'chai-http';
 
 import {
   location,
+  location2,
   regData,
   server,
 } from './data';
@@ -82,7 +83,7 @@ describe('site api', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           location,
-          device: { model: 'test', uuid: 'test' },
+          device: { model: 'test', uuid: 'uuid' },
           company_token: 'test',
         });
       expect(res).have.status(200);
@@ -96,8 +97,11 @@ describe('site api', () => {
         .set('Authorization', `Bearer ${token}`)
         .send([{
           location,
-          device: { model: 'test', uuid: 'test' },
-          company_token: 'test',
+          device: {
+            company_token: 'test',
+            device_id: 'uuid',
+            device_model: 'test',
+          },
         }]);
       expect(res).have.status(200);
       expect(res).to.be.json;
@@ -121,10 +125,39 @@ describe('site api', () => {
         .post('/api/site/locations/test')
         .set('Authorization', `Bearer ${token}`)
         .send({
-          location,
-          device: { model: 'test', uuid: 'test' },
-          company_token: 'test',
+          location: [location, location2],
+          device: { model: 'test', uuid: 'uuid' },
         });
+      expect(res).have.status(200);
+      expect(res).to.be.json;
+    });
+
+    test('POST /locations/test device UNKNOWN', async () => {
+      const res = await chai
+        .request(server)
+        .post('/api/site/locations/test')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ location });
+      expect(res).have.status(200);
+      expect(res).to.be.json;
+    });
+
+    test('POST /locations/test [] device UNKNOWN', async () => {
+      const res = await chai
+        .request(server)
+        .post('/api/site/locations/test')
+        .set('Authorization', `Bearer ${token}`)
+        .send([{ location }]);
+      expect(res).have.status(200);
+      expect(res).to.be.json;
+    });
+
+    test('POST /locations/test [][]  device UNKNOWN', async () => {
+      const res = await chai
+        .request(server)
+        .post('/api/site/locations/test')
+        .set('Authorization', `Bearer ${token}`)
+        .send([{ location: [location, location2] }]);
       expect(res).have.status(200);
       expect(res).to.be.json;
     });
