@@ -57,6 +57,7 @@ app.use(bodyParser.raw(parserLimits));
 
   app.use((req, res, next) => {
     const ext = extname(req.url);
+    console.log('req.url', req.url, ext);
     if ((!ext || ext === '.html') && req.url !== '/') {
       res.sendFile(resolve(buildPath, 'index.html'));
     } else {

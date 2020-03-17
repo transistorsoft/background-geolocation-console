@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-expressions */
-import queryString from 'querystring'; import chai from 'chai';
+import queryString from 'querystring';
+import chai from 'chai';
 import chaiHttp from 'chai-http';
 
 
@@ -147,9 +148,12 @@ describe('jwt api', () => {
         .send({
           location: [location, location2],
           device: {
-            company_token: 'test',
-            device_id: 'uuid',
-            device_model: 'test',
+            framework: 'flutter',
+            manufacturer: 'Apple',
+            model: 'iPhone10,4(x86_64)',
+            platform: '13.3',
+            uuid: 'iPhone10-4(x86_64)-13-3',
+            version: '2.0',
           },
         });
       expect(res).have.status(200);
@@ -161,7 +165,17 @@ describe('jwt api', () => {
         .request(server)
         .post('/api/jwt/locations')
         .set('Authorization', `Bearer ${token}`)
-        .send([{ location }]);
+        .send([{
+          location,
+          device: {
+            framework: 'flutter',
+            manufacturer: 'Apple',
+            model: 'iPhone10,4(x86_64)',
+            platform: '13.3',
+            uuid: 'iPhone10-4(x86_64)-13-3',
+            version: '2.0',
+          },
+        }]);
       expect(res).have.status(200);
       expect(res).to.be.json;
     });

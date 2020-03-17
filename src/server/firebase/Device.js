@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import isUndefined from 'lodash/isUndefined';
 import omitBy from 'lodash/omitBy';
 
@@ -6,6 +7,7 @@ import {
   firestore,
 } from '.';
 
+import { withAuth } from '../config';
 import { toRows, toRow } from '../libs/utils';
 
 export async function getDevice({ device_id: deviceId, org }) {
@@ -27,6 +29,12 @@ export async function getDevices({ org }, isAdmin) {
   if (!isAdmin && !org) {
     return [];
   }
+
+  if (!withAuth) {
+    const devices = firestore.collectionGroup('Devices').orderBy('updated_at', 'desc').get();
+    return toRows(devices);
+  }
+
   try {
     const snapshot = await firestore
       .collection('Org').doc(org)
@@ -72,6 +80,7 @@ export const findOrCreate = async (
     device_model: deviceModel,
     framework,
     model,
+    platform,
     uuid,
     version,
   },
@@ -89,10 +98,11 @@ export const findOrCreate = async (
     {
       ...dev,
       company_token: org,
-      device_model: dev.model || dev.device_model,
-      device_id: dev.device_id,
       created_at: now,
       framework,
+      model,
+      platform,
+      uuid,
       version,
     },
     isUndefined,

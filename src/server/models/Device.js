@@ -4,7 +4,7 @@ import { Op } from 'sequelize';
 import DeviceModel from '../database/DeviceModel';
 import LocationModel from '../database/LocationModel';
 import { checkCompany } from '../libs/utils';
-import { desc } from '../config';
+import { desc, withAuth } from '../config';
 
 import { findOrCreate as findOrCreateCompany } from './Org';
 
@@ -35,9 +35,12 @@ export async function getDevices(params, isAdmin) {
     return [];
   }
 
-  const whereConditions = isAdmin
-    ? { company_id: companyId }
-    : { company_token: org };
+  const whereConditions = {};
+
+  if (withAuth) {
+    isAdmin && (whereConditions.company_id = companyId);
+    !isAdmin && (whereConditions.company_token = org);
+  }
 
   const result = await DeviceModel.findAll({
     where: whereConditions,
@@ -121,17 +124,14 @@ export const findOrCreate = async (
   checkCompany({ org, model: device.device_model });
 
   const company = await findOrCreateCompany({ org });
-  const where = { company_id: company.id };
-
-  where.device_id = device.device_id;
-
+  const where = { company_id: company.id, device_id: device.device_id };
   const [row] = await DeviceModel.findOrCreate({
     where,
     defaults: {
       company_id: company.id,
       company_token: org,
       device_id: device.device_id,
-      device_model: device.model || device.device_model,
+      device_model: device.device_model,
       created_at: now,
       framework,
       version,

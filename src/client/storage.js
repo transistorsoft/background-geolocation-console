@@ -145,7 +145,7 @@ export function setUrlSettings(
     end: encodeEndDate(endDate),
     start: encodeStartDate(startDate),
   };
-  const url = `${!hasToken || !shared ? mainPart : ''}?${queryString.stringify(search)}`;
+  const url = `${!hasToken || shared ? mainPart : ''}?${queryString.stringify(search)}`;
   window.history.replaceState({}, '', url);
 }
 

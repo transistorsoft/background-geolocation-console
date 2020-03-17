@@ -138,8 +138,8 @@ const config = {
     ? [
       new webpack.DefinePlugin({
         'process.env.FIREBASE_URL': JSON.stringify(firebaseURL),
-        'process.env.NODE_ENV': JSON.stringify(NODE_ENV),
-        'process.env.SHARED_DASHBOARD': !!withAuth || '""',
+        'process.env.NODE_ENV': JSON.stringify(NODE_ENV || 'production'),
+        'process.env.SHARED_DASHBOARD': !!withAuth || 'false',
       }),
       new webpack.LoaderOptionsPlugin({
         minimize: true,
@@ -153,7 +153,7 @@ const config = {
       new webpack.DefinePlugin({
         'process.env.FIREBASE_URL': JSON.stringify(firebaseURL),
         'process.env.NODE_ENV': JSON.stringify(NODE_ENV || 'development'),
-        'process.env.SHARED_DASHBOARD': !!withAuth || '""',
+        'process.env.SHARED_DASHBOARD': !!withAuth || 'false',
       }),
       copyAssets,
       new webpack.HotModuleReplacementPlugin(),

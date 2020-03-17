@@ -20,7 +20,6 @@ import {
 import {
   deleteDevice,
   findOrCreate,
-  getDevice,
   getDevices,
 } from '../firebase/Device';
 import {
@@ -40,6 +39,8 @@ router.post('/register', async (req, res) => {
     framework,
     manufacturer,
     model,
+    device_id: devId,
+    device_model: deviceModel,
     org,
     uuid,
     version,
@@ -75,8 +76,8 @@ router.post('/register', async (req, res) => {
       org,
       {
         framework,
-        model,
-        uuid,
+        model: deviceModel || model,
+        uuid: uuid || devId,
         version,
       },
     );
@@ -222,7 +223,7 @@ router.get('/stats', checkAuth(verify), async (req, res) => {
 router.get('/locations/latest', checkAuth(verify), async (req, res) => {
   const { org, admin } = req.jwt;
   const {
-    company_id: orgId,
+    company_id: orgId = org,
     device_id: deviceId,
   } = req.query;
   // eslint-disable-next-line no-console
@@ -301,30 +302,14 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
     uuid,
   );
   // eslint-disable-next-line no-console
-  dataLogOn && console.log('v3:post:locations'.green, org, JSON.stringify(data));
-
-  const device = await getDevice({ device_id: uuid, org });
-
-  // Can happen if Device is deleted from Dashboard but a JWT is still posting locations for it.
-  if (!device) {
-    // eslint-disable-next-line no-console
-    console.error(
-      'v3',
-      'Device ID %s not found.  Was it deleted from dashboard?'.red,
-      device.device_id || device.uuid,
-    );
-    return res.status(410).send({
-      error: 'DEVICE_ID_NOT_FOUND',
-      background_geolocation: ['stop'],
-    });
-  }
+  dataLogOn && console.log('v3:post:locations'.yellow, org, JSON.stringify(data));
 
   if (isDDosCompany(org)) {
     return return1Gbfile(res);
   }
 
   try {
-    await create(data, org, device);
+    await create(data, org);
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
@@ -363,7 +348,7 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
     : req.body;
 
   // eslint-disable-next-line no-console
-  dataLogOn && console.log(`v3:post:locations:${org}`.green, JSON.stringify(data));
+  dataLogOn && console.log(`v3:post:locations:${org}`.yellow, JSON.stringify(data));
 
   try {
     await create(data, orgId || org);

@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-expressions */
-import queryString from 'querystring'; import chai from 'chai';
+import queryString from 'querystring';
+import chai from 'chai';
 import chaiHttp from 'chai-http';
 
 
@@ -145,7 +146,14 @@ describe('firebase api', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           location,
-          device: { model: 'test', uuid: 'uuid' },
+          device: {
+            framework: 'flutter',
+            manufacturer: 'Apple',
+            model: 'iPhone10,4(x86_64)',
+            platform: '13.3',
+            uuid: 'iPhone10-4(x86_64)-13-3',
+            version: '2.0',
+          },
           company_token: 'org',
         });
       expect(res).have.status(200);
@@ -159,7 +167,14 @@ describe('firebase api', () => {
         .set('Authorization', `Bearer ${token}`)
         .send([{
           location,
-          device: { model: 'test', uuid: 'uuid' },
+          device: {
+            framework: 'flutter',
+            manufacturer: 'Apple',
+            model: 'iPhone10,4(x86_64)',
+            platform: '13.3',
+            uuid: 'iPhone10-4(x86_64)-13-3',
+            version: '2.0',
+          },
           company_token: 'org',
         }]);
       expect(res).have.status(200);
@@ -184,7 +199,14 @@ describe('firebase api', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           location,
-          device: { model: 'test', uuid: 'uuid' },
+          device: {
+            framework: 'flutter',
+            manufacturer: 'Apple',
+            model: 'iPhone10,4(x86_64)',
+            platform: '13.3',
+            uuid: 'iPhone10-4(x86_64)-13-3',
+            version: '2.0',
+          },
           company_token: 'org',
         });
       expect(res).have.status(200);
@@ -207,7 +229,7 @@ describe('firebase api', () => {
         .delete(
           `/api/firebase/locations?${
             queryString.stringify({
-              device_id: 'uuid',
+              device_id: 'iPhone10-4(x86_64)-13-3',
               start_date: location.timestamp.substr(0, 10),
               end_date: new Date().toISOString().substr(0, 10),
             })}`,

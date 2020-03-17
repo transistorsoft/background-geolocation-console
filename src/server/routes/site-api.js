@@ -110,13 +110,13 @@ router.get('/stats', checkAuth(verify), async (req, res) => {
 
 router.get('/locations/latest', checkAuth(verify), async (req, res) => {
   const { org, companyId: orgId } = req.jwt;
-  const { company_id: companyId } = req.query;
+  const { company_id: companyId = orgId, device_id: deviceId } = req.query;
   const admin = isAdmin(req.jwt);
-  console.log('v1: GET /locations/latest %s'.green, org, companyId, JSON.stringify(req.query));
+  console.log('v1: GET /locations/latest %s'.green, org, companyId, deviceId);
   try {
     const latest = await getLatestLocation(
       {
-        ...req.query,
+        device_id: deviceId,
         org,
         company_id: admin ? companyId : orgId,
       },
@@ -124,7 +124,7 @@ router.get('/locations/latest', checkAuth(verify), async (req, res) => {
     );
     res.send(latest);
   } catch (err) {
-    console.info('v1: /locations/latest', JSON.stringify(req.query), err);
+    console.info('v1: /locations/latest', deviceId, err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -168,7 +168,7 @@ router.post('/locations', getAuth(verify), async (req, res) => {
     return return1Gbfile(res);
   }
 
-  dataLogOn && console.log('v1:post:locations'.green, org, JSON.stringify(data));
+  dataLogOn && console.log('v1:post:locations'.yellow, org, JSON.stringify(data));
 
   try {
     await create(data, org);
@@ -198,7 +198,7 @@ router.post('/locations/:company_token', getAuth(verify), async (req, res) => {
     ? decrypt(req.body.toString())
     : req.body;
 
-  dataLogOn && console.log(`v1:post:locations:${org}`.green, JSON.stringify(data));
+  dataLogOn && console.log(`v1:post:locations:${org}`.yellow, JSON.stringify(data));
 
   try {
     await create(data, org);
@@ -280,21 +280,24 @@ router.post('/jwt', async (req, res) => {
   const { org } = req.body || {};
 
   try {
-    const { id } = await findOne({ org }) || {};
+    let id;
+    if (!isAdmin()) {
+      ({ id } = await findOne({ org }) || {});
 
-    if (!id) {
-      return res.status(401).send({ org, error: 'Org not found' });
+      if (!id) {
+        return res.status(401).send({ org, error: 'Org not found' });
+      }
     }
 
     const jwtInfo = {
-      companyId: id,
-      org,
+      companyId: id || 0,
+      org: org || 'admin',
     };
     const accessToken = sign(jwtInfo);
     return res.send({
       access_token: accessToken,
       token_type: 'Bearer',
-      org,
+      org: 'admin',
     });
   } catch (e) {
     console.error('v1', '/jwt', e);

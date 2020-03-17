@@ -13,7 +13,7 @@ import {
   isDeniedDevice,
   jsonb,
 } from '../libs/utils';
-import { desc } from '../config';
+import { desc, withAuth } from '../config';
 
 import { findOrCreate } from './Device';
 
@@ -41,7 +41,7 @@ export async function getLocations(params, isAdmin) {
   }
 
   params.device_id && (whereConditions.device_id = +params.device_id);
-  params.company_id && (whereConditions.company_id = +params.company_id);
+  withAuth && params.company_id && (whereConditions.company_id = +params.company_id);
 
   const rows = await LocationModel.findAll({
     where: whereConditions,
@@ -62,8 +62,9 @@ export async function getLatestLocation(params, isAdmin) {
   if (!isAdmin && !(deviceId || companyId)) {
     return [];
   }
-  const whereConditions = { company_id: companyId };
+  const whereConditions = {};
 
+  withAuth && (whereConditions.company_id = companyId);
   deviceId && (whereConditions.device_id = +deviceId);
 
   const row = await LocationModel.findOne({
@@ -71,7 +72,7 @@ export async function getLatestLocation(params, isAdmin) {
     order: [['recorded_at', desc]],
     include,
   });
-  const result = row ? hydrate(row) : null;
+  const result = row ? hydrate(row) : {};
   return result;
 }
 
@@ -135,14 +136,13 @@ export async function createLocations(
 export async function create(
   params,
   org,
-  dev = false,
 ) {
   if (Array.isArray(params)) {
     return Promise.reduce(
       params,
       async (p, pp) => {
         try {
-          await create(pp, org, dev);
+          await create(pp, org);
         } catch (e) {
           console.error('v1:create', e);
           throw e;
@@ -153,14 +153,31 @@ export async function create(
   }
 
   const {
+    company_token: companyToken,
+    device: propDevice = {},
+    framework,
     location: list = [],
-    device: deviceInfo = { device_model: 'UNKNOWN', device_id: 'UNKNOWN' },
+    manufacturer,
+    model,
+    platform,
+    uuid,
+    version,
   } = params;
+  const deviceInfo = {
+    company_token: companyToken || propDevice.company_token || propDevice.org,
+    framework: framework || propDevice.framework,
+    manufacturer: manufacturer || propDevice.manufacturer,
+    model: model || propDevice.model || propDevice.device_model || 'UNKNOWN',
+    platform: platform || propDevice.platform,
+    uuid: uuid || propDevice.device_id || propDevice.uuid || 'UNKNOWN',
+    version: version || propDevice.version,
+  };
   const token = org ||
-    params.company_token ||
+    companyToken ||
+    params.org ||
     (deviceInfo && deviceInfo.company_token) ||
     'UNKNOWN';
-  const device = dev || await findOrCreate(
+  const device = await findOrCreate(
     token,
     { ...deviceInfo },
   );

@@ -34,10 +34,13 @@ const router = new Router();
 //  -H 'Content-Type: application/json'
 router.post('/register', async (req, res) => {
   const {
+    device_id: devId,
+    device_model: deviceModel,
     framework,
     manufacturer,
     model,
     org,
+    platform,
     uuid,
     version,
   } = req.body;
@@ -72,8 +75,9 @@ router.post('/register', async (req, res) => {
       id: deviceId,
     } = await findOrCreate(org, {
       framework,
-      model,
-      uuid,
+      model: deviceModel || model,
+      platform,
+      uuid: uuid || devId,
       version,
     });
 
@@ -347,7 +351,7 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
     : req.body;
 
   // eslint-disable-next-line no-console
-  dataLogOn && console.log(`v2:post:locations:${org}`.green, JSON.stringify(data));
+  dataLogOn && console.log(`v2:post:locations:${org}`.yellow, JSON.stringify(data));
 
   try {
     await create(data, org || orgId);

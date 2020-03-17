@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 /* eslint-disable no-console */
 import Promise from 'bluebird';
 import isUndefined from 'lodash/isUndefined';
@@ -14,6 +15,7 @@ import {
   isDeniedDevice,
   toRows,
 } from '../libs/utils';
+import { withAuth } from '../config';
 
 import { findOrCreate } from './Device';
 
@@ -24,6 +26,19 @@ export async function getStats() {
     total: '?',
   };
 }
+
+const makeQuery = (query, startDate, endDate) => {
+  let q = query;
+  if (startDate && endDate) {
+    q = q
+      .where('recorded_at', '>', new Date(startDate))
+      .where('recorded_at', '<', new Date(endDate));
+  }
+
+  q = q
+    .orderBy('recorded_at', 'desc');
+  return q;
+};
 
 export async function getLocations(params, isAdmin) {
   const {
@@ -37,21 +52,28 @@ export async function getLocations(params, isAdmin) {
     return [];
   }
 
+  if (!withAuth) {
+    const devicesGroup = firestore.collectionGroup('Devices');
+    const devices = deviceId
+      ? await devicesGroup.where('device_id', '==', deviceId).get()
+      : await devicesGroup.get();
+    const requests = [];
+    devices.forEach(device => requests.push(makeQuery(device.ref.collection('Locations'), startDate, endDate).get()));
+    const list = requests.reduce((rows, snapshot) => rows.push(...toRows(snapshot)), []);
+    return list;
+  }
+
   try {
-    let query = firestore
-      .collection('Org').doc(org)
-      .collection('Devices').doc(deviceId)
-      .collection('Locations');
+    const query = makeQuery(
+      firestore
+        .collection('Org').doc(org)
+        .collection('Devices').doc(deviceId)
+        .collection('Locations'),
+      startDate,
+      endDate,
+    );
 
-    if (startDate && endDate) {
-      query = query
-        .where('recorded_at', '>', new Date(startDate))
-        .where('recorded_at', '<', new Date(endDate));
-    }
-
-    const snapshot = await query
-      .orderBy('recorded_at', 'desc')
-      .get();
+    const snapshot = await query.get();
 
     return toRows(snapshot);
   } catch (e) {
@@ -70,6 +92,21 @@ export async function getLatestLocation(params, isAdmin) {
     return [];
   }
 
+  if (!withAuth) {
+    const devicesGroup = firestore.collectionGroup('Devices');
+    const devices = await devicesGroup
+      .where('device_id', '==', deviceId)
+      .limit(1)
+      .get();
+    const device = !devices.empty && devices.docs[0];
+    const lastLocation = device.ref
+      .collection('Locations')
+      .orderBy('recorded_at', 'desc')
+      .limit(1)
+      .get();
+    return toRows(lastLocation).pop();
+  }
+
   try {
     const lastLocation = await firestore
       .collection('Org').doc(org)
@@ -78,7 +115,7 @@ export async function getLatestLocation(params, isAdmin) {
       .orderBy('recorded_at', 'desc')
       .limit(1)
       .get();
-    return toRows(lastLocation);
+    return toRows(lastLocation).pop();
   } catch (e) {
     console.error('v3:getLatestLocation', org, deviceId, e);
     return [];
@@ -153,13 +190,13 @@ export async function createLocations(
   await batch.commit();
 }
 
-export async function create(params, org, dev = false) {
+export async function create(params, org) {
   if (Array.isArray(params)) {
     return Promise.reduce(
       params,
       async (p, pp) => {
         try {
-          await create(pp, org, dev);
+          await create(pp, org);
         } catch (e) {
           console.error('v3:create', e);
           throw e;
@@ -170,14 +207,30 @@ export async function create(params, org, dev = false) {
   }
 
   const {
+    company_token: companyToken,
+    device: propDevice = {},
+    framework,
     location: list = [],
-    device: deviceInfo = { device_model: 'UNKNOWN', device_id: 'UNKNOWN' },
+    manufacturer,
+    model,
+    platform,
+    uuid,
+    version,
   } = params;
+  const deviceInfo = {
+    company_token: companyToken || propDevice.company_token || propDevice.org,
+    framework: framework || propDevice.framework,
+    manufacturer: manufacturer || propDevice.manufacturer,
+    model: model || propDevice.model || propDevice.device_model || 'UNKNOWN',
+    platform: platform || propDevice.platform,
+    uuid: uuid || propDevice.device_id || propDevice.uuid || 'UNKNOWN',
+    version: version || propDevice.version,
+  };
   const token = org ||
-    params.company_token ||
+    companyToken ||
     (deviceInfo && deviceInfo.company_token) ||
     'UNKNOWN';
-  const device = dev || await findOrCreate(
+  const device = await findOrCreate(
     token,
     { ...deviceInfo },
   );

@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-expressions */
-import queryString from 'querystring'; import chai from 'chai';
+import queryString from 'querystring';
+import chai from 'chai';
 import chaiHttp from 'chai-http';
 
 
@@ -83,7 +84,14 @@ describe('site api', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           location,
-          device: { model: 'test', uuid: 'uuid' },
+          device: {
+            framework: 'flutter',
+            manufacturer: 'Apple',
+            model: 'iPhone10,4(x86_64)',
+            platform: '13.3',
+            uuid: 'iPhone10-4(x86_64)-13-3',
+            version: '2.0',
+          },
           company_token: 'test',
         });
       expect(res).have.status(200);
@@ -99,8 +107,12 @@ describe('site api', () => {
           location,
           device: {
             company_token: 'test',
-            device_id: 'uuid',
-            device_model: 'test',
+            framework: 'flutter',
+            manufacturer: 'Apple',
+            model: 'iPhone10,4(x86_64)',
+            platform: '13.3',
+            uuid: 'iPhone10-4(x86_64)-13-3',
+            version: '2.0',
           },
         }]);
       expect(res).have.status(200);
@@ -110,7 +122,7 @@ describe('site api', () => {
     test('/locations', async () => {
       const res = await chai
         .request(server)
-        .get('/api/site/locations?device_id=372')
+        .get('/api/site/locations?device_id=')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res).have.status(200);
@@ -126,38 +138,74 @@ describe('site api', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           location: [location, location2],
-          device: { model: 'test', uuid: 'uuid' },
+          device: {
+            framework: 'flutter',
+            manufacturer: 'Apple',
+            model: 'iPhone10,4(x86_64)',
+            platform: '13.3',
+            uuid: 'iPhone10-4(x86_64)-13-3',
+            version: '2.0',
+          },
         });
       expect(res).have.status(200);
       expect(res).to.be.json;
     });
 
-    test('POST /locations/test device UNKNOWN', async () => {
+    test('POST /locations/test with plain device', async () => {
       const res = await chai
         .request(server)
         .post('/api/site/locations/test')
         .set('Authorization', `Bearer ${token}`)
-        .send({ location });
+        .send({
+          location: [location, location2],
+          framework: 'flutter',
+          manufacturer: 'Apple',
+          model: 'iPhone10,4(x86_64)',
+          platform: '13.3',
+          uuid: 'iPhone10-4(x86_64)-13-3',
+          version: '2.0',
+        });
       expect(res).have.status(200);
       expect(res).to.be.json;
     });
 
-    test('POST /locations/test [] device UNKNOWN', async () => {
+
+    test('POST /locations/test []', async () => {
       const res = await chai
         .request(server)
         .post('/api/site/locations/test')
         .set('Authorization', `Bearer ${token}`)
-        .send([{ location }]);
+        .send([{
+          location,
+          device: {
+            framework: 'flutter',
+            manufacturer: 'Apple',
+            model: 'iPhone10,4(x86_64)',
+            platform: '13.3',
+            uuid: 'iPhone10-4(x86_64)-13-3',
+            version: '2.0',
+          },
+        }]);
       expect(res).have.status(200);
       expect(res).to.be.json;
     });
 
-    test('POST /locations/test [][]  device UNKNOWN', async () => {
+    test('POST /locations/test [][]', async () => {
       const res = await chai
         .request(server)
         .post('/api/site/locations/test')
         .set('Authorization', `Bearer ${token}`)
-        .send([{ location: [location, location2] }]);
+        .send([{
+          location: [location, location2],
+          device: {
+            framework: 'flutter',
+            manufacturer: 'Apple',
+            model: 'iPhone10,4(x86_64)',
+            platform: '13.3',
+            uuid: 'iPhone10-4(x86_64)-13-3',
+            version: '2.0',
+          },
+        }]);
       expect(res).have.status(200);
       expect(res).to.be.json;
     });

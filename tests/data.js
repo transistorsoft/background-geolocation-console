@@ -1,12 +1,13 @@
 export const server = 'http://localhost:9000';
 
 export const regData = {
+  framework: 'flutter',
+  manufacturer: 'Apple',
+  model: 'iPhone10,4(x86_64)',
   org: 'test',
-  uuid: 'uuid',
-  model: 'model',
-  framework: 'framework',
-  manufacturer: 'manufacturer',
-  version: '10',
+  platform: '13.3',
+  uuid: 'iPhone10-4(x86_64)-13-3',
+  version: '2.0',
 };
 
 export const location = {
