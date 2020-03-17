@@ -1,4 +1,15 @@
-import {
+require('@babel/polyfill/noConflict');
+require('@babel/register')();
+
+const path = require('path');
+const webpack = require('webpack');
+
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
+const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
+
+const {
   firebaseURL,
   GOOGLE_ANALYTICS_ID,
   GOOGLE_MAPS_API_KEY,
@@ -6,14 +17,7 @@ import {
   NODE_ENV,
   PURE_CHAT_ID,
   withAuth,
-} from './src/server/config';
-
-const path = require('path'); const webpack = require('webpack');
-
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
-const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
-const CopyPlugin = require('copy-webpack-plugin');
+} = require('./src/server/config');
 
 const copyAssets = new CopyPlugin([{ from: 'assets/images', to: 'images' }]);
 

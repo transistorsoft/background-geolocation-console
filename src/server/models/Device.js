@@ -131,7 +131,7 @@ export const findOrCreate = async (
       company_id: company.id,
       company_token: org,
       device_id: device.device_id,
-      device_model: device.model,
+      device_model: device.model || device.device_model,
       created_at: now,
       framework,
       version,
