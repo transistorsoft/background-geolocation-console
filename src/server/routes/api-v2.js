@@ -61,6 +61,9 @@ router.post('/register', async (req, res) => {
     framework,
   );
 
+  // eslint-disable-next-line no-console
+  dataLogOn && console.log(`v2:post:register:${org}`.yellow, JSON.stringify(req.body));
+
   if (!org) {
     return res.status(500).send({ message: 'Organization identifier empty' });
   }
@@ -291,6 +294,8 @@ router.get('/locations', checkAuth(verify), async (req, res) => {
  */
 router.post('/locations', checkAuth(verify), async (req, res) => {
   const { deviceId, org } = req.jwt;
+  const device = await getDevice({ id: deviceId, org });
+
   // eslint-disable-next-line no-console
   console.info(
     'v2:locations:post'.green,
@@ -299,17 +304,28 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
     'device:id'.green,
     deviceId,
   );
-  const { body } = req;
-  const data = isEncryptedRequest(req)
-    ? decrypt(body.toString())
-    : body;
+
+  // Can happen if Device is deleted from Dashboard but a JWT is still posting locations for it.
+  if (!device) {
+    // eslint-disable-next-line no-console
+    console.error('Device ID %s not found.  Was it deleted from dashboard?'.red, deviceId);
+    return res.status(410)
+      .send({ error: 'DEVICE_ID_NOT_FOUND', background_geolocation: ['stop'] });
+  }
 
   if (isDDosCompany(org)) {
     return return1Gbfile(res);
   }
 
+  const { body } = req;
+  const data = isEncryptedRequest(req)
+    ? decrypt(body.toString())
+    : body;
+  // eslint-disable-next-line no-console
+  dataLogOn && console.log('v2:post:locations'.yellow, org, JSON.stringify(data));
+
   try {
-    await create(data, org);
+    await create(data, org, device);
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
@@ -329,9 +345,8 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
  */
 router.post('/locations/:company_token', checkAuth(verify), async (req, res) => {
   const { deviceId, org } = req.jwt;
-  let { companyId } = req.jwt;
   const { company_token: orgId } = req.params;
-  !companyId && ({ company_id: companyId } = await getDevice({ id: deviceId, org: org || orgId }) || {});
+  const device = await getDevice({ id: deviceId, org: org || orgId });
 
   // eslint-disable-next-line no-console
   console.info(
@@ -342,7 +357,14 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
     deviceId,
   );
 
-  if (isDDosCompany(org)) {
+  // Can happen if Device is deleted from Dashboard but a JWT is still posting locations for it.
+  if (!device) {
+    console.error('Device ID %s not found.  Was it deleted from dashboard?'.red, deviceId);
+    return res.status(410)
+      .send({ error: 'DEVICE_ID_NOT_FOUND', background_geolocation: ['stop'] });
+  }
+
+  if (isDDosCompany(org || orgId)) {
     return return1Gbfile(res);
   }
 
@@ -351,10 +373,10 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
     : req.body;
 
   // eslint-disable-next-line no-console
-  dataLogOn && console.log(`v2:post:locations:${org}`.yellow, JSON.stringify(data));
+  dataLogOn && console.log(`v2:post:locations:${orgId}`.yellow, JSON.stringify(data));
 
   try {
-    await create(data, org || orgId);
+    await create(data, org || orgId, device);
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {

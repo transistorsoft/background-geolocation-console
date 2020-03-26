@@ -13,7 +13,11 @@ import {
   isDeniedDevice,
   jsonb,
 } from '../libs/utils';
-import { desc, withAuth } from '../config';
+import {
+  dataLogOn,
+  desc,
+  withAuth,
+} from '../config';
 
 import { findOrCreate } from './Device';
 
@@ -136,13 +140,14 @@ export async function createLocations(
 export async function create(
   params,
   org,
+  dev = {},
 ) {
   if (Array.isArray(params)) {
     return Promise.reduce(
       params,
       async (p, pp) => {
         try {
-          await create(pp, org);
+          await create(pp, org, dev);
         } catch (e) {
           console.error('v1:create', e);
           throw e;
@@ -164,22 +169,23 @@ export async function create(
     version,
   } = params;
   const deviceInfo = {
-    company_token: companyToken || propDevice.company_token || propDevice.org,
-    framework: framework || propDevice.framework,
-    manufacturer: manufacturer || propDevice.manufacturer,
-    model: model || propDevice.model || propDevice.device_model || 'UNKNOWN',
-    platform: platform || propDevice.platform,
-    uuid: uuid || propDevice.device_id || propDevice.uuid || 'UNKNOWN',
-    version: version || propDevice.version,
+    company_token: companyToken || propDevice.company_token || propDevice.org || dev.company_token || dev.org,
+    framework: framework || propDevice.framework || dev.framework,
+    manufacturer: manufacturer || propDevice.manufacturer || dev.manufacturer,
+    model: model || propDevice.model || propDevice.device_model || dev.device_model || dev.model || 'UNKNOWN',
+    platform: platform || propDevice.platform || dev.platform,
+    uuid: uuid || propDevice.device_id || propDevice.uuid || dev.uuid || dev.device_id || 'UNKNOWN',
+    version: version || propDevice.version || dev.version,
   };
+  const deviceId = propDevice.id || dev.id;
   const token = org ||
     companyToken ||
     params.org ||
     (deviceInfo && deviceInfo.company_token) ||
     'UNKNOWN';
-  const device = await findOrCreate(
+  const device = dev || await findOrCreate(
     token,
-    { ...deviceInfo },
+    deviceId ? { id: deviceId } : deviceInfo,
   );
   const locations = Array.isArray(list)
     ? list
@@ -189,7 +195,7 @@ export async function create(
         : []
     );
 
-  console.log('v1:create:device'.green, token, JSON.stringify(deviceInfo), JSON.stringify(device));
+  dataLogOn && console.log('v1:create:device'.yellow, token, JSON.stringify(deviceInfo), JSON.stringify(device));
 
   if (isDeniedCompany(token)) {
     throw new AccessDeniedError(
@@ -198,7 +204,7 @@ export async function create(
           'Please email me at chris@transistorsoft.com.',
     );
   }
-  if (isDeniedDevice(device.model || device.device_model)) {
+  if (isDeniedDevice(device.device_model)) {
     throw new AccessDeniedError(
       'This is a question from the CEO of Transistor Software.\n' +
         'Why are you spamming my demo server2?\n' +

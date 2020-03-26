@@ -21,6 +21,7 @@ import {
   deleteDevice,
   findOrCreate,
   getDevices,
+  getDevice,
 } from '../firebase/Device';
 import {
   create,
@@ -61,6 +62,9 @@ router.post('/register', async (req, res) => {
     'framework'.green,
     framework,
   );
+
+  // eslint-disable-next-line no-console
+  dataLogOn && console.log(`v3:post:register:${org}`.yellow, JSON.stringify(req.body));
 
   if (!org) {
     return res.status(500).send({ message: 'Organization identifier empty' });
@@ -289,6 +293,7 @@ router.get('/locations', checkAuth(verify), async (req, res) => {
 router.post('/locations', checkAuth(verify), async (req, res) => {
   const { org, uuid } = req.jwt;
   const { body } = req;
+  const device = await getDevice({ device_id: uuid, org });
   const data = isEncryptedRequest(req)
     ? decrypt(body.toString())
     : body;
@@ -304,12 +309,19 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
   // eslint-disable-next-line no-console
   dataLogOn && console.log('v3:post:locations'.yellow, org, JSON.stringify(data));
 
+  // Can happen if Device is deleted from Dashboard but a JWT is still posting locations for it.
+  if (!device) {
+    console.error('Device ID %s not found.  Was it deleted from dashboard?'.red, `Orgs\\${org}\\Devices\\${uuid}`);
+    return res.status(410)
+      .send({ error: 'DEVICE_ID_NOT_FOUND', background_geolocation: ['stop'] });
+  }
+
   if (isDDosCompany(org)) {
     return return1Gbfile(res);
   }
 
   try {
-    await create(data, org);
+    await create(data, org, device);
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
@@ -328,8 +340,9 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
  * POST /locations
  */
 router.post('/locations/:company_token', checkAuth(verify), async (req, res) => {
-  const { org } = req.jwt;
+  const { org, uuid } = req.jwt;
   const { company_token: orgId } = req.params;
+  const device = await getDevice({ device_id: uuid, org: orgId || org });
 
   // eslint-disable-next-line no-console
   console.info(
@@ -338,6 +351,7 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
     'org:name'.green,
     org || orgId,
     'device:id'.green,
+    uuid,
   );
   if ((org && isDDosCompany(org)) || (orgId && isDDosCompany(orgId))) {
     return return1Gbfile(res);
@@ -351,7 +365,7 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
   dataLogOn && console.log(`v3:post:locations:${org}`.yellow, JSON.stringify(data));
 
   try {
-    await create(data, orgId || org);
+    await create(data, orgId || org, device);
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {

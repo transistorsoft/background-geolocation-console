@@ -145,17 +145,7 @@ describe('jwt api', () => {
         .request(server)
         .post('/api/jwt/locations')
         .set('Authorization', `Bearer ${token}`)
-        .send({
-          location: [location, location2],
-          device: {
-            framework: 'flutter',
-            manufacturer: 'Apple',
-            model: 'iPhone10,4(x86_64)',
-            platform: '13.3',
-            uuid: 'iPhone10-4(x86_64)-13-3',
-            version: '2.0',
-          },
-        });
+        .send({ location: [location, location2] });
       expect(res).have.status(200);
       expect(res).to.be.json;
     });
@@ -165,17 +155,7 @@ describe('jwt api', () => {
         .request(server)
         .post('/api/jwt/locations')
         .set('Authorization', `Bearer ${token}`)
-        .send([{
-          location,
-          device: {
-            framework: 'flutter',
-            manufacturer: 'Apple',
-            model: 'iPhone10,4(x86_64)',
-            platform: '13.3',
-            uuid: 'iPhone10-4(x86_64)-13-3',
-            version: '2.0',
-          },
-        }]);
+        .send([{ location }]);
       expect(res).have.status(200);
       expect(res).to.be.json;
     });
