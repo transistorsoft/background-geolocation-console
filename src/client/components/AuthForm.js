@@ -53,10 +53,10 @@ const AuthForm = ({ handleCheckAuth }: DispatchProps) => {
       [name]: value,
     });
   });
-  const handleSubmit = useCallback((event: Event) => {
+  const handleSubmit = (event: Event) => {
     event.preventDefault();
-    handleCheckAuth(values);
-  }, values);
+    return handleCheckAuth(values);
+  };
 
   return (
     <Container component='main' maxWidth='xs'>

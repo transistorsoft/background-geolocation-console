@@ -73,7 +73,7 @@ app.use(bodyParser.raw(parserLimits));
 
   app.listen(port, () => {
     console.log('╔═══════════════════════════════════════════════════════════'.green.bold);
-    console.log('║ Background Geolocation Server | port: %s'.green.bold, port);
+    console.log('║ Background Geolocation Server | port: %s, dyno: %s'.green.bold, port, dyno);
     console.log('╚═══════════════════════════════════════════════════════════'.green.bold);
 
     // Spawning dedicated process on opened port.. only if not deployed on heroku
