@@ -65,6 +65,7 @@
     "babel-plugin-transform-flow-strip-types": "^6.22.0",
     "babel-plugin-transform-function-bind": "^6.22.0",
     "babel-plugin-transform-require-ignore": "0.0.2",
+    "babel-plugin-root-import": "^6.4.1",
     "better-npm-run": "^0.1.1",
     "bluebird": "^3.7.1",
     "body-parser": "^1.17.1",
@@ -111,7 +112,6 @@
   "devDependencies": {
     "babel-eslint": "^10.0.3",
     "babel-jest": "^24.9.0",
-    "babel-plugin-root-import": "^6.4.1",
     "chai": "^4.2.0",
     "chai-http": "^4.3.0",
     "concurrently": "^5.0.0",
