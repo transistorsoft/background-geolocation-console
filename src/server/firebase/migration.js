@@ -165,6 +165,36 @@ export default async ({ uuid, org }) => {
     console.log('firestore:devices', toRows(fDevices));
     console.log('firestore:location', toRow(fLocation));
     console.log('firestore:locations', toRows(fLocations));
+
+    const locations = await firestore
+      .collection('Org').doc(org)
+      .collection('Devices').doc(uuid)
+      .collection('Locations')
+      .get();
+
+    console.log('locations', org, uuid, toRows(locations));
+
+    const devicesSort = await firestore.collectionGroup('Devices')
+      .where('device_id', '==', uuid)
+      .orderBy('updated_at', 'desc')
+      .get();
+
+    console.log('devices', uuid, 'updated_at:desc', toRows(devicesSort));
+
+    const devices = await firestore.collectionGroup('Devices')
+      .where('device_id', '==', uuid)
+      .limit(1)
+      .get();
+    const locs = await devices.docs[0];
+    console.log('devices', uuid, toRow(locs));
+    const requests = [];
+    devices.forEach(device => requests.push(device.ref.collection('Locations')));
+    const list = await Promise.reduce(
+      requests,
+      async (res, query) => res.concat(toRows(await query.get())),
+      [],
+    );
+    console.log('Locations', uuid, list.length);
   } catch (e) {
     console.log('result:error', e);
   }

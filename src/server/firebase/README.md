@@ -35,6 +35,29 @@ service cloud.firestore {
 }
 ```
 
+## Indexes
+
+Please add Single field exemptions for device filter:
+
+ * Collection: `Devices`
+ * Field: `device_id`, `updated_at`
+ * Query scope: `Collection group`
+
+![Single field exemptions](./single-field-exemptions.png)
+
+
+Please add Composite Index for device filter and sort:
+
+![Composite index](./composite-index.png)
+
+Those links may help, please change `[project-name]` to you application name in firstore:
+
+https://console.firebase.google.com/v1/r/project/[project-name]/firestore/indexes?create_exemption=Clpwcm9qZWN0cy9nZW9sb2NhdGlvbi1jb25zb2xlL2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy9EZXZpY2VzL2ZpZWxkcy9kZXZpY2VfaWQQAhoNCglkZXZpY2VfaWQQAQ
+
+https://console.firebase.google.com/v1/r/project/[project-name]/firestore/indexes?create_composite=ClNwcm9qZWN0cy9nZW9sb2NhdGlvbi1jb25zb2xlL2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy9EZXZpY2VzL2luZGV4ZXMvXxACGg0KCWRldmljZV9pZBABGg4KCnVwZGF0ZWRfYXQQAhoMCghfX25hbWVfXxAC
+
+https://console.firebase.google.com/v1/r/project/[project-name]/firestore/indexes?create_exemption=Cltwcm9qZWN0cy9nZW9sb2NhdGlvbi1jb25zb2xlL2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy9EZXZpY2VzL2ZpZWxkcy91cGRhdGVkX2F0EAIaDgoKdXBkYXRlZF9hdBAC
+
 # Self check
 
 ```
@@ -47,7 +70,7 @@ export export GOOGLE_MAPS_API_KEY=AIz...Nkg && \
   export FIREBASE_PROJECT_ID=geolocation-console && \
   export FIREBASE_CLIENT_EMAIL=geolocation-console@appspot.gserviceaccount.com
 
-./src/server/firebase/run.js
+./src/server/firebase/check.js
 ```
 
 # Migration from DB

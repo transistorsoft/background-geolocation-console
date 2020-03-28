@@ -94,7 +94,7 @@ router.post('/register', async (req, res) => {
       companyId: org,
     };
 
-    await createUser(org);
+    await createUser({ org });
     const accessToken = await serviceApp.auth().createCustomToken(org, jwtInfo);
     const refreshToken = crypto
       .createHash('md5')
@@ -413,7 +413,7 @@ router.post('/auth', async (req, res) => {
 
   try {
     if (isAdminToken(login) && isPassword(password)) {
-      await createUser(login);
+      await createUser({ org: login });
       const jwtInfo = { org: login, admin: true };
       const accessToken = await serviceApp.auth().createCustomToken(login, jwtInfo);
       return res.send({
@@ -434,7 +434,7 @@ router.post('/jwt', async (req, res) => {
   const { org } = req.body || {};
 
   try {
-    await createUser(org);
+    await createUser({ org });
 
     const jwtInfo = { org, admin: false };
     const accessToken = await serviceApp.auth().createCustomToken(org, jwtInfo);

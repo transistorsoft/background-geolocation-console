@@ -3,7 +3,7 @@
 require('@babel/polyfill/noConflict');
 require('@babel/register')();
 
-const { migrate } = require('../src/server/firebase/migration');
+const { default: check } = require('./migration');
 
-migrate()
+check({ org: 'test', uuid: 'UNKNOWN' })
   .then(() => process.exit(1));

@@ -58,8 +58,12 @@ export async function getLocations(params, isAdmin) {
       ? await devicesGroup.where('device_id', '==', deviceId).get()
       : await devicesGroup.get();
     const requests = [];
-    devices.forEach(device => requests.push(makeQuery(device.ref.collection('Locations'), startDate, endDate).get()));
-    const list = requests.reduce((rows, snapshot) => rows.push(...toRows(snapshot)), []);
+    devices.forEach(device => requests.push(device.ref.collection('Locations')));
+    const list = await Promise.reduce(
+      requests,
+      async (res, query) => res.concat(toRows(await query.get())),
+      [],
+    );
     return list;
   }
 
@@ -99,12 +103,12 @@ export async function getLatestLocation(params, isAdmin) {
       .limit(1)
       .get();
     const device = !devices.empty && devices.docs[0];
-    const lastLocation = device.ref
+    const lastLocation = device && await device.ref
       .collection('Locations')
       .orderBy('recorded_at', 'desc')
       .limit(1)
       .get();
-    return toRows(lastLocation).pop();
+    return lastLocation && toRows(lastLocation).pop();
   }
 
   try {

@@ -31,7 +31,9 @@ export async function getDevices({ org }, isAdmin) {
   }
 
   if (!withAuth) {
-    const devices = firestore.collectionGroup('Devices').orderBy('updated_at', 'desc').get();
+    const devices = firestore.collectionGroup('Devices')
+      .orderBy('updated_at', 'desc')
+      .get();
     return toRows(devices);
   }
 
