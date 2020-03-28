@@ -28,7 +28,7 @@ const WrappedViewport = ({
   useEffect(() => {
     const action = !hasToken && !!shared
       ? showAuthDialog()
-      : getDefaultJwt(token);
+      : (token && getDefaultJwt(token));
 
     !hasData && action && store.dispatch(action);
   }, [hasToken]);

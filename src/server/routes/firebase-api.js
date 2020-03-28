@@ -436,7 +436,7 @@ router.post('/jwt', async (req, res) => {
   try {
     await createUser({ org });
 
-    const jwtInfo = { org, admin: false };
+    const jwtInfo = { org, admin: isAdminToken(org) };
     const accessToken = await serviceApp.auth().createCustomToken(org, jwtInfo);
     return res.send({
       access_token: accessToken,
@@ -448,7 +448,7 @@ router.post('/jwt', async (req, res) => {
     console.error('v3', '/jwt', e);
   }
 
-  return res.status(401).send({ org, error: 'Await not public account and right password' });
+  return res.status(401).send({ org, error: 'Await not public account' });
 });
 
 export default router;

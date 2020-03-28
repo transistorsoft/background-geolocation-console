@@ -136,9 +136,9 @@ export function setUrlSettings(
   const {
     orgTokenFromSearch, startDate, endDate, deviceId,
   } = settings;
-  const { accessToken } = auth;
+  const { accessToken, org } = auth;
   const shared = !!process.env.SHARED_DASHBOARD;
-  const hasToken = accessToken;
+  const hasToken = accessToken || org;
   const mainPart = orgTokenFromSearch ? `/${orgTokenFromSearch}` : '';
   const search = {
     device: deviceId,
@@ -146,6 +146,7 @@ export function setUrlSettings(
     start: encodeStartDate(startDate),
   };
   const url = `${!hasToken || shared ? mainPart : ''}?${queryString.stringify(search)}`;
+  console.log('setUrlSettings', orgTokenFromSearch, url);
   window.history.replaceState({}, '', url);
 }
 

@@ -292,6 +292,7 @@ router.post('/jwt', async (req, res) => {
     const jwtInfo = {
       companyId: id || 0,
       org: org || 'admin',
+      admin: isAdmin(),
     };
     const accessToken = sign(jwtInfo);
     return res.send({
