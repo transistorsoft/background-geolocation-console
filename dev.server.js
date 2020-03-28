@@ -34,7 +34,7 @@ const make = apiAddress => {
   return proxy;
 };
 const register = (a, proxy, p, apiAddress) => {
-  console.log(`Server ${a.name} will proxy ${p} to ${apiAddress}`);
+  console.info(`Server ${a.name} will proxy ${p} to ${apiAddress}`);
 
   a.use(p, (req, res) => {
     proxy.web(req, res, { target: apiAddress });
@@ -77,10 +77,10 @@ app.get('*', (req, res, next) => {
 });
 
 app.listen(devPort, () => {
-  console.log('Developer Server | port: %s', devPort);
+  console.log('Developer Server | port: %s'.green, devPort);
 });
 
 process.on('dev server Uncaught Exception', err => {
   // eslint-disable-next-line no-console
-  console.error('<!> Exception %s: ', err.message, err.stack);
+  console.error('<!> Exception %s: '.red, err.message, err.stack);
 });

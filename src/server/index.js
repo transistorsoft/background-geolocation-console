@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+
 import { resolve, extname } from 'path';
 import express from 'express';
 import morgan from 'morgan';
@@ -59,7 +60,7 @@ app.use(bodyParser.raw(parserLimits));
     const ext = extname(req.url);
     console.log('req.url', req.url, ext);
     if ((!ext || ext === '.html') && req.url !== '/') {
-      res.sendFile(resolve(buildPath, 'index.html'));
+      res.sendFile(resolve(__dirname, buildPath, 'index.html'));
     } else {
       next();
     }
@@ -76,9 +77,11 @@ app.use(bodyParser.raw(parserLimits));
     console.log('║ Background Geolocation Server | port: %s, dyno: %s'.green.bold, port, dyno);
     console.log('╚═══════════════════════════════════════════════════════════'.green.bold);
 
-    // Spawning dedicated process on opened port.. only if not deployed on heroku
+    // Spawning dedicated process on opened port..
+    // only if not deployed on heroku
     if (!dyno) {
-      opn('http://localhost:8080').catch(error => console.error('Optional site open failed:', error));
+      opn(`http://localhost:${port}`)
+        .catch(error => console.error('Optional site open failed:', error));
     }
   });
 })());

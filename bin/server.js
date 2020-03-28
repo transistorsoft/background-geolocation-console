@@ -15,4 +15,5 @@ if (!isProduction) {
 
 require('@babel/polyfill/noConflict');
 require('@babel/register')();
+
 require('../src/server');

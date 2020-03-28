@@ -8,7 +8,6 @@ import Location from './LocationModel';
 import Device from './DeviceModel';
 import Company from './CompanyModel';
 
-
 const syncOptions = { logging: true };
 
 /**

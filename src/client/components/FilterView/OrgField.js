@@ -107,7 +107,8 @@ const OrgField = (props: Props) => {
     </ListItem>
   );
   const contentRef = React.createRef();
-  if (!s.length || !s.length <= 1) {
+
+  if (!s.length || s.length <= 1) {
     return null;
   }
 
