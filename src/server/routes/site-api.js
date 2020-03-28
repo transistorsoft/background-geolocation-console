@@ -292,13 +292,13 @@ router.post('/jwt', async (req, res) => {
     const jwtInfo = {
       companyId: id || 0,
       org: org || 'admin',
-      admin: isAdmin(),
+      admin: true,
     };
     const accessToken = sign(jwtInfo);
     return res.send({
       access_token: accessToken,
       token_type: 'Bearer',
-      org: 'admin',
+      org,
     });
   } catch (e) {
     console.error('v1', '/jwt', e);

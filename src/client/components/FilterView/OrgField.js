@@ -86,10 +86,10 @@ const OrgField = (props: Props) => {
   const source = val
     ? s.filter((x: Source) => x.label && !!~x.label.toLowerCase().indexOf(val))
     : s;
-  const handleOk = React.useCallback((index: number) => {
+  const handleOk = (index: number) => {
     setOpen(false);
     !!source.length && onChange(source[index].value);
-  });
+  };
   const rowRenderer = ({
     key, rowIndex, style,
   }: any) => (
@@ -111,7 +111,6 @@ const OrgField = (props: Props) => {
   if (!s.length || s.length <= 1) {
     return null;
   }
-
   return [
     <Select
       key='select'
@@ -131,9 +130,6 @@ const OrgField = (props: Props) => {
     </Select>,
     <Dialog
       key='dialog'
-      // disableBackdropClick
-      // disableEscapeKeyDown
-      // onEntering={handleEntering}
       aria-labelledby='filter-dialog-title'
       aria-describedby='filter-dialog-description'
       open={dialogOpen}
@@ -179,39 +175,23 @@ const OrgField = (props: Props) => {
             />
           </FormControl>
           <div style={containerStyle} ref={contentRef}>
-            <WindowScroller scrollElement={contentRef.current}>
-              {({
-                isScrolling,
-                registerChild,
-                onChildScroll,
-                scrollTop,
-              }: any) => (
-                <AutoSizer>
-                  {({ width, height }: any) => (
-                    <div ref={registerChild}>
-                      <Grid
-                        // autoWidth
-                        autoContainerWidth
-                        cellRenderer={rowRenderer}
-                        columnWidth={500}
-                        columnCount={1}
-                        height={height}
-                        overscanColumnCount={2}
-                        overscanRowCount={2}
-                        rowHeight={50}
-                        rowCount={source.length}
-                        scrollTop={scrollTop}
-                        width={width}
-                        isScrolling={isScrolling}
-                        onScroll={onChildScroll}
-                        filter={filter}
-                        // scrollToIndex={scrollToIndex}
-                      />
-                    </div>
-                  )}
-                </AutoSizer>
+            <AutoSizer>
+              {({ width, height }: any) => (
+                <Grid
+                  autoContainerWidth
+                  cellRenderer={rowRenderer}
+                  columnWidth={500}
+                  columnCount={1}
+                  height={height}
+                  overscanColumnCount={2}
+                  overscanRowCount={2}
+                  rowHeight={50}
+                  rowCount={source.length}
+                  width={width}
+                  filter={filter}
+                />
               )}
-            </WindowScroller>
+            </AutoSizer>
           </div>
         </RemoveAnimationProvider>
       </DialogContent>

@@ -25,6 +25,7 @@ const WrappedViewport = ({
   const { token } = match.params;
   const shared = !!process.env.SHARED_DASHBOARD;
   const hasToken = (!!org || !!token);
+  console.log('WrappedViewport', hasToken, shared, org, token);
   useEffect(() => {
     const action = !hasToken && !!shared
       ? showAuthDialog()
