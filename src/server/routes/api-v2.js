@@ -7,6 +7,7 @@ import {
   AccessDeniedError,
   checkAuth,
   dataLogOn,
+  isAdmin,
   isDDosCompany,
   isProduction,
   RegistrationRequiredError,
@@ -165,7 +166,7 @@ router.all('/refresh_token', checkAuth(verify), async (req, res) => {
 router.get('/company_tokens', checkAuth(verify), async (req, res) => {
   const { org } = req.jwt;
   try {
-    const orgTokens = await getOrgs({ org });
+    const orgTokens = await getOrgs({ org }, isAdmin(req.jwt));
     res.send(orgTokens);
   } catch (err) {
     // eslint-disable-next-line no-console
@@ -177,7 +178,7 @@ router.get('/company_tokens', checkAuth(verify), async (req, res) => {
 router.get('/devices', checkAuth(verify), async (req, res) => {
   try {
     const { org } = req.jwt;
-    const devices = await getDevices({ org });
+    const devices = await getDevices({ org }, isAdmin(req.jwt));
     res.send(devices || []);
   } catch (err) {
     // eslint-disable-next-line no-console

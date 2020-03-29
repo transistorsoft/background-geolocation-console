@@ -23,6 +23,7 @@ import {
   getLocations,
   getStats,
 } from '../models/Location';
+import { withAuth, adminToken } from '../config';
 import { getOrgs, findOne } from '../models/Org';
 
 const router = new Router();
@@ -290,15 +291,15 @@ router.post('/jwt', async (req, res) => {
     }
 
     const jwtInfo = {
+      admin: isAdmin(),
       companyId: id || 0,
-      org: org || 'admin',
-      admin: true,
+      org: withAuth ? org : (org || adminToken),
     };
     const accessToken = sign(jwtInfo);
     return res.send({
       access_token: accessToken,
-      token_type: 'Bearer',
       org,
+      token_type: 'Bearer',
     });
   } catch (e) {
     console.error('v1', '/jwt', e);

@@ -18,7 +18,6 @@ import ListItemIcon from '@material-ui/core/ListItemIcon';
 import CloseIcon from '@material-ui/icons/Close';
 import ListItemText from '@material-ui/core/ListItemText';
 import AutoSizer from 'react-virtualized/dist/commonjs/AutoSizer';
-import WindowScroller from 'react-virtualized/dist/commonjs/WindowScroller';
 import Grid from 'react-virtualized/dist/commonjs/Grid';
 import DeviceUnknownIcon from '@material-ui/icons/DeviceUnknown';
 import CloseRounded from '@material-ui/icons/CloseRounded';
@@ -108,7 +107,7 @@ const OrgField = (props: Props) => {
   );
   const contentRef = React.createRef();
 
-  if (!s.length || s.length <= 1) {
+  if (!s.length || s.length <= 1 || !process.env.SHARED_DASHBOARD) {
     return null;
   }
   return [

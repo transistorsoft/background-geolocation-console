@@ -3,8 +3,14 @@ import { Router } from 'express';
 
 import { decrypt, isEncryptedRequest } from '../libs/RNCrypto';
 import {
-  createUser, serviceApp, verify,
+  createUser,
+  serviceApp,
+  verify,
 } from '../firebase';
+import {
+  adminToken,
+  withAuth,
+} from '../config';
 import {
   AccessDeniedError,
   checkAuth,
@@ -175,7 +181,7 @@ router.get('/devices', checkAuth(verify), async (req, res) => {
   const { org, admin } = req.jwt;
   const { company_id: orgId } = req.query;
   try {
-    const devices = await getDevices({ org: !admin ? org : orgId });
+    const devices = await getDevices({ org: !admin ? org : orgId }, admin);
     res.send(devices || []);
   } catch (err) {
     // eslint-disable-next-line no-console
@@ -431,12 +437,17 @@ router.post('/auth', async (req, res) => {
 });
 
 router.post('/jwt', async (req, res) => {
-  const { org } = req.body || {};
+  const { org: inOrg } = req.body || {};
+  const org = withAuth ? inOrg : adminToken;
 
   try {
     await createUser({ org });
 
-    const jwtInfo = { org, admin: isAdminToken(org) };
+    const jwtInfo = {
+      admin: isAdmin(),
+      companyId: org,
+      org,
+    };
     const accessToken = await serviceApp.auth().createCustomToken(org, jwtInfo);
     return res.send({
       access_token: accessToken,

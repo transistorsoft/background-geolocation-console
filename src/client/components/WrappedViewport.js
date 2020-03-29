@@ -25,14 +25,19 @@ const WrappedViewport = ({
   const { token } = match.params;
   const shared = !!process.env.SHARED_DASHBOARD;
   const hasToken = (!!org || !!token);
+
   console.log('WrappedViewport', hasToken, shared, org, token);
+
   useEffect(() => {
     const action = !hasToken && !!shared
+      // auth mode for admin
       ? showAuthDialog()
-      : (token && getDefaultJwt(token));
+      // admin or without auth mode
+      : getDefaultJwt(token);
 
     !hasData && action && store.dispatch(action);
   }, [hasToken]);
+
   return hasToken || !shared
     ? (!loading ? <Viewport /> : <Loading />)
     : <AuthForm />;

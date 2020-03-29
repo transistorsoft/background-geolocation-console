@@ -32,8 +32,9 @@ const DeviceField = ({
         onChange={handleChange}
         value={`${value || ''}`}
       >
-        {source.map((x: Source) => (
-          <MenuItem key={x.value} value={x.value}>
+        {source.map((x: Source, index: number) => (
+          // eslint-disable-next-line react/no-array-index-key
+          <MenuItem key={index} value={x.value}>
             {x.label}
           </MenuItem>
         ))}

@@ -185,10 +185,11 @@ export default async ({ uuid, org }) => {
       .where('device_id', '==', uuid)
       .limit(1)
       .get();
-    const locs = await devices.docs[0];
-    console.log('devices', uuid, toRow(locs));
+    console.log('devices', uuid, toRows(devices));
+    const device = toRow(await devices.docs[0]);
+    console.log(`Orgs\\${device.company_token}\\Devices\\${device.id}`, device);
     const requests = [];
-    devices.forEach(device => requests.push(device.ref.collection('Locations')));
+    devices.forEach(d => requests.push(d.ref.collection('Locations')));
     const list = await Promise.reduce(
       requests,
       async (res, query) => res.concat(toRows(await query.get())),
