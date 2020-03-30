@@ -41,11 +41,14 @@ keys.public = JWT_PUBLIC_KEY || publicKey;
   audience: "Client_Identity" // this should be provided by client
 */
 export const sign = (payload, pKey = privateKey || keys.private, { issuer, subject } = signOptions) => {
+  const audience = payload.audience || payload.org || 'unknown';
   // Token signing options
   const options = {
     issuer,
     subject,
-    audience: payload.audience || payload.org,
+    audience: Array.isArray(audience)
+      ? audience.filter(Boolean).map(x => `${x}`).join(', ')
+      : `${audience}`,
     // expiresIn: '782d',
     algorithm: 'RS256',
   };
