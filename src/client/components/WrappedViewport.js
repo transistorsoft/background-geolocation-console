@@ -3,9 +3,7 @@ import React, { useEffect } from 'react';
 import { connect } from 'react-redux';
 
 import type { GlobalState } from 'reducer/state';
-import { showAuthDialog, getDefaultJwt } from 'reducer/auth';
-
-import store from '../store';
+import { prepareView as prepareAction } from 'reducer/auth';
 
 import Viewport from './Viewport';
 import Loading from './Loading';
@@ -14,37 +12,38 @@ import AuthForm from './AuthForm';
 type StateProps = {|
   org: string,
   match: { params?: { token: string } },
+  prepare: (string) => void,
+  loading: boolean,
 |};
+const shared = !!process.env.SHARED_DASHBOARD;
 
 const WrappedViewport = ({
-  hasData,
   loading,
   match,
   org,
+  prepare,
 }: StateProps) => {
   const { token } = match.params;
-  const shared = !!process.env.SHARED_DASHBOARD;
   const hasToken = (!!org || !!token);
 
   useEffect(() => {
-    const action = !hasToken && !!shared
-      // auth mode for admin
-      ? showAuthDialog()
-      // admin or without auth mode
-      : getDefaultJwt(token || org);
-
-    !hasData && action && store.dispatch(action);
-  }, [hasToken]);
+    prepare(token);
+  }, [token, org]);
 
   return hasToken || !shared
     ? (!loading ? <Viewport /> : <Loading />)
     : <AuthForm />;
 };
 
-const mapStateToProps = (state: GlobalState): StateProps => ({
-  org: state.auth.org,
-  loading: state.auth.loading,
-  hasData: state.dashboard.hasData,
-});
+const mapStateToProps = (state: GlobalState): StateProps => (
+  {
+    accessToken: state.auth.accessToken,
+    loading: state.auth.loading,
+    org: state.auth.org,
+  }
+);
 
-export default connect(mapStateToProps)(WrappedViewport);
+export default connect(
+  mapStateToProps,
+  { prepare: prepareAction },
+)(WrappedViewport);

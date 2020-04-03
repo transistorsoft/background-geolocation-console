@@ -4,7 +4,7 @@ import isUndefined from 'lodash/isUndefined';
 import omitBy from 'lodash/omitBy';
 
 import { type Tab } from 'reducer/state';
-import { type AuthInfo } from 'reducer/types';
+import { type AuthInfo, type AuthSettings } from 'reducer/types';
 import cloneState from 'utils/cloneState';
 
 export type StoredSettings = {|
@@ -36,7 +36,7 @@ export function setAuth(settings: AuthSettings): AuthSettings {
   if (!settings) {
     return null;
   }
-  localStorage.setItem(getLocalStorageKey('auth'), JSON.strinfigy(settings));
+  localStorage.setItem(getLocalStorageKey('auth'), JSON.stringify(settings));
 
   return settings;
 }
@@ -146,7 +146,7 @@ export function setUrlSettings(
     start: encodeStartDate(startDate),
   };
   const url = `${!hasToken || shared ? mainPart : ''}?${queryString.stringify(search)}`;
-  console.log('setUrlSettings', orgTokenFromSearch, url);
+
   window.history.replaceState({}, '', url);
 }
 

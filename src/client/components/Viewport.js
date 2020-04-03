@@ -1,11 +1,13 @@
 // @flow
 import React, { useState } from 'react';
+import { connect } from 'react-redux';
 import clsx from 'classnames';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import Drawer from '@material-ui/core/Drawer';
 import Tab from '@material-ui/core/Tab';
 import Tabs from '@material-ui/core/Tabs';
-import { connect } from 'react-redux';
+import IconButton from '@material-ui/core/IconButton';
+import ExitToAppIcon from '@material-ui/icons/ExitToApp';
 
 import type { GlobalState } from 'reducer/state';
 import {
@@ -13,6 +15,8 @@ import {
   type Tab as TabType,
   type Location,
 } from 'reducer/dashboard';
+
+import { logout as logoutAction } from 'reducer/auth';
 
 import HeaderView from './HeaderView';
 import FilterView from './FilterView';
@@ -33,12 +37,18 @@ type StateProps = {|
 type DispatchProps = {|
   onChangeActiveTab: (tab: TabType) => any,
 |};
-
+const shared = !!process.env.SHARED_DASHBOARD;
 type Props = {|
   ...StateProps,
   ...DispatchProps,
 |};
-const Viewport = ({ activeTabIndex, location }: Props) => {
+
+const Viewport = ({
+  activeTabIndex,
+  accessToken,
+  location,
+  logout,
+}: Props) => {
   const [tabIndex, setTabIndex] = useState(activeTabIndex);
   const [open, setOpen] = React.useState(true);
   const classes = useStyles();
@@ -52,14 +62,21 @@ const Viewport = ({ activeTabIndex, location }: Props) => {
         location={location}
         open={open}
       >
-        <Tabs
-          className={classes.tabs}
-          value={tabIndex}
-          onChange={(e: Event, index: number) => setTabIndex(index)}
-        >
-          <Tab label='Map' />
-          <Tab label='Data' />
-        </Tabs>
+        <div className={classes.actionRow}>
+          <Tabs
+            className={classes.tabs}
+            value={tabIndex}
+            onChange={(e: Event, index: number) => setTabIndex(index)}
+          >
+            <Tab label='Map' />
+            <Tab label='Data' />
+          </Tabs>
+          {accessToken && shared && (
+            <IconButton onClick={logout} className={classes.logout} aria-label='logout'>
+              <ExitToAppIcon />
+            </IconButton>
+          )}
+        </div>
       </HeaderView>
       <Drawer
         className={classes.drawer}
@@ -108,10 +125,14 @@ const Viewport = ({ activeTabIndex, location }: Props) => {
 };
 
 const mapStateToProps = (state: GlobalState): StateProps => ({
-  isLocationSelected: !!state.dashboard.selectedLocationId,
+  accessToken: state.auth.accessToken,
   activeTabIndex: state.dashboard.activeTab === 'map' ? 0 : 1,
+  isLocationSelected: !!state.dashboard.selectedLocationId,
   location: getLocation(state),
 });
-const mapDispatchToProps: DispatchProps = { onChangeActiveTab: changeActiveTab };
+const mapDispatchToProps: DispatchProps = {
+  onChangeActiveTab: changeActiveTab,
+  logout: logoutAction,
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(Viewport);

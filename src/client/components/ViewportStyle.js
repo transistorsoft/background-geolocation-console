@@ -49,6 +49,12 @@ const useStyles = makeStyles(theme => ({
     whiteSpace: 'pre-wrap',
     wordWrap: 'break-word',
   },
+  actionRow: {
+    backgroundColor: theme.palette.primary.main,
+    display: 'flex',
+    flexDirection: 'row',
+  },
+  logout: { width: '60px', color: 'white' },
   tabPanel: {
     position: 'absolute',
     top: 0,
@@ -56,7 +62,7 @@ const useStyles = makeStyles(theme => ({
     right: 0,
     bottom: 0,
   },
-  tabs: { backgroundColor: theme.palette.primary.main },
+  tabs: { flex: 'auto' },
   menuButton: { marginRight: theme.spacing(2) },
   hide: { display: 'none' },
   drawer: {

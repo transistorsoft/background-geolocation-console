@@ -6,12 +6,17 @@ import {
   type Dispatch,
   type ThunkAction,
 } from 'reducer/types';
+
 import { loadInitialData } from 'reducer/dashboard';
+
+import { setAuth, getAuth } from '../../storage';
 
 import { API_URL } from '../../constants';
 
+const shared = !!process.env.SHARED_DASHBOARD;
 
 type AuthPayload = { accessToken: string, org: string };
+getAuth;
 
 type SetAccessTokenAction = {|
   type: 'auth/SET_ACCESS_TOKEN',
@@ -21,6 +26,10 @@ type SetAccessTokenAction = {|
 type SetAuthModalOpenAction = {|
   type: 'auth/SET_MODAL_OPEN',
   value: boolean,
+|};
+
+type LogoutAction = {|
+  type: 'auth/LOGOUT',
 |};
 
 type SetTokenLoadingAction = {|
@@ -51,6 +60,8 @@ export const setAuthModalOpen = (value: boolean): SetAuthModalOpenAction => ({ t
 export const setAuthError = (value: string): AuthErrorAction => ({ type: 'auth/ERROR', value });
 
 export const setTokenLoading = (): SetTokenLoadingAction => ({ type: 'auth/ACCESS_TOKEN_LOADING' });
+
+export const logoutAction = (): LogoutAction => ({ type: 'auth/LOGOUT' });
 
 // ------------------------------------
 // Thunk Actions
@@ -84,7 +95,7 @@ export const checkAuth =
         await dispatch(setAccessToken({ accessToken, org }));
         await dispatch(setAuthModalOpen(false));
         await dispatch(setAuthError(''));
-        // setAuth({ org, accessToken });
+        setAuth({ org, accessToken });
         await dispatch(loadInitialData(org));
       } else {
         await dispatch(setAuthError(error));
@@ -94,6 +105,11 @@ export const checkAuth =
     }
   };
 
+export const logout = (): ThunkAction => async (dispatch: Dispatch): Promise<void> => {
+  setAuth({ org: '', accessToken: '' });
+  await dispatch(logoutAction());
+  // window.location.reload(true);
+};
 
 export const getDefaultJwt = (token: string): ThunkAction => async (dispatch: Dispatch): Promise<void> => {
   try {
@@ -114,7 +130,7 @@ export const getDefaultJwt = (token: string): ThunkAction => async (dispatch: Di
       await dispatch(setAccessToken({ accessToken, org }));
       await dispatch(setAuthModalOpen(false));
       await dispatch(setAuthError(''));
-      // setAuth({ org, accessToken });
+      setAuth({ org, accessToken });
       await dispatch(loadInitialData(org));
     } else {
       await dispatch(setAuthError(error));
@@ -123,6 +139,26 @@ export const getDefaultJwt = (token: string): ThunkAction => async (dispatch: Di
     console.error('loadLocations', e);
   }
 };
+
+export const prepareView =
+  (token: string): ThunkAction => async (dispatch: Dispatch, getState: GetState): Promise<void> => {
+    const {
+      auth: { org, accessToken },
+      dashboard: { hasData },
+    } = getState();
+    const hasToken = (!!org || !!token);
+    const action = !hasToken && !!shared
+    // auth mode for admin
+      ? showAuthDialog()
+    // admin or without auth mode
+      : (
+        !accessToken
+          ? getDefaultJwt(token || org)
+          : loadInitialData(org)
+      );
+
+    !hasData && action && await dispatch(action);
+  };
 
 // ------------------------------------
 // Action Handlers
@@ -154,14 +190,23 @@ const setTokenLoadingHandler =
   { loading: true },
 );
 
+const logoutHandler = (state: AuthState): AuthState => cloneState(
+  state,
+  {
+    loading: false, org: '', accessToken: '',
+  },
+);
+
 // ------------------------------------
 // Initial State
 // ------------------------------------
 
+const { org = '', accessToken = '' } = getAuth() || {};
+
 const initialState: AuthState = {
-  org: '',
+  org,
   error: '',
-  accessToken: '',
+  accessToken,
 };
 
 // ------------------------------------
@@ -177,6 +222,8 @@ export default function spotsReducer (state: AuthState = initialState, action: A
       return setAuthErrorHandler(state, action);
     case 'auth/ACCESS_TOKEN_LOADING':
       return setTokenLoadingHandler(state, action);
+    case 'auth/LOGOUT':
+      return logoutHandler(state, action);
     default:
       // eslint-disable-next-line no-unused-expressions
       (action: empty);

@@ -307,7 +307,7 @@ class MapView extends Component<Props, MapState> {
     }
     let marker = this.markers.find((x: any) => x.location.uuid === location.uuid);
     if (!marker) {
-      marker = this.geofenceHitMarkers.find((x: any) => x.location && marker.location.uuid === location.uuid);
+      marker = this.geofenceHitMarkers.find((x: any) => x.location && x.location.uuid === location.uuid);
     }
     if (marker) {
       this.selectedMarker = marker;
