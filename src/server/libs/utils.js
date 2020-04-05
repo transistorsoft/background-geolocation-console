@@ -5,6 +5,7 @@ import { firestore } from 'firebase-admin';
 
 import {
   adminToken,
+  adminUsername,
   dataLogOn,
   ddosBombCompanies,
   deniedCompanies,
@@ -18,7 +19,8 @@ const check = (list, item) => list.find(x => !!x && (item || '').toLowerCase().s
 export const isDDosCompany = orgToken => check(ddosBombCompanies, orgToken);
 export const isDeniedCompany = orgToken => check(deniedCompanies, orgToken);
 export const isDeniedDevice = orgToken => check(deniedDevices, orgToken);
-export const isAdminToken = orgToken => !!adminToken && orgToken === adminToken;
+export const isAdminToken = orgToken => (!!adminToken && orgToken === adminToken) ||
+  (!!adminUsername && adminUsername === orgToken);
 export const isPassword = p => password === p;
 export const isAdmin = ({ admin } = {}) => !!admin || !withAuth;
 export const jsonb = data => (!data ? null : JSON.stringify(data));

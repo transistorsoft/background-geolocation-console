@@ -24,15 +24,18 @@ const WrappedViewport = ({
   prepare,
 }: StateProps) => {
   const { token } = match.params;
-  const hasToken = (!!org || !!token);
+  const isAdminPath = token === 'admin';
+  const hasToken = (!!org || (!isAdminPath && !!token));
+
+  console.log('WrappedViewport', isAdminPath, hasToken, shared, token, org);
 
   useEffect(() => {
     prepare(token);
   }, [token, org]);
 
-  return hasToken || !shared
-    ? (!loading ? <Viewport /> : <Loading />)
-    : <AuthForm />;
+  return isAdminPath && !hasToken && shared
+    ? <AuthForm />
+    : (!loading ? <Viewport /> : <Loading />);
 };
 
 const mapStateToProps = (state: GlobalState): StateProps => (

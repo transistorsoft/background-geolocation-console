@@ -4,7 +4,8 @@
 //    Currently, only postgresql & sqlite dialect are supported
 //    Sample pattern for postgresql connection url : postgres://<username>:<password>@<hostname>:<port>/<dbname>
 
-export const adminToken = process.env.ADMIN_TOKEN;
+export const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+export const adminToken = process.env.ADMIN_TOKEN || 'admin';
 export const ddosBombCompanies = (process.env.DDOS_BOMB_COMPANY_TOKENS || '').split(',');
 export const deniedCompanies = (process.env.DENIED_COMPANY_TOKENS || '').split(',');
 export const deniedDevices = (process.env.DENIED_DEVICE_TOKENS || '').split(',');

@@ -108,7 +108,7 @@ export const checkAuth =
 export const logout = (): ThunkAction => async (dispatch: Dispatch): Promise<void> => {
   setAuth({ org: '', accessToken: '' });
   await dispatch(logoutAction());
-  // window.location.reload(true);
+  window.location.href = '/admin';
 };
 
 export const getDefaultJwt = (token: string): ThunkAction => async (dispatch: Dispatch): Promise<void> => {
@@ -146,7 +146,8 @@ export const prepareView =
       auth: { org, accessToken },
       dashboard: { hasData },
     } = getState();
-    const hasToken = (!!org || !!token);
+    const isAdminPath = token === 'admin';
+    const hasToken = (!!org || (!isAdminPath && !!token));
     const action = !hasToken && !!shared
     // auth mode for admin
       ? showAuthDialog()
