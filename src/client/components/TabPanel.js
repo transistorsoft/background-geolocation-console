@@ -9,7 +9,9 @@ type Props = {|
   className: any,
 |};
 
-const TabPanel = ({ children, value, index, className }: Props) => (
+const TabPanel = ({
+  children, value, index, className,
+}: Props) => (
   <Typography
     component='div'
     role='tabpanel'

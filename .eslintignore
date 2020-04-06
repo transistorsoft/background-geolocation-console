@@ -1,6 +1,3 @@
-blueprints/**/files/**
-coverage/**
-node_modules/**
-dist/**
-src/index.html
-**/flow_validate_*
+coverage/*
+node_modules/*
+dist/*

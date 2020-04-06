@@ -1,5 +1,4 @@
-/* eslint-disable max-len */
-/* eslint-disable camelcase */
+/* eslint-disable */
 /**
  * @name MarkerClustererPlus for Google Maps V3
  * @author Gary Little

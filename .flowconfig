@@ -1,11 +1,30 @@
 [ignore]
 .*/compiled
+
 [include]
 
 [libs]
 
 [options]
 module.name_mapper='^~/\(.*\)$' -> '<PROJECT_ROOT>/src/client/\1'
+module.name_mapper='^{rootPathPrefix}/\(.*\)$' -> '<PROJECT_ROOT>/{rootPathSuffix}/\1'
 module.name_mapper='^.*\.css$' -> 'css-module-flow'
 module.name_mapper='^.*\.scss$' -> 'css-module-flow'
 esproposal.decorators=ignore
+module.system.node.resolve_dirname=node_modules
+module.system.node.resolve_dirname=src/client
+module.system.node.resolve_dirname=src/server
+module.system=haste
+munge_underscores=false
+esproposal.class_static_fields=enable
+esproposal.class_instance_fields=enable
+
+suppress_type=$FlowIssue
+suppress_type=$FlowFixMe
+suppress_type=$FixMe
+suppress_type=$FlowExpectedError
+
+suppress_comment=\\(.\\|\n\\)*\\$FlowFixMe\\($\\|[^(]\\|(\\(>=0\\.\\(3[0-3]\\|[1-2][0-9]\\|[0-9]\\).[0-9]\\)? *\\(site=[a-z,_]*www[a-z,_]*\\)?)\\)
+suppress_comment=\\(.\\|\n\\)*\\$FlowIssue\\((\\(>=0\\.\\(3[0-3]\\|[1-2][0-9]\\|[0-9]\\).[0-9]\\)? *\\(site=[a-z,_]*www[a-z,_]*\\)?)\\)?:? #[0-9]+
+suppress_comment=\\(.\\|\n\\)*\\$FlowFixedInNextDeploy
+suppress_comment=\\(.\\|\n\\)*\\$FlowExpectedError

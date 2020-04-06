@@ -1,7 +1,9 @@
 import Sequelize from 'sequelize';
 
 export default {
-  id: { type: Sequelize.INTEGER, autoIncrement: true, primaryKey: true },
+  id: {
+    type: Sequelize.INTEGER, autoIncrement: true, primaryKey: true,
+  },
   uuid: { type: Sequelize.TEXT },
   latitude: { type: Sequelize.DOUBLE },
   longitude: { type: Sequelize.DOUBLE },

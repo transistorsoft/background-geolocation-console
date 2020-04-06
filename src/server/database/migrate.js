@@ -2,30 +2,35 @@
 * Migrate records created from before Sequalize was introduced
 */
 
-var path = require('path');
-var sqlite3 = require('sqlite3').verbose();
-var fs = require('fs');
+const path = require('path');
+const fs = require('fs');
+// eslint-disable-next-line import/no-extraneous-dependencies
+const sqlite3 = require('sqlite3').verbose();
 
-var DB_FILE = path.resolve(__dirname, 'background-geolocation.db');
-var LocationModel = require('./LocationModel.js');
 
-var dbh;
+const DB_FILE = path.resolve(__dirname, 'background-geolocation.db');
+const LocationModel = require('./LocationModel.js');
+
+let dbh;
 
 if (!fs.existsSync(DB_FILE)) {
+  // eslint-disable-next-line no-console
   console.log('- Failed to find background-geolocation.db: ', DB_FILE);
 } else {
   dbh = new sqlite3.Database(DB_FILE);
-  var query = 'SELECT * FROM locations';
+  const query = 'SELECT * FROM locations';
 
-  var onQuery = function (err, rows) {
+  const onQuery = (err, rows) => {
     if (err) {
+      // eslint-disable-next-line no-console
       console.log('ERROR: ', err);
       return;
     }
-    rows.forEach(function (row) {
-      var id = row.id;
+    rows.forEach(row => {
+      const { id } = row;
+      // eslint-disable-next-line no-param-reassign
       delete row.id;
-      LocationModel.update(row, { where: { id: id } });
+      LocationModel.update(row, { where: { id } });
     });
   };
   dbh.all(query, onQuery);
