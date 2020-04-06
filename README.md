@@ -41,6 +41,10 @@ Database will createe automaticaly in non production.
 
 [PgSQL script for production](./src/server/database/psql/create.sql)
 
+Database will createe automaticaly in non production.
+
+[PgSQL script for production](./src/server/database/psql/create.sql)
+
 ### Production mode:
 
 ```bash
