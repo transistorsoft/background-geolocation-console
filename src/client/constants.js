@@ -1,8 +1,8 @@
-export const API_URI = '/api/site';
+export const API_URI = !process.env.FIREBASE_URL ? '/api/site' : '/api/firebase';
+// export const API_URI = '/api/site';
 
 export const API_URL = window.location.origin + API_URI;
 
-// Colors
 export const COLORS = {
   gold: '#fedd1e',
   white: '#fff',

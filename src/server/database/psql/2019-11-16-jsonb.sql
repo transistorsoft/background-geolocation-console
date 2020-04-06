@@ -61,7 +61,6 @@ update public.locations l
   set data = to_jsonb(l)
 where data is null;
 
-ALTER TABLE public.locations DROP COLUMN if exists uuid;
 ALTER TABLE public.locations DROP COLUMN if exists accuracy;
 ALTER TABLE public.locations DROP COLUMN if exists altitude;
 ALTER TABLE public.locations DROP COLUMN if exists speed;
@@ -76,3 +75,13 @@ ALTER TABLE public.locations DROP COLUMN if exists is_moving;
 ALTER TABLE public.locations DROP COLUMN if exists geofence;
 ALTER TABLE public.locations DROP COLUMN if exists provider;
 ALTER TABLE public.locations DROP COLUMN if exists extras;
+
+-- # step 4
+
+ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone;
+ALTER TABLE public.devices ADD COLUMN IF NOT EXISTS framework text;
+ALTER TABLE public.devices ADD COLUMN IF NOT EXISTS version text;
+ALTER TABLE public.devices ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone;
+ALTER TABLE public.locations ADD COLUMN IF NOT EXISTS uuid text;
+
+update public.locations set uuid=data->>'uuid' where uuid is null;

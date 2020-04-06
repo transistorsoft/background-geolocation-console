@@ -1,11 +1,8 @@
-import { readFileSync, existsSync, writeFileSync } from 'fs';
-import { resolve } from 'path';
+import forge from 'node-forge';
 import jwt from 'jsonwebtoken';
 import rsaGen from 'keypair';
 
-export const keyPath = resolve(__dirname, '..', '..', '..', 'keys');
-export const privateKeyFile = resolve(keyPath, 'private.key');
-export const publicKeyFile = resolve(keyPath, 'public.key');
+import { JWT_PRIVATE_KEY, JWT_PUBLIC_KEY } from '../config';
 
 export const signOptions = {
   issuer: 'transistorsoft',
@@ -13,57 +10,64 @@ export const signOptions = {
   audience: 'client',
 };
 
-export const makeKeys = async () => {
-  if (existsSync(privateKeyFile)) {
-    return;
-  }
+export const fix = str => `${str.replace(/\r/g, '')}\n`;
 
-  const keys = rsaGen();
-  const options = { flag: 'w', encoding: 'utf8' };
+export const getPublicKey = privateKey => {
+  // convert PEM-formatted private key to a Forge private key
+  const forgePrivateKey = forge.pki.privateKeyFromPem(privateKey);
 
-  writeFileSync(privateKeyFile, keys.private, options);
-  writeFileSync(publicKeyFile, keys.public, options);
+  // get a Forge public key from the Forge private key
+  const forgePublicKey = forge.pki.setRsaPublicKey(forgePrivateKey.n, forgePrivateKey.e);
+
+  // convert the Forge public key to a PEM-formatted public key
+  const publicKey = forge.pki.publicKeyToPem(forgePublicKey);
+
+  // convert the Forge public key to an OpenSSH-formatted public key for authorized_keys
+  // const sshPublicKey = forge.ssh.publicKeyToOpenSSH(forgePublicKey);
+  return fix(publicKey);
 };
 
-export const getKeys = () => {
-  const result = {};
 
-  result.private = readFileSync(privateKeyFile, 'utf8');
-  result.public = readFileSync(publicKeyFile, 'utf8');
+const keys = !JWT_PRIVATE_KEY ? rsaGen() : {};
+export const privateKey = JWT_PRIVATE_KEY || keys.private;
+export const publicKey = JWT_PUBLIC_KEY || keys.public;
 
-  return result;
-};
+keys.private = JWT_PRIVATE_KEY || privateKey;
+keys.public = JWT_PUBLIC_KEY || publicKey;
 
 /*
   issuer: "Authorizaxtion/Resource/This server",
   subject: "iam@user.me",
   audience: "Client_Identity" // this should be provided by client
 */
-export const sign = (payload, { issuer, subject, audience } = signOptions) => {
-  const keys = getKeys();
+export const sign = (payload, pKey = privateKey || keys.private, { issuer, subject } = signOptions) => {
+  const audience = payload.audience || payload.org || 'unknown';
   // Token signing options
   const options = {
     issuer,
     subject,
-    audience: payload.audience || payload.org,
+    audience: Array.isArray(audience)
+      ? audience.filter(Boolean).map(x => `${x}`).join(', ')
+      : `${audience}`,
     // expiresIn: '782d',
     algorithm: 'RS256',
   };
-  return jwt.sign(payload, keys.private, options);
+  return jwt.sign(payload, pKey, options);
 };
 
-export const verify = (token, { issuer, subject, audience } = signOptions) => {
-  const keys = getKeys();
+export const verify = (token, pKey = publicKey || keys.public, { issuer, subject } = signOptions) => {
   const options = {
     issuer,
     subject,
-    audience: /.*/img,
+    audience: /.*/gim,
     // expiresIn: '782d',
-    algorithm:  ['RS256'],
+    algorithm: 'RS256',
   };
-  return jwt.verify(token, keys.public, options);
+  const result = jwt.verify(token, pKey, options);
+  return result;
 };
 
-export const decode = (token) => {
-  return jwt.decode(token, { complete: true });
-};
+export const decode = (
+  token,
+  pKey = publicKey || keys.public,
+) => jwt.decode(token, { complete: true, publicKey: pKey });

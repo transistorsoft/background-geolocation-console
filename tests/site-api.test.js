@@ -1,26 +1,46 @@
 /* eslint-disable no-unused-expressions */
+import queryString from 'querystring';
 import chai from 'chai';
 import chaiHttp from 'chai-http';
-import queryString from 'querystring';
 
-import { location, server } from './data';
+
+import {
+  location,
+  location2,
+  regData,
+  server,
+} from './data';
+
 
 chai.use(chaiHttp);
 chai.should();
 
 const { expect } = chai;
+let token;
+
+beforeAll(async () => {
+  const res = await chai
+    .request(server)
+    .post('/api/jwt/register')
+    .send(regData);
+  ({ accessToken: token } = res.body);
+});
+
 
 describe('site api', () => {
   test('/company_tokens', async () => {
-    const res = await chai.request(server)
-      .get('/api/site/company_tokens?company_token=test');
+    const res = await chai
+      .request(server)
+      .get('/api/site/company_tokens')
+      .set('Authorization', `Bearer ${token}`);
     expect(res).have.status(200);
     expect(res).to.be.json;
   });
 
   test('/stats', async () => {
     const res = await chai.request(server)
-      .get('/api/site/stats');
+      .get('/api/site/stats')
+      .set('Authorization', `Bearer ${token}`);
 
     expect(res).have.status(200);
     expect(res).to.be.json;
@@ -28,8 +48,10 @@ describe('site api', () => {
 
   describe('devices', () => {
     test('/devices', async () => {
-      const res = await chai.request(server)
-        .get('/api/site/devices?company_token=test');
+      const res = await chai
+        .request(server)
+        .get('/api/site/devices')
+        .set('Authorization', `Bearer ${token}`);
 
       expect(res).have.status(200);
       expect(res).to.be.json;
@@ -37,7 +59,8 @@ describe('site api', () => {
 
     test('DELETE /devices/test', async () => {
       const res = await chai.request(server)
-        .delete('/api/site/devices/371');
+        .delete('/api/site/devices/371')
+        .set('Authorization', `Bearer ${token}`);
 
       expect(res).have.status(200);
       expect(res).to.be.json;
@@ -46,31 +69,61 @@ describe('site api', () => {
 
   describe('locations', () => {
     test('/locations/latest', async () => {
-      const res = await chai.request(server)
-        .get('/api/site/locations/latest?company_token=test');
+      const res = await chai
+        .request(server)
+        .get('/api/site/locations/latest?device_id=372')
+        .set('Authorization', `Bearer ${token}`);
       expect(res).have.status(200);
       expect(res).to.be.json;
     });
 
     test('POST /locations', async () => {
-      const res = await chai.request(server)
+      const res = await chai
+        .request(server)
         .post('/api/site/locations')
-        .send({ location, device: { model: 'test', uuid: 'test' }, company_token: 'test' });
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          location,
+          device: {
+            framework: 'flutter',
+            manufacturer: 'Apple',
+            model: 'iPhone10,4(x86_64)',
+            platform: '13.3',
+            uuid: 'iPhone10-4(x86_64)-13-3',
+            version: '2.0',
+          },
+          company_token: 'test',
+        });
       expect(res).have.status(200);
       expect(res).to.be.json;
     });
 
     test('POST /locations []', async () => {
-      const res = await chai.request(server)
+      const res = await chai
+        .request(server)
         .post('/api/site/locations')
-        .send([{ location, device: { model: 'test', uuid: 'test' }, company_token: 'test' }]);
+        .set('Authorization', `Bearer ${token}`)
+        .send([{
+          location,
+          device: {
+            company_token: 'test',
+            framework: 'flutter',
+            manufacturer: 'Apple',
+            model: 'iPhone10,4(x86_64)',
+            platform: '13.3',
+            uuid: 'iPhone10-4(x86_64)-13-3',
+            version: '2.0',
+          },
+        }]);
       expect(res).have.status(200);
       expect(res).to.be.json;
     });
 
     test('/locations', async () => {
-      const res = await chai.request(server)
-        .get('/api/site/locations?company_token=test&device_id=372');
+      const res = await chai
+        .request(server)
+        .get('/api/site/locations?device_id=')
+        .set('Authorization', `Bearer ${token}`);
 
       expect(res).have.status(200);
       expect(res).to.be.json;
@@ -79,9 +132,80 @@ describe('site api', () => {
     });
 
     test('POST /locations/test', async () => {
-      const res = await chai.request(server)
+      const res = await chai
+        .request(server)
         .post('/api/site/locations/test')
-        .send({ location, device: { model: 'test', uuid: 'test' }, company_token: 'test' });
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          location: [location, location2],
+          device: {
+            framework: 'flutter',
+            manufacturer: 'Apple',
+            model: 'iPhone10,4(x86_64)',
+            platform: '13.3',
+            uuid: 'iPhone10-4(x86_64)-13-3',
+            version: '2.0',
+          },
+        });
+      expect(res).have.status(200);
+      expect(res).to.be.json;
+    });
+
+    test('POST /locations/test with plain device', async () => {
+      const res = await chai
+        .request(server)
+        .post('/api/site/locations/test')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          location: [location, location2],
+          framework: 'flutter',
+          manufacturer: 'Apple',
+          model: 'iPhone10,4(x86_64)',
+          platform: '13.3',
+          uuid: 'iPhone10-4(x86_64)-13-3',
+          version: '2.0',
+        });
+      expect(res).have.status(200);
+      expect(res).to.be.json;
+    });
+
+
+    test('POST /locations/test []', async () => {
+      const res = await chai
+        .request(server)
+        .post('/api/site/locations/test')
+        .set('Authorization', `Bearer ${token}`)
+        .send([{
+          location,
+          device: {
+            framework: 'flutter',
+            manufacturer: 'Apple',
+            model: 'iPhone10,4(x86_64)',
+            platform: '13.3',
+            uuid: 'iPhone10-4(x86_64)-13-3',
+            version: '2.0',
+          },
+        }]);
+      expect(res).have.status(200);
+      expect(res).to.be.json;
+    });
+
+    test('POST /locations/test [][]', async () => {
+      const res = await chai
+        .request(server)
+        .post('/api/site/locations/test')
+        .set('Authorization', `Bearer ${token}`)
+        .send([{
+          location: [location, location2],
+          device: {
+            framework: 'flutter',
+            manufacturer: 'Apple',
+            model: 'iPhone10,4(x86_64)',
+            platform: '13.3',
+            uuid: 'iPhone10-4(x86_64)-13-3',
+            version: '2.0',
+          },
+        }]);
       expect(res).have.status(200);
       expect(res).to.be.json;
     });
@@ -89,12 +213,14 @@ describe('site api', () => {
     test('DELETE /locations', async () => {
       const res = await chai.request(server)
         .delete(
-          '/api/site/locations?company_token=test&device_id=371&' +
-          queryString.stringify({
-            start_date: location.timestamp.substr(0, 10),
-            end_date: new Date().toISOString().substr(0, 10),
-          })
-        );
+          `/api/site/locations?${
+            queryString.stringify({
+              device_id: 371,
+              start_date: location.timestamp.substr(0, 10),
+              end_date: new Date().toISOString().substr(0, 10),
+            })}`,
+        )
+        .set('Authorization', `Bearer ${token}`);
 
       expect(res).have.status(200);
       expect(res).to.be.json;

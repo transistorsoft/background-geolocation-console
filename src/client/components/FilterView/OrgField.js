@@ -1,6 +1,7 @@
 // @flow
 import React from 'react';
-import { Select, MenuItem } from '@material-ui/core';
+import MenuItem from '@material-ui/core/MenuItem';
+import Select from '@material-ui/core/Select';
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import IconButton from '@material-ui/core/IconButton';
@@ -17,13 +18,14 @@ import ListItemIcon from '@material-ui/core/ListItemIcon';
 import CloseIcon from '@material-ui/icons/Close';
 import ListItemText from '@material-ui/core/ListItemText';
 import AutoSizer from 'react-virtualized/dist/commonjs/AutoSizer';
-import WindowScroller from 'react-virtualized/dist/commonjs/WindowScroller';
 import Grid from 'react-virtualized/dist/commonjs/Grid';
 import DeviceUnknownIcon from '@material-ui/icons/DeviceUnknown';
 import CloseRounded from '@material-ui/icons/CloseRounded';
 import clx from 'classnames';
+
+import type { Source, MaterialInputElement } from 'reducer/dashboard';
+
 import RemoveAnimationProvider from '../RemoveAnimationProvider';
-import type { Source, MaterialInputElement } from '~/reducer/dashboard';
 
 type Props = {
   onChange: (value: string) => any,
@@ -33,8 +35,13 @@ type Props = {
 };
 // const theme = useTheme();
 const flex = { display: 'flex' };
-const contentStyle = { minHeight: 400, position: 'relative', display: 'flex', flexDirection: 'column' };
-const containerStyle = { flex: '1 auto', 'overflowY': 'auto' };
+const contentStyle = {
+  minHeight: 400,
+  position: 'relative',
+  display: 'flex',
+  flexDirection: 'column',
+};
+const containerStyle = { flex: '1 auto', overflowY: 'auto' };
 const styles = (theme: any) => ({
   closeButton: {
     position: 'absolute',
@@ -54,10 +61,13 @@ const styles = (theme: any) => ({
   },
 });
 
-const OrgField = withStyles(styles)((props: Props) => {
-  const { onChange, value, source: s, fullScreen, classes } = props;
+const OrgField = (props: Props) => {
+  const {
+    onChange, value, source: s, fullScreen, classes,
+  } = props;
   const [dialogOpen, setOpen] = React.useState(false);
   const [filter, setFilter] = React.useState('');
+  const isLong = s.length > 10;
   const handleChange = (ev: Event) => {
     setFilter(ev.target.value);
   };
@@ -71,42 +81,35 @@ const OrgField = withStyles(styles)((props: Props) => {
     }
     setOpen(true);
   };
-  const handleOk = React.useCallback((index: number) => {
-    setOpen(false);
-    !!source.length && onChange(source[index].value);
-  });
-  const rowRenderer = ({ columnIndex, key, rowIndex, style }: any) => {
-    return (
-      <ListItem
-        key={key}
-        component='div'
-        onClick={() => handleOk(rowIndex)}
-        className={clx(
-          classes.item,
-          'list-row-item',
-          { [classes.selected]: value === source[rowIndex].value },
-        )}
-        style={style}
-      >
-        <ListItemIcon>
-          <DeviceUnknownIcon />
-        </ListItemIcon>
-        <ListItemText>
-          {source[rowIndex].label}
-        </ListItemText>
-      </ListItem>
-    );
-  };
-  const isLong = s.length > 10;
-  const contentRef = React.createRef();
   const val = filter.toLowerCase();
   const source = val
     ? s.filter((x: Source) => x.label && !!~x.label.toLowerCase().indexOf(val))
     : s;
-  if (!s.length) {
+  const handleOk = (index: number) => {
+    setOpen(false);
+    !!source.length && onChange(source[index].value);
+  };
+  const rowRenderer = ({
+    key, rowIndex, style,
+  }: any) => (
+    <ListItem
+      key={key}
+      component='div'
+      onClick={() => handleOk(rowIndex)}
+      className={clx(classes.item, 'list-row-item', { [classes.selected]: value === source[rowIndex].value })}
+      style={style}
+    >
+      <ListItemIcon>
+        <DeviceUnknownIcon />
+      </ListItemIcon>
+      <ListItemText>{source[rowIndex].label}</ListItemText>
+    </ListItem>
+  );
+  const contentRef = React.createRef();
+
+  if (!s.length || s.length <= 1 || !process.env.SHARED_DASHBOARD) {
     return null;
   }
-
   return [
     <Select
       key='select'
@@ -114,17 +117,18 @@ const OrgField = withStyles(styles)((props: Props) => {
       open={isLong ? false : undefined}
       onOpen={handleOpen}
       style={flex}
-      label={`Companies (${s.length})`}
+      label={`Companies (${s && s.length})`}
       onChange={({ target }: MaterialInputElement) => onChange(target.value)}
       value={value}
     >
-      {s.map((x: Source) => (<MenuItem key={x.value} value={x.value}>{x.label}</MenuItem>))}
+      {s.map((x: Source) => (
+        <MenuItem key={x.value} value={x.value}>
+          {x.label}
+        </MenuItem>
+      ))}
     </Select>,
     <Dialog
       key='dialog'
-      // disableBackdropClick
-      // disableEscapeKeyDown
-      // onEntering={handleEntering}
       aria-labelledby='filter-dialog-title'
       aria-describedby='filter-dialog-description'
       open={dialogOpen}
@@ -137,14 +141,15 @@ const OrgField = withStyles(styles)((props: Props) => {
     >
       <DialogTitle id='confirmation-dialog-title'>
         Org selector
-        <IconButton aria-label='close' className={classes.closeButton} onClick={handleCancel}>
+        <IconButton
+          aria-label='close'
+          className={classes.closeButton}
+          onClick={handleCancel}
+        >
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-      <DialogContent
-        dividers
-        style={contentStyle}
-      >
+      <DialogContent dividers style={contentStyle}>
         <RemoveAnimationProvider>
           <FormControl>
             <InputLabel htmlFor='filter'>Company Filter</InputLabel>
@@ -155,7 +160,7 @@ const OrgField = withStyles(styles)((props: Props) => {
               margin='dense'
               value={filter}
               onChange={handleChange}
-              endAdornment={
+              endAdornment={(
                 <InputAdornment position='end'>
                   <IconButton
                     aria-label='toggle password visibility'
@@ -165,40 +170,27 @@ const OrgField = withStyles(styles)((props: Props) => {
                     <CloseRounded />
                   </IconButton>
                 </InputAdornment>
-              }
+              )}
             />
           </FormControl>
           <div style={containerStyle} ref={contentRef}>
-            <WindowScroller
-              scrollElement={contentRef.current}
-            >
-              {({ isScrolling, registerChild, onChildScroll, scrollTop }: any) => (
-                <AutoSizer>
-                  {({ width, height }: any) => (
-                    <div ref={registerChild}>
-                      <Grid
-                        // autoWidth
-                        autoContainerWidth
-                        cellRenderer={rowRenderer}
-                        columnWidth={500}
-                        columnCount={1}
-                        height={height}
-                        overscanColumnCount={2}
-                        overscanRowCount={2}
-                        rowHeight={50}
-                        rowCount={source.length}
-                        scrollTop={scrollTop}
-                        width={width}
-                        isScrolling={isScrolling}
-                        onScroll={onChildScroll}
-                        filter={filter}
-                        // scrollToIndex={scrollToIndex}
-                      />
-                    </div>
-                  )}
-                </AutoSizer>
+            <AutoSizer>
+              {({ width, height }: any) => (
+                <Grid
+                  autoContainerWidth
+                  cellRenderer={rowRenderer}
+                  columnWidth={500}
+                  columnCount={1}
+                  height={height}
+                  overscanColumnCount={2}
+                  overscanRowCount={2}
+                  rowHeight={50}
+                  rowCount={source.length}
+                  width={width}
+                  filter={filter}
+                />
               )}
-            </WindowScroller>
+            </AutoSizer>
           </div>
         </RemoveAnimationProvider>
       </DialogContent>
@@ -209,6 +201,6 @@ const OrgField = withStyles(styles)((props: Props) => {
       </DialogActions>
     </Dialog>,
   ];
-});
+};
 
-export default OrgField;
+export default withStyles(styles)(OrgField);

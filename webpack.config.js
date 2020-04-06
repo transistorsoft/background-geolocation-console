@@ -1,14 +1,25 @@
-const webpack = require('webpack');
+require('@babel/polyfill/noConflict');
+require('@babel/register')();
+
 const path = require('path');
+const webpack = require('webpack');
+
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 
-const copyAssets = new CopyPlugin([
-  { from: 'assets/images', to: 'images' },
-]);
-const isProduction = process.env.NODE_ENV === 'production';
+const {
+  firebaseURL,
+  GOOGLE_ANALYTICS_ID,
+  GOOGLE_MAPS_API_KEY,
+  isProduction,
+  NODE_ENV,
+  PURE_CHAT_ID,
+  withAuth,
+} = require('./src/server/config');
+
+const copyAssets = new CopyPlugin([{ from: 'assets/images', to: 'images' }]);
 
 const htmlWebpackPlugin = new HtmlWebpackPlugin({
   template: 'index.ejs',
@@ -26,9 +37,9 @@ const htmlWebpackPlugin = new HtmlWebpackPlugin({
     minifyCSS: true,
     minifyURLs: true,
   },
-  GOOGLE_ANALYTICS_ID: process.env.GOOGLE_ANALYTICS_ID,
-  PURE_CHAT_ID: process.env.PURE_CHAT_ID,
-  GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
+  GOOGLE_ANALYTICS_ID,
+  PURE_CHAT_ID,
+  GOOGLE_MAPS_API_KEY,
 });
 
 const config = {
@@ -37,21 +48,25 @@ const config = {
   target: 'web',
   entry: isProduction
     ? [
+      '@babel/polyfill/noConflict',
       '@babel/polyfill',
       './main.js',
     ]
     : [
       '@babel/polyfill',
-      'webpack-hot-middleware/client?path=/__webpack_hmr&timeout=20000', 'react-hot-loader/patch',
+      'webpack-hot-middleware/client?path=/__webpack_hmr&timeout=20000',
+      'react-hot-loader/patch',
       './main.js',
     ],
   output: {
-    path: path.resolve(__dirname, './build'),
+    path: path.resolve(__dirname, 'build'),
     publicPath: '/',
     filename: '[name]-[hash].js',
     chunkFilename: '[id].[chunkhash].js',
   },
   resolve: {
+    alias: { 'react-dom': '@hot-loader/react-dom' },
+    modules: ['node_modules', 'src/client', 'src/server'],
     extensions: ['.js', '.json', '.css', '.svg'],
   },
   mode: isProduction ? 'production' : 'development',
@@ -75,9 +90,7 @@ const config = {
             ie8: true,
             drop_console: true,
           },
-          output: {
-            comments: false,
-          },
+          output: { comments: false },
           comments: false,
         },
       }),
@@ -94,9 +107,7 @@ const config = {
       {
         test: /\.(jpe?g|png|gif|svg)$/i,
         use: [
-          {
-            loader: 'url-loader',
-          },
+          { loader: 'url-loader' },
         ],
       },
       {
@@ -126,8 +137,9 @@ const config = {
   plugins: isProduction
     ? [
       new webpack.DefinePlugin({
-        'process.env.SHARED_DASHBOARD': !!process.env.SHARED_DASHBOARD || '',
-        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+        'process.env.FIREBASE_URL': JSON.stringify(firebaseURL),
+        'process.env.NODE_ENV': JSON.stringify(NODE_ENV || 'production'),
+        'process.env.SHARED_DASHBOARD': !!withAuth || 'false',
       }),
       new webpack.LoaderOptionsPlugin({
         minimize: true,
@@ -139,8 +151,9 @@ const config = {
     : [
       new webpack.NamedModulesPlugin(),
       new webpack.DefinePlugin({
-        'process.env.SHARED_DASHBOARD': !!process.env.SHARED_DASHBOARD || '',
-        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+        'process.env.FIREBASE_URL': JSON.stringify(firebaseURL),
+        'process.env.NODE_ENV': JSON.stringify(NODE_ENV || 'development'),
+        'process.env.SHARED_DASHBOARD': !!withAuth || 'false',
       }),
       copyAssets,
       new webpack.HotModuleReplacementPlugin(),

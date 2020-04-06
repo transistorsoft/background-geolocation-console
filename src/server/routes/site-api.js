@@ -1,33 +1,43 @@
+/* eslint-disable no-console */
 import fs from 'fs';
-import { stringify } from 'querystring';
 import { Router } from 'express';
-import { isEncryptedRequest, decrypt } from '../libs/RNCrypto';
+
+import { sign, verify } from '../libs/jwt';
+import { decrypt, isEncryptedRequest } from '../libs/RNCrypto';
 import {
   AccessDeniedError,
+  checkAuth,
+  dataLogOn,
+  getAuth,
+  isAdmin,
+  isAdminToken,
   isDDosCompany,
+  isPassword,
   return1Gbfile,
 } from '../libs/utils';
-import { getDevices, deleteDevice } from '../models/Device';
-import { getOrgs } from '../models/Org';
+import { deleteDevice, getDevices } from '../models/Device';
 import {
-  createLocation,
+  create,
   deleteLocations,
   getLatestLocation,
   getLocations,
   getStats,
 } from '../models/Location';
+import { withAuth, adminToken } from '../config';
+import { getOrgs, findOne } from '../models/Org';
 
 const router = new Router();
 
 /**
  * GET /company_tokens
  */
-router.get('/company_tokens', async function (req, res) {
+router.get('/company_tokens', checkAuth(verify), async (req, res) => {
   try {
-    const orgs = await getOrgs(req.query);
+    const { org } = req.jwt;
+    const orgs = await getOrgs({ org }, isAdmin(req.jwt));
     res.send(orgs);
   } catch (err) {
-    console.info('err: ', err);
+    console.error('v1', '/company_tokens', err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -35,46 +45,87 @@ router.get('/company_tokens', async function (req, res) {
 /**
  * GET /devices
  */
-router.get('/devices', async function (req, res) {
+router.get('/devices', checkAuth(verify), async (req, res) => {
+  const {
+    companyId: orgId,
+    org,
+  } = req.jwt;
+  const { company_id: companyId } = req.query;
+  const admin = isAdmin(req.jwt);
   try {
-    console.log('GET /devices\n'.green);
-    const devices = await getDevices(req.query);
+    const devices = await getDevices(
+      {
+        companyId: admin ? companyId : orgId,
+        org,
+      },
+      isAdmin(req.jwt),
+    );
     res.send(devices);
   } catch (err) {
-    console.info('err: ', err);
+    console.error('v1', '/devices', err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
 
-router.delete('/devices/:id', async function (req, res) {
+router.delete('/devices/:id', checkAuth(verify), async (req, res) => {
+  const {
+    companyId,
+    org,
+  } = req.jwt;
+  const admin = isAdmin(req.jwt);
   try {
-    console.log(`DELETE /devices/${req.params.id}?${stringify(req.query)}\n`.green);
-    await deleteDevice({ ...req.query, id: req.params.id });
+    console.log(
+      `DELETE /devices/${req.params.id}?${JSON.stringify(req.query)}\n`.green,
+    );
+    await deleteDevice(
+      {
+        ...req.query,
+        id: req.params.id,
+        org,
+        companyId: !admin && companyId,
+      },
+      isAdmin(req.jwt),
+    );
     res.send({ success: true });
   } catch (err) {
-    console.info('err: ', err);
+    console.error(
+      'v1',
+      '/devices',
+      JSON.stringify(req.params),
+      JSON.stringify(req.query),
+      err,
+    );
     res.status(500).send({ error: 'Something failed!' });
   }
 });
 
-router.get('/stats', async function (req, res) {
+router.get('/stats', checkAuth(verify), async (req, res) => {
   try {
-    console.log('GET /stats\n'.green);
     const stats = await getStats();
     res.send(stats);
   } catch (err) {
-    console.info('err: ', err);
+    console.info('/stats', err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
 
-router.get('/locations/latest', async function (req, res) {
-  console.log('GET /locations %s'.green, JSON.stringify(req.query));
+router.get('/locations/latest', checkAuth(verify), async (req, res) => {
+  const { org, companyId: orgId } = req.jwt;
+  const { company_id: companyId = orgId, device_id: deviceId } = req.query;
+  const admin = isAdmin(req.jwt);
+  console.log('v1: GET /locations/latest %s'.green, org, companyId, deviceId);
   try {
-    const latest = await getLatestLocation(req.query);
+    const latest = await getLatestLocation(
+      {
+        device_id: deviceId,
+        org,
+        company_id: admin ? companyId : orgId,
+      },
+      admin,
+    );
     res.send(latest);
   } catch (err) {
-    console.info('err: ', err);
+    console.info('v1: /locations/latest', deviceId, err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -82,14 +133,24 @@ router.get('/locations/latest', async function (req, res) {
 /**
  * GET /locations
  */
-router.get('/locations', async function (req, res) {
-  console.log('GET /locations %s'.green, JSON.stringify(req.query));
+router.get('/locations', checkAuth(verify), async (req, res) => {
+  const { org, companyId: orgId } = req.jwt;
+  const { company_id: companyId } = req.query;
+  const admin = isAdmin(req.jwt);
+  console.log('v1: GET /locations'.green, JSON.stringify(req.query));
 
   try {
-    const locations = await getLocations(req.query);
+    const locations = await getLocations(
+      {
+        ...req.query,
+        org,
+        company_id: admin ? companyId : orgId,
+      },
+      admin,
+    );
     res.send(locations);
   } catch (err) {
-    console.info('err: ', err);
+    console.error('v1', 'GET /locations', JSON.stringify(req.query), err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
@@ -97,91 +158,94 @@ router.get('/locations', async function (req, res) {
 /**
  * POST /locations
  */
-router.post('/locations', async function (req, res) {
+router.post('/locations', getAuth(verify), async (req, res) => {
   const { body } = req;
   const data = isEncryptedRequest(req)
     ? decrypt(body.toString())
     : body;
-  const locations = Array.isArray(data) ? data : (data ? [data] : []);
-
-  if (locations.find(({ company_token: org }) => isDDosCompany(org))) {
-    return return1Gbfile(res);
-  }
-  var auth = req.get('Authorization');
-  console.log('POST /locations\n%s'.green, JSON.stringify(req.headers, null, 2));
-  console.log('Authorization: %s'.green, auth);
-  console.log('%s\n'.yellow, JSON.stringify(locations, null, 2));
-
-  try {
-    await createLocation(locations);
-    res.send({ success: true });
-  } catch (err) {
-    if (err instanceof AccessDeniedError) {
-      return res.status(403).send({ error: err.toString() });
-    }
-    console.error('err: ', err);
-    res.status(500).send({ error: 'Something failed!' });
-  }
-});
-
-/**
- * POST /locations
- */
-router.post('/locations/:company_token', async function (req, res) {
-  const { company_token: org } = req.params;
+  const { company_token: org } = data;
 
   if (isDDosCompany(org)) {
     return return1Gbfile(res);
   }
 
-  const auth = req.get('Authorization');
-
-  const data = (isEncryptedRequest(req)) ? decrypt(req.body.toString()) : req.body;
-  data.company_token = org;
-
-  console.log(`POST /locations/${org}\n%s`.green, JSON.stringify(req.headers, null, 2));
-  console.log('Authorization: %s'.green, auth);
-  console.log('%s\n'.yellow, JSON.stringify(data, null, 2));
+  dataLogOn && console.log('v1:post:locations'.yellow, org, JSON.stringify(data));
 
   try {
-    await createLocation(data);
-
-    res.send({ success: true });
+    await create(data, org);
+    return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
       return res.status(403).send({ error: err.toString() });
     }
-    console.error('err: ', err);
-    res.status(500).send({ error: 'Something failed!' });
+    console.error('v1', 'post /locations', err);
+    return res.status(500).send({ error: 'Something failed!' });
   }
 });
 
-router.delete('/locations', async function (req, res) {
-  console.log('---------------------------------------------------------------------');
-  console.log('- DELETE /locations', JSON.stringify(req.query));
+/**
+ * POST /locations
+ */
+router.post('/locations/:company_token', getAuth(verify), async (req, res) => {
+  const { company_token: org } = req.params;
+
+  console.info('v1:locations:post'.green, 'org:name'.green, org);
+
+  if (isDDosCompany(org)) {
+    return return1Gbfile(res);
+  }
+
+  const data = isEncryptedRequest(req)
+    ? decrypt(req.body.toString())
+    : req.body;
+
+  dataLogOn && console.log(`v1:post:locations:${org}`.yellow, JSON.stringify(data));
 
   try {
-    await deleteLocations(req.query);
+    await create(data, org);
+
+    return res.send({ success: true });
+  } catch (err) {
+    if (err instanceof AccessDeniedError) {
+      return res.status(403).send({ error: err.toString() });
+    }
+    console.error('v1', 'post /locations', org, err);
+    return res.status(500).send({ error: 'Something failed!' });
+  }
+});
+
+router.delete('/locations', checkAuth(verify), async (req, res) => {
+  const { org, companyId: orgId } = req.jwt;
+  const { company_id: companyId } = req.query;
+  const admin = isAdmin(req.jwt);
+  console.info('v1:locations:delete:query'.green, JSON.stringify(req.query));
+
+  try {
+    await deleteLocations(
+      {
+        ...req.query,
+        companyId: admin ? companyId : orgId,
+        org,
+      },
+      admin,
+    );
 
     res.send({ success: true });
-    res.status(500).send({ error: 'Something failed!' });
   } catch (err) {
-    console.info('err: ', err);
+    console.info('v1', 'delete /locations', JSON.stringify(req.query), err);
     res.status(500).send({ error: 'Something failed!' });
   }
 });
 
-router.post('/locations_template', async function (req, res) {
-  console.log('POST /locations_template\n%s\n'.green, JSON.stringify(req.body, null, 2));
+router.post('/locations_template', async (req, res) => {
+  console.log('v1:POST /locations_template\n%s\n'.green, JSON.stringify(req.body));
 
   res.set('Retry-After', 5);
   res.send({ success: true });
 });
 
-router.post('/configure', async function (req, res) {
-  console.log('/configure');
-
-  var response = {
+router.post('/configure', async (req, res) => {
+  const response = {
     access_token: 'e7ebae5e-4bea-4d63-8f28-8a104acd2f4c',
     token_type: 'Bearer',
     expires_in: 3600,
@@ -191,12 +255,65 @@ router.post('/configure', async function (req, res) {
   res.send(response);
 });
 
+router.post('/auth', async (req, res) => {
+  const { login, password } = req.body || {};
+
+  try {
+    if (isAdminToken(login) && isPassword(password)) {
+      const jwtInfo = { org: login, admin: true };
+
+      const accessToken = sign(jwtInfo);
+      return res.send({
+        access_token: accessToken,
+        token_type: 'Bearer',
+        org: login,
+      });
+    }
+  } catch (e) {
+    console.error('v1', '/auth', e);
+  }
+
+  return res.status(401)
+    .send({ org: login, error: 'Await not public account and right password' });
+});
+
+router.post('/jwt', async (req, res) => {
+  const { org } = req.body || {};
+
+  try {
+    let id;
+    if (!isAdmin()) {
+      ({ id } = await findOne({ org }) || {});
+
+      if (!id) {
+        return res.status(401).send({ org, error: 'Org not found' });
+      }
+    }
+
+    const jwtInfo = {
+      admin: isAdmin(),
+      companyId: id || 0,
+      org: withAuth ? org : (org || adminToken),
+    };
+    const accessToken = sign(jwtInfo);
+    return res.send({
+      access_token: accessToken,
+      org,
+      token_type: 'Bearer',
+    });
+  } catch (e) {
+    console.error('v1', '/jwt', e);
+  }
+
+  return res.status(401).send({ org, error: 'Await not public account and right password' });
+});
+
 /**
  * Fetch iOS simulator city_drive route
  */
-router.get('/data/city_drive', async function (req, res) {
-  console.log('GET /data/city_drive.json'.green);
-  fs.readFile('./data/city_drive.json', 'utf8', function (_err, data) {
+router.get('/data/city_drive', async (req, res) => {
+  console.log('v1: GET /data/city_drive.json'.green);
+  fs.readFile('./data/city_drive.json', 'utf8', (_err, data) => {
     res.send(data);
   });
 });

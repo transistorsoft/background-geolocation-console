@@ -1,11 +1,8 @@
-import {
-  isAdmin,
-  filterByCompany,
-} from '../libs/utils';
 import CompanyModel from '../database/CompanyModel';
+import { desc } from '../config';
 
-export async function getOrgs ({ company_token: org }) {
-  if (!filterByCompany) {
+export async function getOrgs({ org }, isAdmin) {
+  if (!isAdmin && !org) {
     return [
       {
         id: 1,
@@ -13,22 +10,34 @@ export async function getOrgs ({ company_token: org }) {
       },
     ];
   }
-  const whereConditions = isAdmin(org) ? {} : { company_token: org };
-  const result = await CompanyModel.findAll({
-    where: whereConditions,
-    attributes: ['id', 'company_token'],
-    order: [['updated_at', 'DESC']],
-    raw: true,
 
+  const where = isAdmin ? {} : { company_token: org };
+  const result = await CompanyModel.findAll({
+    where,
+    attributes: ['id', 'company_token'],
+    order: [['updated_at', desc]],
+    raw: true,
   });
   return result;
 }
 
-export async function findOrCreate ({ company_token: org }) {
+export async function findOrCreate({ org }) {
   const now = new Date();
   const [company] = await CompanyModel.findOrCreate({
     where: { company_token: org },
-    defaults: { created_at: now, company_token: org, updated_at: now },
+    defaults: {
+      company_token: org,
+      created_at: now,
+      updated_at: now,
+    },
+    raw: true,
+  });
+  return company;
+}
+
+export const findOne = async ({ org }) => {
+  const company = await CompanyModel.findOne({
+    where: { company_token: org },
     raw: true,
   });
   return company;

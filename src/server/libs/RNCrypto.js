@@ -1,20 +1,22 @@
+/* eslint-disable no-console */
 import crypto from 'crypto';
+
+// Decryption password.  Same as used by BackgroundGeolocation SDK to encrypt.
+import { ENCRYPTION_PASSWORD as password } from '../config';
 
 export const isEncryptedRequest = req => {
   const contentType = req.get('Content-Type');
-  const result = (contentType && (contentType.indexOf('application/octet-stream') === 0));
+  const result = contentType && contentType.indexOf('application/octet-stream') === 0;
 
   return result;
 };
 
 /**
-* Decrypt base64-encoded, RNCrypto encrypted data
-* @param {String} data Base64-encoded text.
-* @return {String} decrypted JSON
-*/
-export const decrypt = (data) => {
-  // Decryption password.  Same as used by BackgroundGeolocation SDK to encrypt.
-  const password = process.env.ENCRYPTION_PASSWORD;
+ * Decrypt base64-encoded, RNCrypto encrypted data
+ * @param {String} data Base64-encoded text.
+ * @return {String} decrypted JSON
+ */
+export const decrypt = data => {
   // Decode base64 data from HTTP body.
   const buffer = Buffer.from(data, 'base64');
   // Byte 0 is version of encryption spec (3)
@@ -36,7 +38,13 @@ export const decrypt = (data) => {
   const cipher = buffer.slice(34, buffer.length - 32);
 
   // Generate pbkdf2 encryption key using password and password salt
-  const encryptionKey = crypto.pbkdf2Sync(password, passwordSalt, 10000, 32, 'sha1');
+  const encryptionKey = crypto.pbkdf2Sync(
+    password,
+    passwordSalt,
+    10000,
+    32,
+    'sha1',
+  );
 
   console.log('╔═════════════════════════════════════════════'.green);
   console.log('║ RNCrypto version %d'.green, version);
@@ -53,8 +61,7 @@ export const decrypt = (data) => {
 
   try {
     // Decrypt the binary data in cipher
-    const json = decipher.update(cipher, 'binary', 'utf-8') +
-      decipher.final('utf-8');
+    const json = decipher.update(cipher, 'binary', 'utf-8') + decipher.final('utf-8');
 
     return JSON.parse(json);
   } catch (e) {

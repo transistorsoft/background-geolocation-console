@@ -7,16 +7,21 @@ import Radio from '@material-ui/core/Radio';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import { connect } from 'react-redux';
 import format from 'date-fns/format';
+
+import { type GlobalState } from 'reducer/state';
+import { deleteActiveDevice } from 'reducer/dashboard';
+
 import ConfirmationDialog, { type Result } from '../ConfirmationDialog';
 import RemoveAnimationProvider from '../RemoveAnimationProvider';
-import { type GlobalState } from '~/reducer/state';
-import { deleteActiveDevice } from '~/reducer/dashboard';
+
 
 type StateProps = {|
   isVisible: boolean,
+  startDate: Date,
+  endDate: Date,
 |};
 type DispatchProps = {|
-  deleteDevice: () => any,
+  deleteDevice: (filter?: { startDate: Date, endDate: Date }) => any,
 |};
 type Props = {| ...StateProps, ...DispatchProps |};
 const style = {
@@ -27,7 +32,12 @@ const style = {
   textTransform: 'none',
   // float: 'right',
 };
-const DeleteDeviceLink = ({ isVisible, startDate, endDate, deleteDevice }: Props) => {
+const DeleteDeviceLink = ({
+  isVisible,
+  startDate,
+  endDate,
+  deleteDevice,
+}: Props) => {
   const [open, setOpen] = React.useState(false);
   const [value, setValue] = React.useState('true');
   const radioGroupRef = React.useRef(null);
@@ -42,7 +52,7 @@ const DeleteDeviceLink = ({ isVisible, startDate, endDate, deleteDevice }: Props
     }
   };
 
-  const onClose = (result: Result) => {
+  const onClose = (result?: Result) => {
     setOpen(false);
     result && deleteDevice(value ? { startDate, endDate } : undefined);
   };
@@ -50,17 +60,12 @@ const DeleteDeviceLink = ({ isVisible, startDate, endDate, deleteDevice }: Props
     e.preventDefault();
     setOpen(true);
   };
-  const handleChange = (e: Event) => {
+  const handleChange = (e: { target: HTMLInputElement }) => {
     setValue(e.target.value);
   };
 
   return [
-    <Button
-      key='button'
-      style={style}
-      type='button'
-      onClick={onClick}
-    >
+    <Button key='button' style={style} type='button' onClick={onClick}>
       <DeleteIcon />
     </Button>,
     <ConfirmationDialog
@@ -82,7 +87,10 @@ const DeleteDeviceLink = ({ isVisible, startDate, endDate, deleteDevice }: Props
           <FormControlLabel
             value='true'
             control={<Radio />}
-            label={`between ${format(new Date(startDate), 'MM-dd')} and ${format(new Date(endDate), 'MM-dd')}`}
+            label={`between ${format(
+              new Date(startDate),
+              'MM-dd',
+            )} and ${format(new Date(endDate), 'MM-dd')}`}
           />
         </RadioGroup>
       </RemoveAnimationProvider>
@@ -96,8 +104,6 @@ const mapStateToProps = (state: GlobalState): StateProps => ({
   endDate: state.dashboard.endDate,
 });
 
-const mapDispatchToProps: DispatchProps = {
-  deleteDevice: deleteActiveDevice,
-};
+const mapDispatchToProps: DispatchProps = { deleteDevice: deleteActiveDevice };
 
 export default connect(mapStateToProps, mapDispatchToProps)(DeleteDeviceLink);
