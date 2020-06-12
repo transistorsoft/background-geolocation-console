@@ -14,7 +14,7 @@
     "migrate": "babel-node ./src/server/database/migrate.js"
   },
   "engines": {
-    "node": "8.16.1"
+    "node": "12.18.0"
   },
   "type": "commonjs",
   "author": "Chris Scott, Transistor Software",

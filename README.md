@@ -21,10 +21,14 @@ Environment variables:
 ```
 export DATABASE_URL=postgres://postgres:password@localhost:5432/geolocation
 export GOOGLE_MAPS_API_KEY=AIz...vNkg
+# Do you use it for a lot of organisation or users?
 export SHARED_DASHBOARD=1      # with auth
+# Manage them in one account? http://localhost:9000/admin256
 export ADMIN_TOKEN=admin256    # admin login
+# Do you need auth?
 export PASSWORD=test           # admin password
 ```
+
 ### Firestore
 
 ```
@@ -129,6 +133,18 @@ Before this, you will need to create 2 environment variables (either in the hero
   into a postgresql db (instead of a sqlite db which will be deleted after every heroku shutdown)
 
 And to reference `heroku/nodejs` buildpack (either in the heroku dashboard, or by executing `heroku buildpacks:add --index 1 heroku/nodejs`)
+
+## Docker
+
+By default console will use SqlLite file storage
+
+NB!: It will clean on conatiner re-creation
+
+Please add volume to store it or setup Postgres/Firebase storage
+
+1. Configurate you own build in [Dockerfile](./Dockerfile)
+2. `docker build -t background-geolocation-console .`
+3. `docker run -p 9000:9000 -d background-geolocation-console`
 
 ## Credit
 
