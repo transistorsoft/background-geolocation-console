@@ -136,7 +136,7 @@ And to reference `heroku/nodejs` buildpack (either in the heroku dashboard, or b
 
 ## Docker
 
-By default console will use SqlLite file storage
+By default `console` will use SqlLite file storage
 
 NB!: It will clean on conatiner re-creation
 
@@ -149,6 +149,18 @@ Please add volume to store it or setup Postgres/Firebase storage
 Now it available by http://<docker-machine-ip>:9000/
 
 You can run `docker-machine ls` for ip investigation.
+
+## Docker Compose
+
+1) Do not forget create machine `docker-machine create -d "virtualbox" local.geolocation`
+2) Setup vars `eval $(docker-machine env local.geolocation)`
+3) `docker-compose up` in root dir
+
+Now it available by http://<docker-machine-ip>/
+
+You can run `docker-machine ls` for ip investigation.
+
+Please do not forget set up `GOOGLE_MAPS_API_KEY` too.
 
 ## Credit
 

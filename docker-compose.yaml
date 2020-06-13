@@ -1,0 +1,25 @@
+version: '3.7'
+services:
+  db:
+    build: ./postgres
+    image: postgres
+    volumes:
+        - data:/var/lib/postgresql/data
+    entrypoint: ./docker-entrypoint.sh
+    command: postgres
+    restart: always
+  frontend:
+      build: .
+      image: console
+      links:
+        - db:db
+      ports:
+        - 80:9000
+      depends_on:
+        - db
+      environment:
+        - DATABASE_URL=postgres://postgres@db:5432/geolocation
+        - GOOGLE_MAPS_API_KEY=AI...vNkg
+      restart: always
+volumes:
+  data:

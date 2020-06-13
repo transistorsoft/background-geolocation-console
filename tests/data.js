@@ -1,4 +1,4 @@
-export const server = 'http://192.168.99.105:9000';
+export const server = 'http://localhost:9000';
 
 export const regData = {
   framework: 'flutter',
