@@ -27,8 +27,6 @@ const WrappedViewport = ({
   const isAdminPath = token === 'admin';
   const hasToken = (!!org || (!isAdminPath && !!token));
 
-  console.log('WrappedViewport', isAdminPath, hasToken, shared, token, org);
-
   useEffect(() => {
     prepare(token);
   }, [token, org]);
