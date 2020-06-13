@@ -43,6 +43,6 @@ RUN NODE_ENV=production ./node_modules/.bin/webpack && \
     npm i sqlite3
 
 ENV NPM_CONFIG_PRODUCTION=true \
-  NODE_ENV=production
+    NODE_ENV=production
 
 CMD ["node", "./bin/server.js"]
