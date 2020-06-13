@@ -1,12 +1,12 @@
-FROM node:12.18.0
+FROM node:12.18.0-alpine
 
 EXPOSE 9000
 WORKDIR /usr/
 
 COPY package*.json ./
 
-RUN apt-get update && \
-  apt-get install -y sqlite3 libsqlite3-dev && \
+RUN apk update && \
+  apk add sqlite  && \
   npm i
 
 COPY . .
