@@ -18,7 +18,7 @@ npm install
 ## Running
 
 Environment variables:
-```
+```bash
 export DATABASE_URL=postgres://postgres:password@localhost:5432/geolocation
 export GOOGLE_MAPS_API_KEY=AIz...vNkg
 # Do you use it for a lot of organisation or users?
@@ -29,9 +29,13 @@ export ADMIN_TOKEN=admin256    # admin login
 export PASSWORD=test           # admin password
 ```
 
+### Windows
+
+Please use `set` and 8080 port for dev.
+
 ### Firestore
 
-```
+```bash
 export FIREBASE_URL=https://YOUR-PROJECT-DATABASE.firebaseio.com
 export FIREBASE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMII...=\n-----END PRIVATE KEY-----\n
 ```
@@ -74,7 +78,7 @@ http://localhost:8080/
 
 Application have a jest api tests
 
-```
+```bash
 npm run test
 ```
 

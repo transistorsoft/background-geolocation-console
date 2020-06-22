@@ -5,12 +5,12 @@
   "main": "index.js",
   "scripts": {
     "lint": "eslint src/**/*.js --fix && flow",
-    "build": "NODE_ENV=production webpack",
+    "build": "cross-env NODE_ENV=production webpack",
     "start": "better-npm-run start",
     "dev": "better-npm-run dev",
     "test": "jest",
     "server": "node ./bin/server.js",
-    "heroku-postbuild": "rm -rf build/ && webpack -p --progress && NPM_CONFIG_PRODUCTION=true npm prune --production",
+    "heroku-postbuild": "rimraf build/ && webpack -p --progress && cross-env NPM_CONFIG_PRODUCTION=true npm prune --production",
     "migrate": "babel-node ./src/server/database/migrate.js"
   },
   "engines": {
@@ -22,7 +22,7 @@
   "repository": "https://github.com/transistorsoft/background-geolocation-console",
   "betterScripts": {
     "dev": {
-      "command": "concurrently --kill-others \"BABEL_ENV=node node --inspect=9229 ./bin/server.js\" \"BABEL_ENV=webpack node ./bin/dev.js\"",
+      "command": "concurrently --kill-others \"cross-env BABEL_ENV=node node --inspect=9229 ./bin/server.js\" \"cross-env BABEL_ENV=webpack node ./bin/dev.js\"",
       "env": {
         "TZ": "UTC",
         "NODE_PATH": "./src/client/"
@@ -116,6 +116,7 @@
     "chai-http": "^4.3.0",
     "concurrently": "^5.0.0",
     "copy-webpack-plugin": "^5.0.4",
+    "cross-env": "^7.0.2",
     "css-loader": "^0.26.1",
     "ejs-loader": "^0.3.0",
     "eslint": "^6.8.0",
@@ -146,6 +147,7 @@
     "postcss-modules-values": "^3.0.0",
     "postcss-preset-env": "^5.3.0",
     "react-hot-loader": "^4.6.3",
+    "rimraf": "^3.0.2",
     "sqlite3": "~4.0.6",
     "style-loader": "^0.13.1",
     "uglifyjs-webpack-plugin": "^2.2.0",

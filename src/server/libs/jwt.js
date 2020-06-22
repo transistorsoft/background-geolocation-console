@@ -2,7 +2,12 @@ import jwt from 'jsonwebtoken';
 import rsaGen from 'keypair';
 import forge from 'node-forge';
 
-import { JWT_PRIVATE_KEY, JWT_PUBLIC_KEY } from '../config';
+import {
+  JWT_PRIVATE_KEY,
+  JWT_PUBLIC_KEY,
+  isProduction,
+  developerJWTkey,
+} from '../config';
 
 export const signOptions = {
   issuer: 'transistorsoft',
@@ -27,7 +32,13 @@ export const getPublicKey = privateKey => {
   return fix(publicKey);
 };
 
-const keys = !JWT_PRIVATE_KEY ? rsaGen() : {};
+const keys = !JWT_PRIVATE_KEY
+  ? (
+    !isProduction
+      ? developerJWTkey
+      : rsaGen()
+  )
+  : { private: JWT_PRIVATE_KEY || '', public: JWT_PUBLIC_KEY || '' };
 
 keys.public = keys.public || JWT_PUBLIC_KEY || '';
 keys.private = keys.private || JWT_PRIVATE_KEY || '';

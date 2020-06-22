@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import fs from 'fs';
 import { Router } from 'express';
+import 'colors';
 
 import { sign, verify } from '../libs/jwt';
 import { decrypt, isEncryptedRequest } from '../libs/RNCrypto';

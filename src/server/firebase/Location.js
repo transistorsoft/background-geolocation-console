@@ -3,6 +3,7 @@
 import Promise from 'bluebird';
 import isUndefined from 'lodash/isUndefined';
 import omitBy from 'lodash/omitBy';
+import 'colors';
 
 import {
   deleteCollection,
@@ -125,7 +126,6 @@ export async function getLatestLocation(params, isAdmin) {
     return [];
   }
 }
-
 
 export async function createLocation(location, device, org, batch) {
   const now = new Date();
@@ -251,19 +251,18 @@ export async function create(params, org, dev = {}) {
   if (isDeniedCompany(token)) {
     throw new AccessDeniedError(
       'This is a question from the CEO of Transistor Software.\n' +
-          'Why are you spamming my demo server1?\n' +
-          'Please email me at chris@transistorsoft.com.',
+      'Why are you spamming my demo server1?\n' +
+      'Please email me at chris@transistorsoft.com.',
     );
   }
 
   if (isDeniedDevice(device.model || device.device_model)) {
     throw new AccessDeniedError(
       'This is a question from the CEO of Transistor Software.\n' +
-          'Why are you spamming my demo server2?\n' +
-          'Please email me at chris@transistorsoft.com.',
+      'Why are you spamming my demo server2?\n' +
+      'Please email me at chris@transistorsoft.com.',
     );
   }
-
 
   return createLocations(locations, device, token);
 }

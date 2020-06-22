@@ -2,6 +2,7 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import path from 'path';
 import express from 'express';
+import 'colors';
 import webpack from 'webpack';
 import webpackDevMiddleware from 'webpack-dev-middleware';
 import webpackHotMiddleware from 'webpack-hot-middleware';
