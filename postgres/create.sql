@@ -77,7 +77,7 @@ BEGIN
     WHEN others THEN RAISE NOTICE 'Table constraint public.companies already exists';
   END;
 
-END $$;
+END $$ LANGUAGE plpgsql;
 
 
 DO $$
@@ -89,7 +89,7 @@ BEGIN
     WHEN others THEN RAISE NOTICE 'Table constraint public.devices already exists';
   END;
 
-END $$;
+END $$ LANGUAGE plpgsql;
 
 
 DO $$
@@ -101,7 +101,7 @@ BEGIN
     WHEN others THEN RAISE NOTICE 'Table constraint public.locations already exists';
   END;
 
-END $$;
+END $$ LANGUAGE plpgsql;
 
 
 
@@ -123,7 +123,7 @@ BEGIN
     WHEN others THEN RAISE NOTICE 'Table fk constraint public.devices already exists';
   END;
 
-END $$;
+END $$ LANGUAGE plpgsql;
 
 DO $$
 BEGIN
@@ -135,7 +135,7 @@ BEGIN
     WHEN others THEN RAISE NOTICE 'Table fk constraint public.locations:company already exists';
   END;
 
-END $$;
+END $$ LANGUAGE plpgsql;
 
 
 DO $$
@@ -148,9 +148,18 @@ BEGIN
     WHEN others THEN RAISE NOTICE 'Table fk constraint public.locations:device already exists';
   END;
 
-END $$;
+END $$ LANGUAGE plpgsql;
 
 
-GRANT SELECT,USAGE ON SEQUENCE public.companies_id_seq TO main;
-GRANT SELECT,USAGE ON SEQUENCE public.devices_id_seq TO main;
-GRANT SELECT,USAGE ON SEQUENCE public.locations_id_seq TO main;
+DO $$
+BEGIN
+
+  BEGIN
+    GRANT SELECT,USAGE ON SEQUENCE public.companies_id_seq TO main;
+    GRANT SELECT,USAGE ON SEQUENCE public.devices_id_seq TO main;
+    GRANT SELECT,USAGE ON SEQUENCE public.locations_id_seq TO main;
+  EXCEPTION
+    WHEN others THEN RAISE NOTICE 'role main does not exists';
+  END;
+
+END $$ LANGUAGE plpgsql;

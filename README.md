@@ -18,16 +18,24 @@ npm install
 ## Running
 
 Environment variables:
-```
+```bash
 export DATABASE_URL=postgres://postgres:password@localhost:5432/geolocation
 export GOOGLE_MAPS_API_KEY=AIz...vNkg
+# Do you use it for a lot of organisation or users?
 export SHARED_DASHBOARD=1      # with auth
+# Manage them in one account? http://localhost:9000/admin256
 export ADMIN_TOKEN=admin256    # admin login
+# Do you need auth?
 export PASSWORD=test           # admin password
 ```
+
+### Windows
+
+Please use `set` and 8080 port for dev.
+
 ### Firestore
 
-```
+```bash
 export FIREBASE_URL=https://YOUR-PROJECT-DATABASE.firebaseio.com
 export FIREBASE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMII...=\n-----END PRIVATE KEY-----\n
 ```
@@ -70,7 +78,7 @@ http://localhost:8080/
 
 Application have a jest api tests
 
-```
+```bash
 npm run test
 ```
 
@@ -129,6 +137,34 @@ Before this, you will need to create 2 environment variables (either in the hero
   into a postgresql db (instead of a sqlite db which will be deleted after every heroku shutdown)
 
 And to reference `heroku/nodejs` buildpack (either in the heroku dashboard, or by executing `heroku buildpacks:add --index 1 heroku/nodejs`)
+
+## Docker
+
+By default `console` will use SqlLite file storage
+
+NB!: It will clean on conatiner re-creation
+
+Please add volume to store it or setup Postgres/Firebase storage
+
+1. Configurate you own build in [Dockerfile](./Dockerfile)
+2. `docker build -t background-geolocation-console .`
+3. `docker run -p 9000:9000 -v /<rootpath>/src/server/database/db:/usr/src/server/database/db -d background-geolocation-console`
+
+Now it available by http://<docker-machine-ip>:9000/
+
+You can run `docker-machine ls` for ip investigation.
+
+## Docker Compose
+
+1) Do not forget create machine `docker-machine create -d "virtualbox" local.geolocation`
+2) Setup vars `eval $(docker-machine env local.geolocation)`
+3) `docker-compose up` in root dir
+
+Now it available by http://<docker-machine-ip>/
+
+You can run `docker-machine ls` for ip investigation.
+
+Please do not forget set up `GOOGLE_MAPS_API_KEY` too.
 
 ## Credit
 
