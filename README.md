@@ -23,7 +23,7 @@ export DATABASE_URL=postgres://postgres:password@localhost:5432/geolocation
 export GOOGLE_MAPS_API_KEY=AIz...vNkg
 # Do you use it for a lot of organisation or users?
 export SHARED_DASHBOARD=1      # with auth
-# Manage them in one account? http://localhost:9000/admin256
+# Manage them in one account? http://localhost:8080/admin256
 export ADMIN_TOKEN=admin256    # admin login
 # Do you need auth?
 export PASSWORD=test           # admin password
@@ -43,11 +43,7 @@ export FIREBASE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMII...=\n-----END PRIVA
 
 Database will createe automaticaly in non production.
 
-[PgSQL script for production](./src/server/database/psql/create.sql)
-
-Database will createe automaticaly in non production.
-
-[PgSQL script for production](./src/server/database/psql/create.sql)
+[PgSQL script for production](./postgres/create.sql)
 
 ### Production mode:
 
