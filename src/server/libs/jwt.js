@@ -1,11 +1,9 @@
 import jwt from 'jsonwebtoken';
-import rsaGen from 'keypair';
 import forge from 'node-forge';
 
 import {
   JWT_PRIVATE_KEY,
   JWT_PUBLIC_KEY,
-  isProduction,
   developerJWTkey,
 } from '../config';
 
@@ -34,9 +32,7 @@ export const getPublicKey = privateKey => {
 
 const keys = !JWT_PRIVATE_KEY
   ? (
-    !isProduction
-      ? developerJWTkey
-      : rsaGen()
+    developerJWTkey
   )
   : { private: JWT_PRIVATE_KEY || '', public: JWT_PUBLIC_KEY || '' };
 
