@@ -22,11 +22,19 @@ Environment variables:
 export DATABASE_URL=postgres://postgres:password@localhost:5432/geolocation
 export GOOGLE_MAPS_API_KEY=AIz...vNkg
 # Do you use it for a lot of organisation or users?
-export SHARED_DASHBOARD=1      # with auth
-# Manage them in one account? http://localhost:8080/admin256
+export SHARED_DASHBOARD=1      # with auth,
+# export SHARED_DASHBOARD=1    # empty - without auth,
+# Manage them in one account?  http://localhost:8080/admin
 export ADMIN_TOKEN=admin256    # admin login
 # Do you need auth?
 export PASSWORD=test           # admin password
+```
+
+For production version please do not forget add your own JWT keys
+
+```
+export JWT_PRIVATE_KEY=-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----\n
+export JWT_PUBLIC_KEY=-----BEGIN RSA PUBLIC KEY-----\n...-----END RSA PUBLIC KEY-----\n
 ```
 
 ### Windows
