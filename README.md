@@ -154,7 +154,7 @@ Please add volume to store it or setup Postgres/Firebase storage
 2. `docker build -t background-geolocation-console .`
 3. `docker run -p 9000:9000 -v /<rootpath>/src/server/database/db:/usr/src/server/database/db -d background-geolocation-console`
 
-Now it available by http://<docker-machine-ip>:9000/
+Now it available by http://&lt;docker-machine-ip&gt;:9000/
 
 You can run `docker-machine ls` for ip investigation.
 
@@ -164,7 +164,7 @@ You can run `docker-machine ls` for ip investigation.
 2) Setup vars `eval $(docker-machine env local.geolocation)`
 3) `docker-compose up` in root dir
 
-Now it available by http://<docker-machine-ip>/
+Now it available by http://&lt;docker-machine-ip&gt;/
 
 You can run `docker-machine ls` for ip investigation.
 
