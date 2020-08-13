@@ -8,7 +8,7 @@ You may read the news about this [application in our article on Medium](https://
 
 ## Install
 
-You must have [npm](https://www.npmjs.org/) installed on your computer.
+You must have [node.js 12.18.0](https://nodejs.org/en/blog/release/v12.18.0/) and [npm](https://www.npmjs.org/) installed on your computer.
 From the root project directory run these commands from the command line:
 
 ```bash
