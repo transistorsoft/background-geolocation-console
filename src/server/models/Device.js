@@ -1,12 +1,12 @@
-import { Op } from 'sequelize';
+import sequelizePkg from 'sequelize';
+const { Op } = sequelizePkg;
 
+import DeviceModel from '../database/DeviceModel.js';
+import LocationModel from '../database/LocationModel.js';
+import { checkCompany } from '../libs/utils.js';
+import { desc, withAuth } from '../config.js';
 
-import DeviceModel from '../database/DeviceModel';
-import LocationModel from '../database/LocationModel';
-import { checkCompany } from '../libs/utils';
-import { desc, withAuth } from '../config';
-
-import { findOrCreate as findOrCreateCompany } from './Org';
+import { findOrCreate as findOrCreateCompany } from './Org.js';
 
 export async function getDevice({
   id, device_id: deviceId, org,

@@ -1,24 +1,23 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-console */
 import Promise from 'bluebird';
-import isUndefined from 'lodash/isUndefined';
-import omitBy from 'lodash/omitBy';
+import { omitBy, isUndefined } from 'lodash-es';
 import 'colors';
 
 import {
   deleteCollection,
   firestore,
-} from '.';
+} from './index.js';
 
 import {
   AccessDeniedError,
   isDeniedCompany,
   isDeniedDevice,
   toRows,
-} from '../libs/utils';
-import { withAuth, dataLogOn } from '../config';
+} from '../libs/utils.js';
+import { withAuth, dataLogOn } from '../config.js';
 
-import { findOrCreate } from './Device';
+import { findOrCreate } from './Device.js';
 
 export async function getStats() {
   return {

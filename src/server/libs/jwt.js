@@ -5,7 +5,7 @@ import {
   JWT_PRIVATE_KEY,
   JWT_PUBLIC_KEY,
   developerJWTkey,
-} from '../config';
+} from '../config.js';
 
 export const signOptions = {
   issuer: 'transistorsoft',

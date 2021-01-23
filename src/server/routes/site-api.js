@@ -3,8 +3,8 @@ import fs from 'fs';
 import { Router } from 'express';
 import 'colors';
 
-import { sign, verify } from '../libs/jwt';
-import { decrypt, isEncryptedRequest } from '../libs/RNCrypto';
+import { sign, verify } from '../libs/jwt.js';
+import { decrypt, isEncryptedRequest } from '../libs/RNCrypto.js';
 import {
   AccessDeniedError,
   checkAuth,
@@ -15,17 +15,17 @@ import {
   isDDosCompany,
   isPassword,
   return1Gbfile,
-} from '../libs/utils';
-import { deleteDevice, getDevices } from '../models/Device';
+} from '../libs/utils.js';
+import { deleteDevice, getDevices } from '../models/Device.js';
 import {
   create,
   deleteLocations,
   getLatestLocation,
   getLocations,
   getStats,
-} from '../models/Location';
-import { withAuth, adminToken } from '../config';
-import { getOrgs, findOne } from '../models/Org';
+} from '../models/Location.js';
+import { withAuth, adminToken } from '../config.js';
+import { getOrgs, findOne } from '../models/Org.js';
 
 const router = new Router();
 

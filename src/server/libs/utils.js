@@ -1,7 +1,9 @@
 /* eslint-disable max-classes-per-file */
 import { createReadStream } from 'fs';
 import { resolve } from 'path';
-import { firestore } from 'firebase-admin';
+
+import firebaseAdminPkg from 'firebase-admin';
+const { firestore } = firebaseAdminPkg;
 
 import {
   adminToken,
@@ -13,7 +15,8 @@ import {
   dummyToken,
   password,
   withAuth,
-} from '../config';
+  isPostgres
+} from '../config.js';
 
 const check = (list, item) => list.find(x => !!x && (item || '').toLowerCase().startsWith(x.toLowerCase()));
 export const isDDosCompany = orgToken => check(ddosBombCompanies, orgToken);

@@ -14,7 +14,6 @@ import { deleteActiveDevice } from 'reducer/dashboard';
 import ConfirmationDialog, { type Result } from '../ConfirmationDialog';
 import RemoveAnimationProvider from '../RemoveAnimationProvider';
 
-
 type StateProps = {|
   isVisible: boolean,
   startDate: Date,

@@ -1,25 +1,26 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-console */
-import { Op } from 'sequelize';
+import sequelizePkg from 'sequelize';
+const { Op } = sequelizePkg;
 import Promise from 'bluebird';
 
-import CompanyModel from '../database/CompanyModel';
-import DeviceModel from '../database/DeviceModel';
-import LocationModel from '../database/LocationModel';
+import CompanyModel from '../database/CompanyModel.js';
+import DeviceModel from '../database/DeviceModel.js';
+import LocationModel from '../database/LocationModel.js';
 import {
   AccessDeniedError,
   hydrate,
   isDeniedCompany,
   isDeniedDevice,
   jsonb,
-} from '../libs/utils';
+} from '../libs/utils.js';
 import {
   dataLogOn,
   desc,
   withAuth,
-} from '../config';
+} from '../config.js';
 
-import { findOrCreate } from './Device';
+import { findOrCreate } from './Device.js';
 
 const include = [{ model: DeviceModel, as: 'device' }];
 

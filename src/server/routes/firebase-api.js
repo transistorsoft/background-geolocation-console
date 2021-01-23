@@ -2,16 +2,16 @@ import crypto from 'crypto';
 import { Router } from 'express';
 import 'colors';
 
-import { decrypt, isEncryptedRequest } from '../libs/RNCrypto';
+import { decrypt, isEncryptedRequest } from '../libs/RNCrypto.js';
 import {
   createUser,
   serviceApp,
   verify,
-} from '../firebase';
+} from '../firebase/index.js';
 import {
   adminToken,
   withAuth,
-} from '../config';
+} from '../config.js';
 import {
   AccessDeniedError,
   checkAuth,
@@ -20,25 +20,25 @@ import {
   isAdminToken,
   isDDosCompany,
   isPassword,
-  isProduction,
   RegistrationRequiredError,
   return1Gbfile,
-} from '../libs/utils';
+} from '../libs/utils.js';
+import { isProduction } from '../config.js';
 import {
   deleteDevice,
   findOrCreate,
   getDevices,
   getDevice,
-} from '../firebase/Device';
+} from '../firebase/Device.js';
 import {
   create,
   deleteLocations,
   getLatestLocation,
   getLocations,
   getStats,
-} from '../firebase/Location';
+} from '../firebase/Location.js';
 
-import { getOrgs } from '../firebase/Org';
+import { getOrgs } from '../firebase/Org.js';
 
 const router = new Router();
 

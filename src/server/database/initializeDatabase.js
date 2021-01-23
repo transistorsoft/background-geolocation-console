@@ -1,12 +1,12 @@
 import {
   isPostgres,
   isProduction,
-} from '../config';
+} from '../config.js';
 
-import definedSequelizeDb from './define-sequelize-db';
-import Location from './LocationModel';
-import Device from './DeviceModel';
-import Company from './CompanyModel';
+import definedSequelizeDb from './define-sequelize-db.js';
+import Location from './LocationModel.js';
+import Device from './DeviceModel.js';
+import Company from './CompanyModel.js';
 
 const syncOptions = { logging: true };
 

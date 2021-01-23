@@ -1,10 +1,9 @@
 import Sequelize from 'sequelize';
 
-import { isPostgres } from '../libs/utils';
+import { isPostgres } from '../config.js';
 
-import definition from './LocationDefinition';
-import definedSequelizeDb from './define-sequelize-db';
-
+import definition from './LocationDefinition.js';
+import definedSequelizeDb from './define-sequelize-db.js';
 
 if (isPostgres) {
   definition.data = { type: Sequelize.JSONB };

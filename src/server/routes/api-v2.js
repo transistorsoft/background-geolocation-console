@@ -2,32 +2,32 @@ import crypto from 'crypto';
 import { Router } from 'express';
 import 'colors';
 
-import { decrypt, isEncryptedRequest } from '../libs/RNCrypto';
-import { sign, verify } from '../libs/jwt';
+import { decrypt, isEncryptedRequest } from '../libs/RNCrypto.js';
+import { sign, verify } from '../libs/jwt.js';
 import {
   AccessDeniedError,
   checkAuth,
   dataLogOn,
   isAdmin,
   isDDosCompany,
-  isProduction,
   RegistrationRequiredError,
   return1Gbfile,
-} from '../libs/utils';
+} from '../libs/utils.js';
+import { isProduction } from '../config.js';
 import {
   deleteDevice,
   findOrCreate,
   getDevice,
   getDevices,
-} from '../models/Device';
+} from '../models/Device.js';
 import {
   create,
   deleteLocations,
   getLatestLocation,
   getLocations,
   getStats,
-} from '../models/Location';
-import { getOrgs } from '../models/Org';
+} from '../models/Location.js';
+import { getOrgs } from '../models/Org.js';
 
 const router = new Router();
 

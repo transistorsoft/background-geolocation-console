@@ -1,6 +1,6 @@
 import Sequelize from 'sequelize';
 
-import definedSequelizeDb from './define-sequelize-db';
+import definedSequelizeDb from './define-sequelize-db.js';
 
 const DeviceModel = definedSequelizeDb
   ? definedSequelizeDb.define(

@@ -1,14 +1,14 @@
 /* eslint-disable no-console */
-import isUndefined from 'lodash/isUndefined';
-import omitBy from 'lodash/omitBy';
+import { isUndefined } from 'lodash-es';
+import { omitBy } from 'lodash-es';
 
 import {
   deleteCollection,
   firestore,
-} from '.';
+} from './index.js';
 
-import { withAuth } from '../config';
-import { toRows, toRow } from '../libs/utils';
+import { withAuth } from '../config.js';
+import { toRows, toRow } from '../libs/utils.js';
 
 export async function getDevice({ device_id: deviceId, org }) {
   try {

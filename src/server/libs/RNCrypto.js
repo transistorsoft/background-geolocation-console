@@ -2,7 +2,7 @@
 import crypto from 'crypto';
 
 // Decryption password.  Same as used by BackgroundGeolocation SDK to encrypt.
-import { ENCRYPTION_PASSWORD as password } from '../config';
+import { ENCRYPTION_PASSWORD as password } from '../config.js';
 
 export const isEncryptedRequest = req => {
   const contentType = req.get('Content-Type');

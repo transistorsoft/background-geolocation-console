@@ -1,6 +1,6 @@
 import Sequelize from 'sequelize';
 
-import definedSequelizeDb from './define-sequelize-db';
+import definedSequelizeDb from './define-sequelize-db.js';
 
 const CompanyModel = definedSequelizeDb
   ? definedSequelizeDb.define(

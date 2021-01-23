@@ -1,19 +1,20 @@
 /* eslint-disable no-console */
-import { Op } from 'sequelize';
+import sequelizePkg from 'sequelize';
+const { Op } = sequelizePkg;
+
 import Promise from 'bluebird';
 
 import {
   firestore,
   getToken,
   verify,
-} from '.';
+} from './index.js';
 
-import CompanyModel from '../database/CompanyModel';
-import DeviceModel from '../database/DeviceModel';
-import LocationModel from '../database/LocationModel';
-import { toRows, toRow } from '../libs/utils';
-import { firebaseOperationLimit } from '../config';
-
+import CompanyModel from '../database/CompanyModel.js';
+import DeviceModel from '../database/DeviceModel.js';
+import LocationModel from '../database/LocationModel.js';
+import { toRows, toRow } from '../libs/utils.js';
+import { firebaseOperationLimit } from '../config.js';
 
 const checkLimit = async (counter, batch) => {
   if (

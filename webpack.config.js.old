@@ -7,7 +7,7 @@ const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
-const CopyPlugin = require('copy-webpack-plugin');
+// const CopyPlugin = require('copy-webpack-plugin');
 
 const {
   firebaseURL,
@@ -19,7 +19,7 @@ const {
   withAuth,
 } = require('./src/server/config');
 
-const copyAssets = new CopyPlugin([{ from: 'assets/images', to: 'images' }]);
+// const copyAssets = new CopyPlugin([{ from: 'assets/images', to: 'images' }]);
 
 const htmlWebpackPlugin = new HtmlWebpackPlugin({
   template: 'index.ejs',
@@ -44,7 +44,7 @@ const htmlWebpackPlugin = new HtmlWebpackPlugin({
 
 const config = {
   context: path.resolve(__dirname, 'src', 'client'),
-  devtool: !isProduction ? 'cheap-module-eval-source-map' : 'source-map',
+  devtool: !isProduction ? 'cheap-module-source-map' : 'source-map',
   target: 'web',
   entry: isProduction
     ? [
@@ -145,17 +145,16 @@ const config = {
         minimize: true,
         debug: false,
       }),
-      copyAssets,
+      // copyAssets,
       htmlWebpackPlugin,
     ]
     : [
-      new webpack.NamedModulesPlugin(),
       new webpack.DefinePlugin({
         'process.env.FIREBASE_URL': JSON.stringify(firebaseURL),
         'process.env.NODE_ENV': JSON.stringify(NODE_ENV || 'development'),
         'process.env.SHARED_DASHBOARD': !!withAuth || 'false',
       }),
-      copyAssets,
+      // copyAssets,
       new webpack.HotModuleReplacementPlugin(),
       htmlWebpackPlugin,
     ],

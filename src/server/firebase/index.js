@@ -1,16 +1,16 @@
-import firebase from 'firebase/app';
-import admin from 'firebase-admin';
-import 'firebase/auth';
-import 'firebase/database';
+import firebase from 'firebase/app/dist/index.cjs.js';
+import { default as admin } from 'firebase-admin';
+import 'firebase/auth/dist/index.cjs.js';
+import 'firebase/database/dist/index.cjs.js';
 
 import {
   firebaseClientEmail,
   firebasePrivateKey,
   firebaseProjectId,
   firebaseURL as databaseURL,
-} from '../config';
+} from '../config.js';
 
-import { verify as verifier, getPublicKey } from '../libs/jwt';
+import { verify as verifier, getPublicKey } from '../libs/jwt.js';
 
 export const credential = databaseURL && admin.credential.cert({
   project_id: firebaseProjectId,

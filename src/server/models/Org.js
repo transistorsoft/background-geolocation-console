@@ -1,5 +1,5 @@
-import CompanyModel from '../database/CompanyModel';
-import { desc } from '../config';
+import CompanyModel from '../database/CompanyModel.js';
+import { desc } from '../config.js';
 
 export async function getOrgs({ org }, isAdmin) {
   if (!isAdmin && !org) {

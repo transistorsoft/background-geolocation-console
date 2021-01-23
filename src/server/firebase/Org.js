@@ -1,6 +1,6 @@
-import { firestore } from '.';
+import { firestore } from './index.js';
 
-import { toRows, toRow } from '../libs/utils';
+import { toRows, toRow } from '../libs/utils.js';
 
 export async function getOrgs({ org }, isAdmin) {
   if (!isAdmin && !org) {

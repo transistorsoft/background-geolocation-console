@@ -1,16 +1,14 @@
 /* eslint-disable no-unused-expressions */
-import queryString from 'querystring';
-import chai from 'chai';
-import chaiHttp from 'chai-http';
+const queryString  = require('querystring');
+const chai = require('chai');
+const chaiHttp = require('chai-http');
 
-
-import {
+const {
   location,
   location2,
   regData,
   server,
-} from './data';
-
+} = require('./data.js');
 
 chai.use(chaiHttp);
 chai.should();
@@ -25,7 +23,6 @@ beforeAll(async () => {
     .send(regData);
   ({ accessToken: token } = res.body);
 });
-
 
 describe('site api', () => {
   test('/company_tokens', async () => {
@@ -168,7 +165,6 @@ describe('site api', () => {
       expect(res).have.status(200);
       expect(res).to.be.json;
     });
-
 
     test('POST /locations/test []', async () => {
       const res = await chai

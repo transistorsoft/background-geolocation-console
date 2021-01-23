@@ -13,16 +13,16 @@ import {
   isProduction,
   parserLimit,
   port,
-} from './config';
-import initializeDatabase from './database/initializeDatabase';
-import { AccessDeniedError } from './libs/utils';
-import api from './routes/api-v2';
-import firebase from './routes/firebase-api';
-import siteApi from './routes/site-api';
-import tests from './routes/tests';
+} from './config.js';
+import initializeDatabase from './database/initializeDatabase.js';
+import { AccessDeniedError } from './libs/utils.js';
+import api from './routes/api-v2.js';
+import firebase from './routes/firebase-api.js';
+import siteApi from './routes/site-api.js';
+import tests from './routes/tests.js';
 
 const app = express();
-const buildPath = resolve(__dirname, '..', '..', 'build');
+const buildPath = resolve('.', 'build');
 const parserLimits = { limit: parserLimit, extended: true };
 
 process.on('uncaughtException', err => {
@@ -44,7 +44,7 @@ app.use(bodyParser.raw(parserLimits));
 ((async () => {
   await initializeDatabase();
 
-  const index = resolve(__dirname, buildPath, 'index.html');
+  const index = resolve(buildPath, 'index.html');
 
   app.use(siteApi);
   app.use('/api/site', siteApi);
@@ -91,4 +91,4 @@ app.use(bodyParser.raw(parserLimits));
   });
 })());
 
-module.exports = app;
+export default app;

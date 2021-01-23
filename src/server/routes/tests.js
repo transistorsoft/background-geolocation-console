@@ -1,7 +1,7 @@
 import { Router } from 'express';
 
 // import { isEncryptedRequest, decrypt } from '../libs/RNCrypto';
-import { AccessDeniedError, RegistrationRequiredError } from '../libs/utils';
+import { AccessDeniedError, RegistrationRequiredError } from '../libs/utils.js';
 
 const router = new Router();
 
