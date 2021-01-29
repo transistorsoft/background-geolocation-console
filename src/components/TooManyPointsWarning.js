@@ -2,7 +2,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 
-import { type GlobalState } from 'reducer/state';
+import { type GlobalState } from '../reducer/state';
 
 import { MAX_POINTS } from '../constants';
 

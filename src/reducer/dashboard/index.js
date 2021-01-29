@@ -5,23 +5,23 @@ import isEqual from 'lodash/isEqual';
 
 import {
   fitBoundsBus, scrollToRowBus, changeTabBus,
-} from 'globalBus';
+} from '../../globalBus';
 import {
   setSettings,
   getSettings,
   getUrlSettings,
   setUrlSettings,
   type StoredSettings,
-} from 'storage';
-import GA from 'utils/GA';
-import { makeHeaders } from 'utils/request';
-import { type Tab } from 'reducer/state';
+} from '../../storage';
+import GA from '../../utils/GA';
+import { makeHeaders } from '../../utils/request';
+import { type Tab } from '../../reducer/state';
 import {
   type GetState,
   type Dispatch,
   type ThunkAction,
-} from 'reducer/types';
-import cloneState from 'utils/cloneState';
+} from '../../reducer/types';
+import cloneState from '../../utils/cloneState';
 
 import { API_URL } from '../../constants';
 

@@ -1,11 +1,7 @@
-require('@babel/polyfill/noConflict');
-require('@babel/register')();
-
 const path = require('path');
 const webpack = require('webpack');
 
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 // const CopyPlugin = require('copy-webpack-plugin');
 
@@ -43,17 +39,14 @@ const htmlWebpackPlugin = new HtmlWebpackPlugin({
 });
 
 const config = {
-  context: path.resolve(__dirname, 'src', 'client'),
+  context: path.resolve(__dirname, 'src'),
   devtool: !isProduction ? 'cheap-module-source-map' : 'source-map',
   target: 'web',
   entry: isProduction
     ? [
-      '@babel/polyfill/noConflict',
-      '@babel/polyfill',
       './main.js',
     ]
     : [
-      '@babel/polyfill',
       'webpack-hot-middleware/client?path=/__webpack_hmr&timeout=20000',
       'react-hot-loader/patch',
       './main.js',

@@ -2,8 +2,8 @@
 import React, { useEffect } from 'react';
 import { connect } from 'react-redux';
 
-import type { GlobalState } from 'reducer/state';
-import { prepareView as prepareAction } from 'reducer/auth';
+import type { GlobalState } from '../reducer/state';
+import { prepareView as prepareAction } from '../reducer/auth';
 
 import Viewport from './Viewport';
 import Loading from './Loading';

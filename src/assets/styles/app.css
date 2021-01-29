@@ -1,5 +1,4 @@
-
-#app-container {
+#root {
 
 }
 
@@ -14,6 +13,7 @@
   bottom: 0;
   right:0;
 }
+
 .map {
   position:absolute;
   top: 0;

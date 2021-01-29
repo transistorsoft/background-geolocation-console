@@ -11,8 +11,8 @@ import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import { connect } from 'react-redux';
 
-import { type Location, unselectLocation } from 'reducer/dashboard';
-import { type GlobalState } from 'reducer/state';
+import { type Location, unselectLocation } from '../reducer/dashboard';
+import { type GlobalState } from '../reducer/state';
 
 type StateProps = {|
   location: ?Location,

@@ -18,22 +18,22 @@ class CustomMarkers extends React.Component {
     };
   }
 
-  onChangeLabel = value => {
+  onChangeLabel(value) {
     this.setState({ label: value });
-  };
+  }
 
-  onChangePosition = value => {
+  onChangePosition(value) {
     this.setState({
       positionHint: value.length > 0 ? '' : 'latitude, longitude',
       position: value,
     });
-  };
+  }
 
-  onChangeRadius = value => {
+  onChangeRadius(value) {
     this.setState({ radius: value });
-  };
+  }
 
-  onAdd = () => {
+  onAdd() {
     const {
       position, radius, label,
     } = this.state;
@@ -49,7 +49,7 @@ class CustomMarkers extends React.Component {
       },
       radius: parseInt(radius, 10),
     });
-  };
+  }
 
   render() {
     const {
@@ -94,7 +94,7 @@ class CustomMarkers extends React.Component {
             variant='contained'
             color='primary'
             style={{ width: '100%' }}
-            onClick={this.onAdd}
+            onClick={() => this.onAdd()}
           >
             Add Marker
           </Button>

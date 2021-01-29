@@ -1,13 +1,13 @@
 // @flow
 /* eslint-disable no-console */
-import cloneState from 'utils/cloneState';
+import cloneState from '../../utils/cloneState';
 
 import {
   type Dispatch,
   type ThunkAction,
-} from 'reducer/types';
+} from '../types';
 
-import { loadInitialData } from 'reducer/dashboard';
+import { loadInitialData } from '../dashboard';
 
 import { setAuth, getAuth } from '../../storage';
 
@@ -45,7 +45,6 @@ type AuthErrorAction = {|
 
 type Action =
   | AuthErrorAction
-  | CloseAuthModalAction
   | SetAccessTokenAction
   | SetTokenLoadingAction;
 

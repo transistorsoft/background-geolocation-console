@@ -9,14 +9,14 @@ import Tabs from '@material-ui/core/Tabs';
 import IconButton from '@material-ui/core/IconButton';
 import ExitToAppIcon from '@material-ui/icons/ExitToApp';
 
-import type { GlobalState } from 'reducer/state';
+import type { GlobalState } from '../reducer/state';
 import {
   changeActiveTab,
   type Tab as TabType,
   type Location,
-} from 'reducer/dashboard';
+} from '../reducer/dashboard';
 
-import { logout as logoutAction } from 'reducer/auth';
+import { logout as logoutAction } from '../reducer/auth';
 
 import HeaderView from './HeaderView';
 import FilterView from './FilterView';

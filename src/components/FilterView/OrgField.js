@@ -23,7 +23,7 @@ import DeviceUnknownIcon from '@material-ui/icons/DeviceUnknown';
 import CloseRounded from '@material-ui/icons/CloseRounded';
 import clx from 'classnames';
 
-import type { Source, MaterialInputElement } from 'reducer/dashboard';
+import type { Source, MaterialInputElement } from '../../reducer/dashboard';
 
 import RemoveAnimationProvider from '../RemoveAnimationProvider';
 

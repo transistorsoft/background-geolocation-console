@@ -8,8 +8,8 @@ import FormControlLabel from '@material-ui/core/FormControlLabel';
 import { connect } from 'react-redux';
 import format from 'date-fns/format';
 
-import { type GlobalState } from 'reducer/state';
-import { deleteActiveDevice } from 'reducer/dashboard';
+import { type GlobalState } from '../../reducer/state';
+import { deleteActiveDevice } from '../../reducer/dashboard';
 
 import ConfirmationDialog, { type Result } from '../ConfirmationDialog';
 import RemoveAnimationProvider from '../RemoveAnimationProvider';

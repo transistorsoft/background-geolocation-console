@@ -6,12 +6,13 @@ import {
   Switch,
 } from 'react-router-dom';
 
-import WrappedViewport from 'components/WrappedViewport';
+import WrappedViewport from './components/WrappedViewport';
 
 const App = ({ store }) => (
   <Provider store={store}>
     <Router>
       <Switch>
+        <Route path='/locations/:token' component={WrappedViewport} exact />
         <Route path='/:token' component={WrappedViewport} exact />
         <Route path='/' component={WrappedViewport} exact />
       </Switch>

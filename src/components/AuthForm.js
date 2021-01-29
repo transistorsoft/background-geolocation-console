@@ -14,9 +14,9 @@ import Container from '@material-ui/core/Container';
 import {
   checkAuth,
   type AuthParams,
-} from 'reducer/auth';
+} from '../reducer/auth';
 
-import { type MaterialInputElement } from 'reducer/dashboard';
+import { type MaterialInputElement } from '../reducer/dashboard';
 
 type DispatchProps = {|
   handleSubmit: (params: AuthParams) => any,

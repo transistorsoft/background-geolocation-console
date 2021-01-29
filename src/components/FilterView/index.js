@@ -41,9 +41,9 @@ import {
   type OrgToken,
   reload,
   type Source,
-} from 'reducer/dashboard';
-import { type GlobalState } from 'reducer/state';
-import formatDate from 'utils/formatDate';
+} from '../../reducer/dashboard';
+import { type GlobalState } from '../../reducer/state';
+import formatDate from '../../utils/formatDate';
 
 import RemoveAnimationProvider from '../RemoveAnimationProvider';
 
@@ -170,6 +170,7 @@ const FilterView = ({
                 <TimePicker
                   autoOk
                   label='Time'
+                  format='hh:mm'
                   style={{ flex: 1 }}
                   onChange={onChangeStartDate}
                   value={startDate}
@@ -188,6 +189,7 @@ const FilterView = ({
                 <TimePicker
                   autoOk
                   label='Time'
+                  format='hh:mm'
                   style={{ flex: 1 }}
                   onChange={onChangeEndDate}
                   value={endDate}

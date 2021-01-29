@@ -3,9 +3,9 @@ import queryString from 'query-string';
 import isUndefined from 'lodash/isUndefined';
 import omitBy from 'lodash/omitBy';
 
-import { type Tab } from 'reducer/state';
-import { type AuthInfo, type AuthSettings } from 'reducer/types';
-import cloneState from 'utils/cloneState';
+import { type Tab } from './reducer/state';
+import { type AuthInfo, type AuthSettings } from './reducer/types';
+import cloneState from './utils/cloneState';
 
 export type StoredSettings = {|
   activeTab: Tab,
@@ -24,7 +24,10 @@ export type StoredSettings = {|
 const getLocalStorageKey = (key: string) => (key ? `settings#${key}` : 'settings');
 
 export function getAuth(): AuthSettings {
-  const encodedSettings = localStorage.getItem(getLocalStorageKey('auth'));
+  if (typeof window === "undefined") {
+    return null;
+  }
+  const encodedSettings = window.localStorage.getItem(getLocalStorageKey('auth'));
   if (encodedSettings) {
     const parsed = JSON.parse(encodedSettings);
     return parsed;
@@ -33,16 +36,22 @@ export function getAuth(): AuthSettings {
 }
 
 export function setAuth(settings: AuthSettings): AuthSettings {
+  if (typeof window === "undefined") {
+    return null;
+  }
   if (!settings) {
     return null;
   }
-  localStorage.setItem(getLocalStorageKey('auth'), JSON.stringify(settings));
+  window.localStorage.setItem(getLocalStorageKey('auth'), JSON.stringify(settings));
 
   return settings;
 }
 
 export function getSettings(key: string): $Shape<StoredSettings> {
-  const encodedSettings = localStorage.getItem(getLocalStorageKey(key));
+  if (typeof window === "undefined") {
+    return {};
+  }
+  const encodedSettings = window.localStorage.getItem(getLocalStorageKey(key));
   if (encodedSettings) {
     const parsed = JSON.parse(encodedSettings);
     // convert start/endDate to Date if they are present
@@ -151,6 +160,9 @@ export function setUrlSettings(
 }
 
 export function setSettings(key: string, settings: $Shape<StoredSettings>) {
+  if (typeof window === 'undefined') {
+    return;
+  }
   const existingSettings = getSettings(key);
   const newSettings = cloneState(existingSettings, settings);
   // convert start/endDate to string if they are present
@@ -170,7 +182,7 @@ export function setSettings(key: string, settings: $Shape<StoredSettings>) {
     isUndefined,
   );
 
-  localStorage.setItem(
+  window.localStorage.setItem(
     getLocalStorageKey(key),
     JSON.stringify(stringifiedNewSettings),
   );

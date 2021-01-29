@@ -7,14 +7,13 @@ import { List, AutoSizer } from 'react-virtualized';
 import classNames from 'classnames';
 import { createSelector } from 'reselect';
 
-import { type Location, setSelectedLocation } from 'reducer/dashboard';
-import { type GlobalState } from 'reducer/state';
+import { type Location, setSelectedLocation } from '../reducer/dashboard';
+import { type GlobalState } from '../reducer/state';
 import {
   changeTabBus,
   scrollToRowBus,
   type ScrollToRowPayload,
-} from 'globalBus';
-import Styles from 'assets/styles/app.css';
+} from '../globalBus';
 
 type LocationRow = {|
   accuracy: number,
@@ -76,9 +75,6 @@ const getRowData = (location: Location): LocationRow => {
 };
 
 class ListView extends React.PureComponent<Props> {
-  list: any;
-
-  postponedScrollToRowPayload: ?ScrollToRowPayload = null;
 
   componentDidMount() {
     scrollToRowBus.subscribe(this.scrollToRow);
@@ -125,7 +121,7 @@ class ListView extends React.PureComponent<Props> {
       <div
         key={key}
         role='presentation'
-        className={classNames(Styles.listRow, { [Styles.selectedRow]: item.uuid === selectedLocationId })}
+        className={classNames('listRow', { 'selectedRow': item.uuid === selectedLocationId })}
         style={style}
         onClick={() => onRowSelect(item.uuid)}
       >
@@ -165,8 +161,8 @@ class ListView extends React.PureComponent<Props> {
           style={{ width: 80 }}
           className={
             item.battery_is_charging
-              ? Styles.tableCellGreen
-              : Styles.tableCellRed
+              ? 'tableCellGreen'
+              : 'tableCellRed'
           }
         >
           <span>{item.battery_level}</span>
@@ -186,8 +182,8 @@ class ListView extends React.PureComponent<Props> {
     const { locations } = this.props;
     setTimeout(() => this.list && this.list.forceUpdateGrid(), 1);
     return (
-      <div className={Styles.list} style={{ width: '100%', height: '100%' }}>
-        <div className={Styles.listHeaderRow}>
+      <div className={'list'} style={{ width: '100%', height: '100%' }}>
+        <div className={'listHeaderRow'}>
           <span style={{ width: 180 }}>UUID</span>
           <span style={{ width: 120 }}>RECORDED AT</span>
           <span style={{ width: 120 }}>CREATED AT</span>

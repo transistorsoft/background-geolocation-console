@@ -4,7 +4,7 @@ import Select from '@material-ui/core/Select';
 import TextField from '@material-ui/core/TextField';
 import MenuItem from '@material-ui/core/MenuItem';
 
-import type { Source, MaterialInputElement } from 'reducer/dashboard';
+import type { Source, MaterialInputElement } from '../../reducer/dashboard';
 
 type Props = {
   onChange: (value: string) => any,

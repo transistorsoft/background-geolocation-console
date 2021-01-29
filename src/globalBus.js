@@ -1,7 +1,7 @@
 // @flow
 import emitter from 'event-emitter';
 
-import { type Tab } from 'reducer/state';
+import { type Tab } from './reducer/state';
 
 export type FitBoundsPayload = {} & $Shape<{}>;
 
