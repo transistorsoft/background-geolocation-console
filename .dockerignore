@@ -1,0 +1,9 @@
+node_modules
+npm-debug.log
+coverage
+.DS_Store
+src/server/database/db/*.db
+*.log
+changes.diff
+backup.backup
+src/server/firebase/serviceAccount.json

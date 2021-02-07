@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { Router } from 'express';
+import 'colors';
 
 import { decrypt, isEncryptedRequest } from '../libs/RNCrypto';
 import {

@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { Router } from 'express';
+import 'colors';
 
 import { decrypt, isEncryptedRequest } from '../libs/RNCrypto';
 import { sign, verify } from '../libs/jwt';
@@ -25,6 +26,7 @@ import {
   getLatestLocation,
   getLocations,
   getStats,
+  removeOld,
 } from '../models/Location';
 import { getOrgs } from '../models/Org';
 
@@ -327,6 +329,7 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
 
   try {
     await create(data, org, device);
+    await removeOld(org);
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
@@ -378,6 +381,7 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
 
   try {
     await create(data, org || orgId, device);
+    await removeOld(org || orgId);
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {

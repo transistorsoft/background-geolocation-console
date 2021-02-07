@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import fs from 'fs';
 import { Router } from 'express';
+import 'colors';
 
 import { sign, verify } from '../libs/jwt';
 import { decrypt, isEncryptedRequest } from '../libs/RNCrypto';
@@ -19,6 +20,7 @@ import { deleteDevice, getDevices } from '../models/Device';
 import {
   create,
   deleteLocations,
+  removeOld,
   getLatestLocation,
   getLocations,
   getStats,
@@ -173,6 +175,7 @@ router.post('/locations', getAuth(verify), async (req, res) => {
 
   try {
     await create(data, org);
+    await removeOld(org);
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
@@ -203,6 +206,7 @@ router.post('/locations/:company_token', getAuth(verify), async (req, res) => {
 
   try {
     await create(data, org);
+    await removeOld(org);
 
     return res.send({ success: true });
   } catch (err) {

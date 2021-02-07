@@ -8,7 +8,7 @@ You may read the news about this [application in our article on Medium](https://
 
 ## Install
 
-You must have [npm](https://www.npmjs.org/) installed on your computer.
+You must have [node.js 12.18.0](https://nodejs.org/en/blog/release/v12.18.0/) and [npm](https://www.npmjs.org/) installed on your computer.
 From the root project directory run these commands from the command line:
 
 ```bash
@@ -18,16 +18,32 @@ npm install
 ## Running
 
 Environment variables:
-```
+```bash
 export DATABASE_URL=postgres://postgres:password@localhost:5432/geolocation
 export GOOGLE_MAPS_API_KEY=AIz...vNkg
-export SHARED_DASHBOARD=1      # with auth
+# Do you use it for a lot of organisation or users?
+export SHARED_DASHBOARD=1      # with auth,
+# export SHARED_DASHBOARD=1    # empty - without auth,
+# Manage them in one account?  http://localhost:8080/admin
 export ADMIN_TOKEN=admin256    # admin login
+# Do you need auth?
 export PASSWORD=test           # admin password
 ```
-### Firestore
+
+For production version please do not forget add your own JWT keys
 
 ```
+export JWT_PRIVATE_KEY=-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----\n
+export JWT_PUBLIC_KEY=-----BEGIN RSA PUBLIC KEY-----\n...-----END RSA PUBLIC KEY-----\n
+```
+
+### Windows
+
+Please use `set` and 8080 port for dev.
+
+### Firestore
+
+```bash
 export FIREBASE_URL=https://YOUR-PROJECT-DATABASE.firebaseio.com
 export FIREBASE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMII...=\n-----END PRIVATE KEY-----\n
 ```
@@ -39,11 +55,7 @@ export FIREBASE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMII...=\n-----END PRIVA
 
 Database will createe automaticaly in non production.
 
-[PgSQL script for production](./src/server/database/psql/create.sql)
-
-Database will createe automaticaly in non production.
-
-[PgSQL script for production](./src/server/database/psql/create.sql)
+[PgSQL script for production](./postgres/create.sql)
 
 ### Production mode:
 
@@ -70,7 +82,7 @@ http://localhost:8080/
 
 Application have a jest api tests
 
-```
+```bash
 npm run test
 ```
 
@@ -129,6 +141,34 @@ Before this, you will need to create 2 environment variables (either in the hero
   into a postgresql db (instead of a sqlite db which will be deleted after every heroku shutdown)
 
 And to reference `heroku/nodejs` buildpack (either in the heroku dashboard, or by executing `heroku buildpacks:add --index 1 heroku/nodejs`)
+
+## Docker
+
+By default `console` will use SqlLite file storage
+
+NB!: It will clean on conatiner re-creation
+
+Please add volume to store it or setup Postgres/Firebase storage
+
+1. Configurate you own build in [Dockerfile](./Dockerfile)
+2. `docker build -t background-geolocation-console .`
+3. `docker run -p 9000:9000 -v /<rootpath>/src/server/database/db:/usr/src/server/database/db -d background-geolocation-console`
+
+Now it available by http://&lt;docker-machine-ip&gt;:9000/
+
+You can run `docker-machine ls` for ip investigation.
+
+## Docker Compose
+
+1) Do not forget create machine `docker-machine create -d "virtualbox" local.geolocation`
+2) Setup vars `eval $(docker-machine env local.geolocation)`
+3) `docker-compose up` in root dir
+
+Now it available by http://&lt;docker-machine-ip&gt;/
+
+You can run `docker-machine ls` for ip investigation.
+
+Please do not forget set up `GOOGLE_MAPS_API_KEY` too.
 
 ## Credit
 

@@ -23,13 +23,23 @@ import { findOrCreate } from './Device';
 
 const include = [{ model: DeviceModel, as: 'device' }];
 
-export async function getStats() {
-  const minDate = await LocationModel.min('created_at');
-  const maxDate = await LocationModel.max('created_at');
-  const total = await LocationModel.count();
+export async function getStats(org) {
+  let where = {};
+  if (org) {
+    org = org.org || org;
+    const organization = await CompanyModel.findOne({ where: { company_token: org } });
+    where = { company_id: organization.id };
+  }
+  const minDate = await LocationModel.min('created_at', { where });
+  const maxDate = await LocationModel.max('created_at', { where });
+  const minRecordedDate = await LocationModel.min('recorded_at', { where });
+  const maxRecordedDate = await LocationModel.max('recorded_at', { where });
+  const total = await LocationModel.count({ where });
   return {
     minDate,
     maxDate,
+    minRecordedDate,
+    maxRecordedDate,
     total,
   };
 }
@@ -135,6 +145,37 @@ export async function createLocations(
     },
     0,
   );
+}
+
+export async function removeOld(org) {
+  if (org) {
+    org = org.org || org;
+  }
+  if (!org) {
+    const organizations = await CompanyModel.findAll();
+    for (let o of organizations) {
+      await removeOld(o.company_token);
+    }
+    return;
+  }
+
+  const organization = await CompanyModel.findOne({ where: { company_token: org } });
+  const count = await LocationModel.count({ where: { company_id: organization.id } });
+  if (count > 10000 && organization.company_token.indexOf('transistor-') !== 0) {
+    const entry = await LocationModel.findOne({
+      where: { company_id: organization.id },
+      offset: 10000,
+      order: [['recorded_at', 'DESC']],
+    });
+    const minDate = entry.recorded_at;
+    console.info('first allowed:', minDate);
+    LocationModel.destroy({
+      where: {
+        company_id: organization.id,
+        recorded_at: { [Op.lt]: minDate },
+      },
+    });
+  }
 }
 
 export async function create(

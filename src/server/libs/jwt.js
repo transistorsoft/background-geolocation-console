@@ -1,8 +1,11 @@
-import forge from 'node-forge';
 import jwt from 'jsonwebtoken';
-import rsaGen from 'keypair';
+import forge from 'node-forge';
 
-import { JWT_PRIVATE_KEY, JWT_PUBLIC_KEY } from '../config';
+import {
+  JWT_PRIVATE_KEY,
+  JWT_PUBLIC_KEY,
+  developerJWTkey,
+} from '../config';
 
 export const signOptions = {
   issuer: 'transistorsoft',
@@ -27,13 +30,19 @@ export const getPublicKey = privateKey => {
   return fix(publicKey);
 };
 
+const keys = !JWT_PRIVATE_KEY
+  ? (
+    developerJWTkey
+  )
+  : { private: JWT_PRIVATE_KEY || '', public: JWT_PUBLIC_KEY || '' };
 
-const keys = !JWT_PRIVATE_KEY ? rsaGen() : {};
-export const privateKey = JWT_PRIVATE_KEY || keys.private;
-export const publicKey = JWT_PUBLIC_KEY || keys.public;
+keys.public = keys.public || JWT_PUBLIC_KEY || '';
+keys.private = keys.private || JWT_PRIVATE_KEY || '';
 
-keys.private = JWT_PRIVATE_KEY || privateKey;
-keys.public = JWT_PUBLIC_KEY || publicKey;
+keys.public = keys.public.replace(/\\n/mg, '\n');
+keys.private = keys.private.replace(/\\n/mg, '\n');
+
+export const { public: publicKey, private: privateKey } = keys;
 
 /*
   issuer: "Authorizaxtion/Resource/This server",
