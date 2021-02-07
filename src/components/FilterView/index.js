@@ -20,7 +20,7 @@ import RefreshIcon from '@material-ui/icons/Refresh';
 import {
   DatePicker,
   MuiPickersUtilsProvider,
-  TimePicker,
+  KeyboardTimePicker,
 } from '@material-ui/pickers';
 import React from 'react';
 import { connect } from 'react-redux';
@@ -167,10 +167,11 @@ const FilterView = ({
                   value={startDate}
                   labelFunc={formatDate}
                 />
-                <TimePicker
+                <KeyboardTimePicker
                   autoOk
+                  ampm={false}
                   label='Time'
-                  format='hh:mm'
+                  format='HH:mm'
                   style={{ flex: 1 }}
                   onChange={onChangeStartDate}
                   value={startDate}
@@ -186,10 +187,11 @@ const FilterView = ({
                   value={endDate}
                   labelFunc={formatDate}
                 />
-                <TimePicker
+                <KeyboardTimePicker
                   autoOk
+                  ampm={false}
                   label='Time'
-                  format='hh:mm'
+                  format='HH:mm'
                   style={{ flex: 1 }}
                   onChange={onChangeEndDate}
                   value={endDate}

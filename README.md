@@ -8,7 +8,7 @@ You may read the news about this [application in our article on Medium](https://
 
 ## Install
 
-You must have [node.js 12.18.0](https://nodejs.org/en/blog/release/v12.18.0/) and [npm](https://www.npmjs.org/) installed on your computer.
+You must have [node.js 14.5.0](https://nodejs.org/en/blog/release/v14.5.0/) and [npm](https://www.npmjs.org/) installed on your computer.
 From the root project directory run these commands from the command line:
 
 ```bash
@@ -53,7 +53,7 @@ export FIREBASE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMII...=\n-----END PRIVA
 # auth
 
 
-Database will createe automaticaly in non production.
+Database will create automaticaly in non production.
 
 [PgSQL script for production](./postgres/create.sql)
 
