@@ -148,7 +148,17 @@ export async function createLocations(
 }
 
 export async function removeOld(org) {
-  org = org.org || org;
+  if (org) {
+    org = org.org || org;
+  }
+  if (!org) {
+    const organizations = await CompanyModel.findAll();
+    for (let o of organizations) {
+      await removeOld(o.company_token);
+    }
+    return;
+  }
+
   const organization = await CompanyModel.findOne({ where: { company_token: org } });
   const count = await LocationModel.count({ where: { company_id: organization.id } });
   if (count > 10000 && organization.company_token.indexOf('transistor-') !== 0) {

@@ -26,6 +26,7 @@ import {
   getLatestLocation,
   getLocations,
   getStats,
+  removeOld,
 } from '../models/Location';
 import { getOrgs } from '../models/Org';
 

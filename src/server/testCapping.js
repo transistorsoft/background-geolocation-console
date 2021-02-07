@@ -26,7 +26,7 @@ async function main() {
     extras: { setCurrentPosition: true },
   };
 
-  // create
+  //  create
   for (let o = 0; o < 5; o++) {
     const orgName = o !== 4 ? 'o' + o : 'transistor-test';
     const deviceId = 'd1';
@@ -46,7 +46,7 @@ async function main() {
     const company = await Org.findOrCreate({ org: orgName });
     const device = await Device.findOrCreate(orgName, { device_id: deviceId });
     const statsBefore = await Location.getStats(orgName);
-    await Location.removeOld({ org: orgName });
+    await Location.removeOld(orgName);
     const statsAfter = await Location.getStats(orgName);
     console.info(orgName, {statsBefore, statsAfter});
   }
