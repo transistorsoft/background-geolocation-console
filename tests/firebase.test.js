@@ -1,12 +1,11 @@
 /* eslint-disable no-unused-expressions */
-import queryString from 'querystring';
-import chai from 'chai';
-import chaiHttp from 'chai-http';
+const queryString  = require('querystring');
+const chai = require('chai');
+const chaiHttp = require('chai-http');
 
-
-import {
+const {
   location, regData, server,
-} from './data';
+} = require('./data.js');
 
 regData.org = 'org';
 
@@ -16,227 +15,230 @@ chai.should();
 const { expect } = chai;
 let token;
 
-beforeAll(async () => {
-  const res = await chai
-    .request(server)
-    .post('/api/firebase/register')
-    .send(regData);
-  ({ accessToken: token } = res.body);
-});
+if (process.env.FIREBASE_URL) {
 
-describe('firebase api', () => {
-  test('/register', async () => {
+  beforeAll(async () => {
     const res = await chai
       .request(server)
       .post('/api/firebase/register')
       .send(regData);
-    expect(res).have.status(200);
-    expect(res).to.be.json;
-    expect(res.body)
-      .to.have.property('accessToken')
-      .to.be.a('string');
-    expect(res.body)
-      .to.have.property('refreshToken')
-      .to.be.a('string');
+    ({ accessToken: token } = res.body);
   });
 
-  test('/register without device info', async () => {
-    const res = await chai
-      .request(server)
-      .post('/api/firebase/register')
-      .send({ org: 'test' });
-    expect(res).have.status(500);
-    expect(res).to.be.json;
-    expect(res.body).to.have.property('message', 'Device info is missing');
-  });
-
-  test('/company_tokens', async () => {
-    const res = await chai
-      .request(server)
-      .get('/api/firebase/company_tokens')
-      .set('Authorization', `Bearer ${token}`);
-    expect(res).have.status(200);
-    expect(res).to.be.json;
-  });
-
-  test('/company_tokens 403', async () => {
-    const res = await chai
-      .request(server)
-      .get('/api/firebase/company_tokens')
-      .set('Authorization', 'Bearer !!!');
-    expect(res).have.status(403);
-    expect(res).to.be.json;
-  });
-
-  test('/refresh_token', async () => {
-    const res = await chai
-      .request(server)
-      .get('/api/firebase/refresh_token')
-      .set('Authorization', `Bearer ${token}`);
-    expect(res).have.status(200);
-    expect(res).to.be.json;
-    expect(res.body)
-      .to.have.property('accessToken')
-      .to.be.a('string');
-    expect(res.body)
-      .to.have.property('refreshToken')
-      .to.be.a('string');
-  });
-
-  test('/refresh_token 403', async () => {
-    const res = await chai
-      .request(server)
-      .get('/api/firebase/refresh_token')
-      .set('Authorization', 'Bearer !!');
-    expect(res).have.status(403);
-    expect(res).to.be.json;
-  });
-
-  test('/stats', async () => {
-    const res = await chai
-      .request(server)
-      .get('/api/firebase/stats')
-      .set('Authorization', `Bearer ${token}`);
-    expect(res).have.status(200);
-    expect(res).to.be.json;
-  });
-
-  test('/stats 403', async () => {
-    const res = await chai
-      .request(server)
-      .get('/api/firebase/stats')
-      .set('Authorization', 'Bearer ');
-    expect(res).have.status(403);
-    expect(res).to.be.json;
-  });
-
-  test('/devices', async () => {
-    const res = await chai
-      .request(server)
-      .get('/api/firebase/devices')
-      .set('Authorization', `Bearer ${token}`);
-    expect(res).have.status(200);
-    expect(res).to.be.json;
-    // console.info('devices:data', res.body);
-  });
-
-  test('/devices 403', async () => {
-    const res = await chai
-      .request(server)
-      .get('/api/firebase/devices')
-      .set('Authorization', 'Bearer ');
-    expect(res).have.status(403);
-    expect(res).to.be.json;
-    // console.info('devices:data', res.body);
-  });
-
-  describe('locations', () => {
-    test('/locations/latest', async () => {
+  describe('firebase api', () => {
+    test('/register', async () => {
       const res = await chai
         .request(server)
-        .get('/api/firebase/locations/latest?device_id=uuid')
-        .set('Authorization', `Bearer ${token}`);
-      expect(res).have.status(200);
-    });
-
-    test('POST /locations', async () => {
-      const res = await chai
-        .request(server)
-        .post('/api/firebase/locations')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          location,
-          device: {
-            framework: 'flutter',
-            manufacturer: 'Apple',
-            model: 'iPhone10,4(x86_64)',
-            platform: '13.3',
-            uuid: 'iPhone10-4(x86_64)-13-3',
-            version: '2.0',
-          },
-          company_token: 'org',
-        });
+        .post('/api/firebase/register')
+        .send(regData);
       expect(res).have.status(200);
       expect(res).to.be.json;
+      expect(res.body)
+        .to.have.property('accessToken')
+        .to.be.a('string');
+      expect(res.body)
+        .to.have.property('refreshToken')
+        .to.be.a('string');
     });
 
-    test('POST /locations []', async () => {
+    test('/register without device info', async () => {
       const res = await chai
         .request(server)
-        .post('/api/firebase/locations')
-        .set('Authorization', `Bearer ${token}`)
-        .send([{
-          location,
-          device: {
-            framework: 'flutter',
-            manufacturer: 'Apple',
-            model: 'iPhone10,4(x86_64)',
-            platform: '13.3',
-            uuid: 'iPhone10-4(x86_64)-13-3',
-            version: '2.0',
-          },
-          company_token: 'org',
-        }]);
-      expect(res).have.status(200);
+        .post('/api/firebase/register')
+        .send({ org: 'test' });
+      expect(res).have.status(500);
       expect(res).to.be.json;
+      expect(res.body).to.have.property('message', 'Device info is missing');
     });
 
-    test('/locations', async () => {
+    test('/company_tokens', async () => {
       const res = await chai
         .request(server)
-        .get('/api/firebase/locations')
+        .get('/api/firebase/company_tokens')
         .set('Authorization', `Bearer ${token}`);
       expect(res).have.status(200);
       expect(res).to.be.json;
-      expect(res.body).to.be.an('array');
-      // console.info('locations:data', res.body);
     });
 
-    test('POST /locations/test', async () => {
+    test('/company_tokens 403', async () => {
       const res = await chai
         .request(server)
-        .post('/api/firebase/locations/test')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          location,
-          device: {
-            framework: 'flutter',
-            manufacturer: 'Apple',
-            model: 'iPhone10,4(x86_64)',
-            platform: '13.3',
-            uuid: 'iPhone10-4(x86_64)-13-3',
-            version: '2.0',
-          },
-          company_token: 'org',
-        });
+        .get('/api/firebase/company_tokens')
+        .set('Authorization', 'Bearer !!!');
+      expect(res).have.status(403);
+      expect(res).to.be.json;
+    });
+
+    test('/refresh_token', async () => {
+      const res = await chai
+        .request(server)
+        .get('/api/firebase/refresh_token')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res).have.status(200);
+      expect(res).to.be.json;
+      expect(res.body)
+        .to.have.property('accessToken')
+        .to.be.a('string');
+      expect(res.body)
+        .to.have.property('refreshToken')
+        .to.be.a('string');
+    });
+
+    test('/refresh_token 403', async () => {
+      const res = await chai
+        .request(server)
+        .get('/api/firebase/refresh_token')
+        .set('Authorization', 'Bearer !!');
+      expect(res).have.status(403);
+      expect(res).to.be.json;
+    });
+
+    test('/stats', async () => {
+      const res = await chai
+        .request(server)
+        .get('/api/firebase/stats')
+        .set('Authorization', `Bearer ${token}`);
       expect(res).have.status(200);
       expect(res).to.be.json;
     });
 
-    test('POST /locations/test', async () => {
+    test('/stats 403', async () => {
       const res = await chai
         .request(server)
-        .post('/api/firebase/locations/test')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ location });
-      expect(res).have.status(200);
+        .get('/api/firebase/stats')
+        .set('Authorization', 'Bearer ');
+      expect(res).have.status(403);
       expect(res).to.be.json;
     });
 
-    test('DELETE /locations', async () => {
+    test('/devices', async () => {
       const res = await chai
         .request(server)
-        .delete(
-          `/api/firebase/locations?${
+        .get('/api/firebase/devices')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res).have.status(200);
+      expect(res).to.be.json;
+      // console.info('devices:data', res.body);
+    });
+
+    test('/devices 403', async () => {
+      const res = await chai
+        .request(server)
+        .get('/api/firebase/devices')
+        .set('Authorization', 'Bearer ');
+      expect(res).have.status(403);
+      expect(res).to.be.json;
+      // console.info('devices:data', res.body);
+    });
+
+    describe('locations', () => {
+      test('/locations/latest', async () => {
+        const res = await chai
+          .request(server)
+          .get('/api/firebase/locations/latest?device_id=uuid')
+          .set('Authorization', `Bearer ${token}`);
+        expect(res).have.status(200);
+      });
+
+      test('POST /locations', async () => {
+        const res = await chai
+          .request(server)
+          .post('/api/firebase/locations')
+          .set('Authorization', `Bearer ${token}`)
+          .send({
+            location,
+            device: {
+              framework: 'flutter',
+              manufacturer: 'Apple',
+              model: 'iPhone10,4(x86_64)',
+              platform: '13.3',
+              uuid: 'iPhone10-4(x86_64)-13-3',
+              version: '2.0',
+            },
+            company_token: 'org',
+          });
+        expect(res).have.status(200);
+        expect(res).to.be.json;
+      });
+
+      test('POST /locations []', async () => {
+        const res = await chai
+          .request(server)
+          .post('/api/firebase/locations')
+          .set('Authorization', `Bearer ${token}`)
+          .send([{
+            location,
+            device: {
+              framework: 'flutter',
+              manufacturer: 'Apple',
+              model: 'iPhone10,4(x86_64)',
+              platform: '13.3',
+              uuid: 'iPhone10-4(x86_64)-13-3',
+              version: '2.0',
+            },
+            company_token: 'org',
+          }]);
+        expect(res).have.status(200);
+        expect(res).to.be.json;
+      });
+
+      test('/locations', async () => {
+        const res = await chai
+          .request(server)
+          .get('/api/firebase/locations')
+          .set('Authorization', `Bearer ${token}`);
+        expect(res).have.status(200);
+        expect(res).to.be.json;
+        expect(res.body).to.be.an('array');
+        // console.info('locations:data', res.body);
+      });
+
+      test('POST /locations/test', async () => {
+        const res = await chai
+          .request(server)
+          .post('/api/firebase/locations/test')
+          .set('Authorization', `Bearer ${token}`)
+          .send({
+            location,
+            device: {
+              framework: 'flutter',
+              manufacturer: 'Apple',
+              model: 'iPhone10,4(x86_64)',
+              platform: '13.3',
+              uuid: 'iPhone10-4(x86_64)-13-3',
+              version: '2.0',
+            },
+            company_token: 'org',
+          });
+        expect(res).have.status(200);
+        expect(res).to.be.json;
+      });
+
+      test('POST /locations/test', async () => {
+        const res = await chai
+          .request(server)
+          .post('/api/firebase/locations/test')
+          .set('Authorization', `Bearer ${token}`)
+          .send({ location });
+        expect(res).have.status(200);
+        expect(res).to.be.json;
+      });
+
+      test('DELETE /locations', async () => {
+        const res = await chai
+          .request(server)
+          .delete(
+            `/api/firebase/locations?${
             queryString.stringify({
               device_id: 'iPhone10-4(x86_64)-13-3',
               start_date: location.timestamp.substr(0, 10),
               end_date: new Date().toISOString().substr(0, 10),
             })}`,
-        )
-        .set('Authorization', `Bearer ${token}`);
-      expect(res).have.status(200);
-      expect(res).to.be.json;
+          )
+          .set('Authorization', `Bearer ${token}`);
+        expect(res).have.status(200);
+        expect(res).to.be.json;
+      });
     });
   });
-});
+}

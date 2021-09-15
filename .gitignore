@@ -1,3 +1,4 @@
+.next/
 node_modules
 src/server/database/db/*.db
 .DS_Store

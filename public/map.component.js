@@ -1,0 +1,502 @@
+import MarkerClusterer from './MarkerClusterer.js';
+import { COLORS } from './constants.js';
+
+export class TransistorSoftMap extends HTMLElement {
+
+  // properties:   hidemarkers hidepolygons hidegeofences noclustering maxmarkers
+
+  // attributes:
+  // markers - JSON of markers
+  // selectedMarker - a currently selected marker or null
+
+  constructor() {
+    super();
+
+    const shadowRoot = this.attachShadow({mode: 'open'});
+    shadowRoot.innerHTML = `<div style="width: 600px; height: 600px;"></div>`;
+
+    this.gmap = new google.maps.Map(shadowRoot.querySelector('div'), {
+      center: { lat: -34.397, lng: 150.644 },
+      zoom: 8,
+    });
+
+  }
+
+  fitBounds() {
+
+  }
+
+  onBoundChange() {
+
+  }
+
+  onMapLoaded() {
+    // Route polyline
+    const seq = {
+      repeat: '50px',
+      icon: {
+        path: google.maps.SymbolPath.FORWARD_OPEN_ARROW,
+        scale: 1,
+        fillOpacity: 0,
+        strokeColor: COLORS.white,
+        strokeWeight: 1,
+        strokeOpacity: 1,
+      },
+    };
+
+    this.polyline = new google.maps.Polyline({
+      map: this.gmap,
+      zIndex: 1,
+      geodesic: true,
+      strokeColor: COLORS.polyline_color,
+      strokeOpacity: 0.6,
+      strokeWeight: 8,
+      icons: [seq],
+    });
+
+    // Blue current location marker
+    this.currentLocationMarker = new google.maps.Marker({
+      zIndex: 10,
+      map: this.gmap,
+      title: 'Current Location',
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 12,
+        fillColor: COLORS.blue,
+        fillOpacity: 1,
+        strokeColor: COLORS.white,
+        strokeOpacity: 1,
+        strokeWeight: 6,
+      },
+    });
+    // Light blue location accuracy circle
+    this.locationAccuracyCircle = new google.maps.Circle({
+      map: this.gmap,
+      zIndex: 9,
+      fillColor: COLORS.light_blue,
+      fillOpacity: 0.4,
+      strokeOpacity: 0,
+    });
+
+    google.maps.event.addListener(this.gmap, 'bounds_changed', this.onBoundChange);
+
+    this.renderMarkers();
+
+  }
+
+  onClusterClick() {
+    const markers = cluster.getMarkers();
+    markers.forEach((x: Marker) => x.setMap(this.gmap) && x.setVisible(true));
+    cluster.remove();
+  }
+
+  buildLocationIcon(location, options) {
+    let anchor;
+    let fillColor = COLORS.polyline_color;
+    let scale = options.scale || 2;
+    let path = google.maps.SymbolPath.FORWARD_CLOSED_ARROW;
+
+    if (location.geofence) {
+      path = google.maps.SymbolPath.FORWARD_CLOSED_ARROW;
+      anchor = new google.maps.Point(0, 2.6);
+      scale = 3;
+      switch (location.geofence.action) {
+        case 'ENTER':
+          fillColor = COLORS.green;
+          break;
+        case 'EXIT':
+          fillColor = COLORS.red;
+          break;
+        case 'DWELL':
+          fillColor = COLORS.gold;
+          break;
+        default:
+      }
+    }
+    let fillOpacity = 1;
+
+    if (location.event === 'motionchange') {
+      if (!location.is_moving) {
+        anchor = undefined;
+        path = google.maps.SymbolPath.CIRCLE;
+        scale = 10;
+        fillOpacity = 0.7;
+        fillColor = COLORS.red;
+      } else {
+        path = google.maps.SymbolPath.FORWARD_OPEN_ARROW;
+        fillColor = COLORS.green;
+        scale = 3;
+        fillOpacity = 1;
+      }
+    }
+    if (options.selected) {
+      scale *= 2;
+    }
+
+    return {
+      path,
+      rotation: location.heading,
+      scale,
+      anchor,
+      fillColor: options.fillColor || fillColor,
+      fillOpacity: options.fillOpacity || fillOpacity,
+      strokeColor: options.strokeColor || COLORS.black,
+      strokeWeight: options.strokeWeight || 1,
+      strokeOpacity: options.strokeOpacity || 1,
+    };
+  }
+
+  fitBoundsIfPostponed () {
+    if (this.postponedFitBoundsPayload) {
+      this.fitBounds(this.postponedFitBoundsPayload);
+      this.postponedFitBoundsPayload = null;
+    }
+  }
+
+  cleanClustering () {
+    !!this.markerCluster && this.markerCluster.clearMarkers();
+  }
+
+  clustering () {
+    const { enableClustering, showMarkers } = this.props;
+    if (
+      !showMarkers ||
+      !enableClustering ||
+      !this.gmap
+      // this.markers.filter((x: Marker) => !!x.getMap()).length < maxMarkersWithoutClustering
+    ) {
+      return;
+    }
+    console.time('clustering');
+    this.markerCluster = new MarkerClusterer(
+      this.gmap,
+      this.markers,
+      {
+        maxZoom: 19,
+        ignoreHidden: true,
+        zoomOnClick: false,
+        minimumClusterSize: 7,
+        gridSize: 33,
+        imagePath: '/images/m',
+      },
+    );
+    google.maps.event.addListener(this.markerCluster, 'click', this.onClusterClick);
+    console.timeEnd('clustering');
+  }
+
+  // ensures that selected location is properly displayed
+  // previous marker is set to default icon, new marker or nothing is set to
+  // selected icon
+  updateSelectedLocation () {
+    const { selectedLocation: location } = this.props;
+    if (this.selectedMarker) {
+      this.selectedMarker.setIcon(this.buildLocationIcon(this.selectedMarker.location));
+      this.selectedMarker.setZIndex(1);
+    }
+    if (!location) {
+      this.selectedMarker = null;
+      return;
+    }
+    let marker = this.markers.find((x: any) => x.location.uuid === location.uuid);
+    if (!marker) {
+      marker = this.geofenceHitMarkers.find((x: any) => x.location && x.location.uuid === location.uuid);
+    }
+    if (marker) {
+      this.selectedMarker = marker;
+      // marker.setFillColor('#000000');
+      marker.setZIndex(100);
+      marker.setIcon(
+        this.buildLocationIcon(location, {
+          strokeColor: COLORS.red,
+          strokeWeight: 2,
+          selected: true,
+        }),
+      );
+    }
+  }
+
+  buildMotionChangePolyline (stationaryPosition: any, movingPosition: any) {
+    const { showPolyline } = this.props;
+    const seq = {
+      repeat: '25px',
+      icon: {
+        path: google.maps.SymbolPath.FORWARD_OPEN_ARROW,
+        scale: 1,
+        fillColor: COLORS.white,
+        fillOpacity: 0,
+        strokeColor: COLORS.white,
+        strokeWeight: 1,
+        strokeOpacity: 1,
+      },
+    };
+    return new google.maps.Polyline({
+      map: showPolyline ? this.gmap : null,
+      zIndex: 1001,
+      geodesic: true,
+      strokeColor: COLORS.green,
+      fillColor: COLORS.red,
+      icons: [seq],
+      strokeOpacity: 1,
+      strokeWeight: 8,
+      path: [stationaryPosition, movingPosition],
+    });
+  }
+
+  buildGeofenceMarker (location: Location, options: any) {
+    const { geofence } = location;
+    let circle = this.geofenceMarkers[geofence.identifier];
+    if (!circle) {
+      let center;
+      let radius = 200;
+      // If the geofence contains information about its center & radius in #extras...
+      if (geofence.extras && geofence.extras.center) {
+        center = new google.maps.LatLng(geofence.extras.center.latitude, geofence.extras.center.longitude);
+        radius = geofence.extras.radius;
+        if (typeof radius === 'string') {
+          radius = parseInt(radius, 10);
+        }
+      } else {
+        center = new google.maps.LatLng(location.latitude, location.longitude);
+      }
+      circle = new google.maps.Circle({
+        zIndex: 2000,
+        fillOpacity: 0,
+        strokeColor: COLORS.black,
+        strokeWeight: 1,
+        strokeOpacity: 1,
+        radius,
+        center,
+        map: options.map,
+      });
+      this.geofenceMarkers[geofence.identifier] = circle;
+      this.geofenceHitMarkers.push(circle);
+    }
+    let color;
+    if (geofence.action === 'ENTER') {
+      color = COLORS.green;
+    } else if (geofence.action === 'DWELL') {
+      color = COLORS.gold;
+    } else {
+      color = COLORS.red;
+    }
+    const circleLatLng = circle.getCenter();
+    const locationLatLng = new google.maps.LatLng(location.latitude, location.longitude);
+
+    const heading = google.maps.geometry.spherical.computeHeading(circleLatLng, locationLatLng);
+    const circleEdgeLatLng = google.maps.geometry.spherical.computeOffset(circleLatLng, circle.getRadius(), heading);
+
+    const geofenceEdgeMarker = new google.maps.Marker({
+      zIndex: 2000,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 5,
+        fillColor: color,
+        fillOpacity: 0.7,
+        strokeColor: COLORS.black,
+        strokeWeight: 1,
+        strokeOpacity: 1,
+      },
+      map: options.map,
+      position: circleEdgeLatLng,
+    });
+    this.geofenceHitMarkers.push(geofenceEdgeMarker);
+
+    const locationMarker = this.buildLocationMarker(location, {
+      showHeading: true,
+      zIndex: 2000,
+      map: options.map,
+      fillColor: color,
+    });
+    this.geofenceHitMarkers.push(locationMarker);
+
+    const polyline = new google.maps.Polyline({
+      map: options.map,
+      zIndex: 2000,
+      strokeColor: COLORS.black,
+      strokeOpacity: 1,
+      strokeWeight: 1,
+      path: [circleEdgeLatLng, locationMarker.getPosition()],
+    });
+    this.geofenceHitMarkers.push(polyline);
+  }
+
+  // Build a bread-crumb location marker.
+  buildLocationMarker (location: Location, options: any = {}) {
+    const { onSelectLocation } = this.props;
+    const zIndex = options.zIndex || 1;
+    const marker = new google.maps.Marker({
+      zIndex,
+      icon: this.buildLocationIcon(location, options),
+      location,
+      map: options.map,
+      position: new google.maps.LatLng(location.latitude, location.longitude),
+    });
+
+    marker.addListener('click', () => onSelectLocation(location.uuid));
+    return marker;
+  }
+
+  clearMarkers () {
+    this.markers.forEach((marker: Marker) => {
+      google.maps.event.clearInstanceListeners(marker);
+      marker.setMap(null);
+    });
+    this.markers = [];
+
+    this.geofenceMarkers = {};
+    this.geofenceHitMarkers.forEach((marker: any) => {
+      marker.setMap(null);
+    });
+    this.geofenceHitMarkers = [];
+
+    this.polyline.setPath([]);
+    this.motionChangePolylines.forEach((polyline: any) => {
+      polyline.setMap(null);
+    });
+    this.motionChangePolylines = [];
+  }
+
+  renderMarkers () {
+    console.time('renderMarkers');
+    const {
+      currentLocation,
+      isWatching,
+      locations,
+      showGeofenceHits,
+      showMarkers,
+      showPolyline,
+      testMarkers,
+    } = this.props;
+
+    // if locations have not changed - do not clear markers
+    // just update current location, selected location and handle visibility of markers
+    if (this.updateFlags.needsTestMarkersRedraw && testMarkers.length) {
+      this.renderTestMarkers(testMarkers);
+    }
+    if (this.updateFlags.needsMarkersRedraw) {
+      this.clearMarkers();
+      this.cleanClustering();
+
+      const { length } = locations;
+      console.info(`draw markers: ${length}`);
+
+      this.polyline.setMap(showPolyline ? this.gmap : null);
+
+      let motionChangePosition = null;
+      let searchingForMotionChange = false;
+
+      // Iterate in reverse order to create polyline points from oldest->latest.
+      // We DO NOT want this.props.locations.reverse()!!!
+      for (let n = length - 1; n > 0; n--) {
+        const location = locations[n];
+        const latLng = new google.maps.LatLng(location.latitude, location.longitude);
+        if (location.geofence) {
+          this.buildGeofenceMarker(location, { map: showGeofenceHits ? this.gmap : null });
+        } else {
+          const marker = this.buildLocationMarker(location, { map: showMarkers ? this.gmap : null });
+          this.markers.push(marker);
+        }
+        this.polyline.getPath().push(latLng);
+
+        if (location.event === 'motionchange') {
+          if (!location.is_moving) {
+            searchingForMotionChange = true;
+            motionChangePosition = latLng;
+          } else if (searchingForMotionChange) {
+            searchingForMotionChange = false;
+            this.motionChangePolylines.push(this.buildMotionChangePolyline(motionChangePosition, latLng));
+          }
+        }
+      }
+      this.clustering();
+    } else {
+      // keep existing markers - just update their visibility
+      console.time('renderMarkers: Visibility');
+      if (this.updateFlags.needsShowMarkersUpdate) {
+        this.markers.forEach((marker: any) => {
+          marker.setMap(showMarkers ? this.gmap : null);
+        });
+      }
+      if (this.updateFlags.needsShowPolylineUpdate) {
+        this.polyline.setMap(showPolyline ? this.gmap : null);
+        this.motionChangePolylines.forEach((polyline: any) => {
+          polyline.setMap(showPolyline ? this.gmap : null);
+        });
+      }
+      if (this.updateFlags.needsShowGeofenceHitsUpdate) {
+        this.geofenceHitMarkers.forEach((marker: any) => {
+          marker.setMap(showGeofenceHits ? this.gmap : null);
+        });
+      }
+      console.timeEnd('renderMarkers: Visibility');
+    }
+    // handle current location
+    if (isWatching && currentLocation) {
+      console.time('renderMarkers: Current Location');
+      const latLng = new google.maps.LatLng(currentLocation.latitude, currentLocation.longitude);
+      this.gmap.setCenter(latLng);
+      this.currentLocationMarker.setMap(this.gmap);
+      this.locationAccuracyCircle.setMap(this.gmap);
+      this.currentLocationMarker.setPosition(latLng);
+      this.locationAccuracyCircle.setCenter(latLng);
+      this.locationAccuracyCircle.setRadius(currentLocation.accuracy);
+      console.timeEnd('renderMarkers: Current Location');
+    } else {
+      this.currentLocationMarker.setMap(null);
+      this.locationAccuracyCircle.setMap(null);
+    }
+    // draw selectedMarker
+    console.time('renderMarkers: Selected Location');
+    this.updateSelectedLocation();
+    console.timeEnd('renderMarkers: Selected Location');
+    console.timeEnd('renderMarkers');
+  }
+
+  /**
+  * Render manually added test markers
+  {
+    type: 'location|geofence'
+    position: {
+      lat: Float,
+      lng: Float
+    },
+    radius: Number (present only when type: "geofence")
+  }
+  */
+  renderTestMarkers (testMarkers: any) {
+    // 37.33313411,-122.05283635
+    for (let n = 0, len = testMarkers.length; n < len; n++) {
+      const record = testMarkers[n];
+      if (record.type === 'location') {
+        // eslint-disable-next-line no-new
+        new google.maps.Marker({
+          position: record.position,
+          map: this.gmap,
+          label: record.label,
+        });
+      } else if (record.type === 'geofence') {
+        // eslint-disable-next-line no-new
+        new google.maps.Circle({
+          zIndex: 2000,
+          fillOpacity: 0,
+          strokeColor: '#ff0000',
+          strokeWeight: 1,
+          strokeOpacity: 1,
+          radius: record.radius,
+          center: record.position,
+          map: this.gmap,
+        });
+      }
+    }
+    // arbitrarily center on first marker.
+    const first = testMarkers[0];
+    this.gmap.setCenter(first.position);
+  }
+
+
+
+
+
+
+}
+window.customElements.define('transistorsoft-map', TransistorSoftMap);

@@ -1,6 +1,6 @@
-export const server = 'http://localhost:9000';
+exports.server = 'http://localhost:9000';
 
-export const regData = {
+exports.regData = {
   framework: 'flutter',
   manufacturer: 'Apple',
   model: 'iPhone10,4(x86_64)',
@@ -10,7 +10,7 @@ export const regData = {
   version: '2.0',
 };
 
-export const location = {
+exports.location = {
   is_moving: false,
   uuid: '8a21f59c-c7d8-43ed-ac6d-8b23cea7c7d7',
   timestamp: '2019-11-17T19:14:25.776Z',
@@ -34,7 +34,7 @@ export const location = {
   extras: { setCurrentPosition: true },
 };
 
-export const location2 = {
+exports.location2 = {
   is_moving: false,
   uuid: '03f4aa4c-ed00-4390-9e82-49f0c5799940',
   timestamp: '2020-03-12T19:26:12.020Z',
