@@ -1,15 +1,14 @@
 /* eslint-disable no-unused-expressions */
-import queryString from 'querystring';
-import chai from 'chai';
-import chaiHttp from 'chai-http';
+const queryString  = require('querystring');
+const chai = require('chai');
+const chaiHttp = require('chai-http');
 
-
-import {
+const {
   location,
   location2,
   regData,
   server,
-} from './data';
+} = require('./data.js');
 
 chai.use(chaiHttp);
 chai.should();

@@ -8,7 +8,7 @@ You may read the news about this [application in our article on Medium](https://
 
 ## Install
 
-You must have [node.js 12.18.0](https://nodejs.org/en/blog/release/v12.18.0/) and [npm](https://www.npmjs.org/) installed on your computer.
+You must have [node.js 14.5.0](https://nodejs.org/en/blog/release/v14.5.0/) and [npm](https://www.npmjs.org/) installed on your computer.
 From the root project directory run these commands from the command line:
 
 ```bash
@@ -53,7 +53,7 @@ export FIREBASE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMII...=\n-----END PRIVA
 # auth
 
 
-Database will createe automaticaly in non production.
+Database will create automaticaly in non production.
 
 [PgSQL script for production](./postgres/create.sql)
 
@@ -176,7 +176,7 @@ Chris Scott of [Transistor Software](http://transistorsoft.com)
 
 ## License
 
-Copyright 2017, Transistor Software
+Copyright 2021, Transistor Software
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
