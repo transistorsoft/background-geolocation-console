@@ -3,7 +3,7 @@ import { COLORS } from './constants.js';
 
 export class TransistorSoftMap extends HTMLElement {
 
-  // properties:   hidemarkers hidepolygons hidegeofences noclustering maxmarkers
+  // no properties (via markup):   hidemarkers hidepolygons hidegeofences noclustering maxmarkers
 
   // attributes:
   // markers - JSON of markers
@@ -11,6 +11,31 @@ export class TransistorSoftMap extends HTMLElement {
 
   constructor() {
     super();
+
+    // default properties
+
+    this.currentLocation = null;
+    this.selectedLocation = null;
+    this.isWatching = false;
+    this.locations = true;
+    this.enableClustering = true;
+    this.showGeofenceHits = true;
+    this.showMarkers = true;
+    this.showPolyline = true;
+    this.motionChangePolylines = [];
+    this.testMarkers = [];
+
+    // internal properties
+
+    this.updateFlags = {};
+    this.markers = [];
+    this.geofenceHitMarkers = [];
+    this.selectedMarker = null;
+
+    // bind handlers to this
+    this.onBoundChange = this.onBoundChange.bind(this);
+    this.onSelectLocation = this.onSelectLocation.bind(this);
+
 
     const shadowRoot = this.attachShadow({mode: 'open'});
     shadowRoot.innerHTML = `<div style="width: 600px; height: 600px;"></div>`;
@@ -20,13 +45,35 @@ export class TransistorSoftMap extends HTMLElement {
       zoom: 8,
     });
 
+    this.onMapLoaded();
+
   }
 
   fitBounds() {
-
+    const locations = this.locations;
+    if (locations.length > 1) {
+      const bounds = new google.maps.LatLngBounds();
+      locations.forEach((location) => {
+        bounds.extend(new google.maps.LatLng(location.latitude, location.longitude));
+      });
+      this.gmap.fitBounds(bounds);
+    } else if (locations.length === 1) {
+      const [location] = locations;
+      this.gmap.setCenter(new google.maps.LatLng(location.latitude, location.longitude));
+    }
   }
 
   onBoundChange() {
+    console.time('onBoundChange');
+
+    const bound = this.gmap.getBounds();
+    this.markers
+      .filter((x) => !!x.getMap())
+      .forEach((x) => {
+        x.setVisible(bound.contains(x.getPosition()));
+      });
+
+    console.timeEnd('onBoundChange');
 
   }
 
@@ -86,7 +133,7 @@ export class TransistorSoftMap extends HTMLElement {
 
   onClusterClick() {
     const markers = cluster.getMarkers();
-    markers.forEach((x: Marker) => x.setMap(this.gmap) && x.setVisible(true));
+    markers.forEach((x) => x.setMap(this.gmap) && x.setVisible(true));
     cluster.remove();
   }
 
@@ -158,12 +205,11 @@ export class TransistorSoftMap extends HTMLElement {
   }
 
   clustering () {
-    const { enableClustering, showMarkers } = this.props;
+    const { enableClustering, showMarkers } = this;
     if (
       !showMarkers ||
       !enableClustering ||
       !this.gmap
-      // this.markers.filter((x: Marker) => !!x.getMap()).length < maxMarkersWithoutClustering
     ) {
       return;
     }
@@ -188,7 +234,7 @@ export class TransistorSoftMap extends HTMLElement {
   // previous marker is set to default icon, new marker or nothing is set to
   // selected icon
   updateSelectedLocation () {
-    const { selectedLocation: location } = this.props;
+    const { selectedLocation } = this;
     if (this.selectedMarker) {
       this.selectedMarker.setIcon(this.buildLocationIcon(this.selectedMarker.location));
       this.selectedMarker.setZIndex(1);
@@ -197,9 +243,9 @@ export class TransistorSoftMap extends HTMLElement {
       this.selectedMarker = null;
       return;
     }
-    let marker = this.markers.find((x: any) => x.location.uuid === location.uuid);
+    let marker = this.markers.find((x) => x.location.uuid === location.uuid);
     if (!marker) {
-      marker = this.geofenceHitMarkers.find((x: any) => x.location && x.location.uuid === location.uuid);
+      marker = this.geofenceHitMarkers.find((x) => x.location && x.location.uuid === location.uuid);
     }
     if (marker) {
       this.selectedMarker = marker;
@@ -215,8 +261,8 @@ export class TransistorSoftMap extends HTMLElement {
     }
   }
 
-  buildMotionChangePolyline (stationaryPosition: any, movingPosition: any) {
-    const { showPolyline } = this.props;
+  buildMotionChangePolyline (stationaryPosition, movingPosition) {
+    const { showPolyline } = this;
     const seq = {
       repeat: '25px',
       icon: {
@@ -242,7 +288,7 @@ export class TransistorSoftMap extends HTMLElement {
     });
   }
 
-  buildGeofenceMarker (location: Location, options: any) {
+  buildGeofenceMarker (location, options) {
     const { geofence } = location;
     let circle = this.geofenceMarkers[geofence.identifier];
     if (!circle) {
@@ -320,9 +366,13 @@ export class TransistorSoftMap extends HTMLElement {
     this.geofenceHitMarkers.push(polyline);
   }
 
+  onSelectLocation(uuid) {
+    console.info(`Location selected: ${uuid}`);
+  }
+
   // Build a bread-crumb location marker.
-  buildLocationMarker (location: Location, options: any = {}) {
-    const { onSelectLocation } = this.props;
+  buildLocationMarker (location, options = {}) {
+    const { onSelectLocation } = this;
     const zIndex = options.zIndex || 1;
     const marker = new google.maps.Marker({
       zIndex,
@@ -337,26 +387,36 @@ export class TransistorSoftMap extends HTMLElement {
   }
 
   clearMarkers () {
-    this.markers.forEach((marker: Marker) => {
+    this.markers.forEach((marker) => {
       google.maps.event.clearInstanceListeners(marker);
       marker.setMap(null);
     });
     this.markers = [];
 
     this.geofenceMarkers = {};
-    this.geofenceHitMarkers.forEach((marker: any) => {
+    this.geofenceHitMarkers.forEach((marker) => {
       marker.setMap(null);
     });
     this.geofenceHitMarkers = [];
 
     this.polyline.setPath([]);
-    this.motionChangePolylines.forEach((polyline: any) => {
+    this.motionChangePolylines.forEach((polyline) => {
       polyline.setMap(null);
     });
     this.motionChangePolylines = [];
   }
 
   renderMarkers () {
+
+    // redraw everything for now.
+    this.updateFlags = {
+      needsMarkersRedraw: true,
+      needsTestMarkersRedraw: true,
+      needsShowMarkersUpdate: true,
+      needsShowPolylineUpdate: true,
+      needsShowGeofenceHitsUpdate: true
+    };
+
     console.time('renderMarkers');
     const {
       currentLocation,
@@ -366,7 +426,7 @@ export class TransistorSoftMap extends HTMLElement {
       showMarkers,
       showPolyline,
       testMarkers,
-    } = this.props;
+    } = this;
 
     // if locations have not changed - do not clear markers
     // just update current location, selected location and handle visibility of markers
@@ -385,8 +445,6 @@ export class TransistorSoftMap extends HTMLElement {
       let motionChangePosition = null;
       let searchingForMotionChange = false;
 
-      // Iterate in reverse order to create polyline points from oldest->latest.
-      // We DO NOT want this.props.locations.reverse()!!!
       for (let n = length - 1; n > 0; n--) {
         const location = locations[n];
         const latLng = new google.maps.LatLng(location.latitude, location.longitude);
@@ -413,18 +471,18 @@ export class TransistorSoftMap extends HTMLElement {
       // keep existing markers - just update their visibility
       console.time('renderMarkers: Visibility');
       if (this.updateFlags.needsShowMarkersUpdate) {
-        this.markers.forEach((marker: any) => {
+        this.markers.forEach((marker) => {
           marker.setMap(showMarkers ? this.gmap : null);
         });
       }
       if (this.updateFlags.needsShowPolylineUpdate) {
         this.polyline.setMap(showPolyline ? this.gmap : null);
-        this.motionChangePolylines.forEach((polyline: any) => {
+        this.motionChangePolylines.forEach((polyline) => {
           polyline.setMap(showPolyline ? this.gmap : null);
         });
       }
       if (this.updateFlags.needsShowGeofenceHitsUpdate) {
-        this.geofenceHitMarkers.forEach((marker: any) => {
+        this.geofenceHitMarkers.forEach(marker => {
           marker.setMap(showGeofenceHits ? this.gmap : null);
         });
       }
@@ -445,25 +503,16 @@ export class TransistorSoftMap extends HTMLElement {
       this.currentLocationMarker.setMap(null);
       this.locationAccuracyCircle.setMap(null);
     }
+
     // draw selectedMarker
     console.time('renderMarkers: Selected Location');
     this.updateSelectedLocation();
+
     console.timeEnd('renderMarkers: Selected Location');
     console.timeEnd('renderMarkers');
   }
 
-  /**
-  * Render manually added test markers
-  {
-    type: 'location|geofence'
-    position: {
-      lat: Float,
-      lng: Float
-    },
-    radius: Number (present only when type: "geofence")
-  }
-  */
-  renderTestMarkers (testMarkers: any) {
+  renderTestMarkers (testMarkers) {
     // 37.33313411,-122.05283635
     for (let n = 0, len = testMarkers.length; n < len; n++) {
       const record = testMarkers[n];
@@ -492,11 +541,6 @@ export class TransistorSoftMap extends HTMLElement {
     const first = testMarkers[0];
     this.gmap.setCenter(first.position);
   }
-
-
-
-
-
 
 }
 window.customElements.define('transistorsoft-map', TransistorSoftMap);

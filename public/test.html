@@ -1,7 +1,20 @@
 <head>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA9j72oZA5SmsA8ugu57pqXwpxh9Sn4xuM"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?libraries=geometry&key=AIzaSyA9j72oZA5SmsA8ugu57pqXwpxh9Sn4xuM"></script>
   <script type="module" src="./map.component.js"></script>
 </head>
 <body>
   <transistorsoft-map style="width: 600px; height: 600px;"></transistorsoft-map>
+  <script type="module">
+    async function main() {
+      const response = await fetch('./test1.json');
+      const data = await response.json();
+      const map = document.querySelector('transistorsoft-map');
+      window.map = map;
+      map.locations = data;
+      map.renderMarkers();
+      map.fitBounds();
+    }
+    document.addEventListener('DOMContentLoaded', main);
+
+  </script>
 </body>
