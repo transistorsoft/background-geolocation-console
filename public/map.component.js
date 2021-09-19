@@ -13,15 +13,16 @@ export class TransistorSoftMap extends HTMLElement {
     super();
 
     // default properties
+    this._locations = [];
+    this._selectedLocation = null;
+    this._showPolyline = true;
+    this._showMarkers = true;
+    this._showGeofenceHits = true;
+    this._enableClustering = true;
 
     this.currentLocation = null;
-    this.selectedLocation = null;
     this.isWatching = false;
-    this.locations = true;
-    this.enableClustering = true;
     this.showGeofenceHits = true;
-    this.showMarkers = true;
-    this.showPolyline = true;
     this.motionChangePolylines = [];
     this.testMarkers = [];
 
@@ -36,6 +37,8 @@ export class TransistorSoftMap extends HTMLElement {
     this.onBoundChange = this.onBoundChange.bind(this);
     this.onSelectLocation = this.onSelectLocation.bind(this);
 
+    this.selectionChangeEvent = new CustomEvent('selectionchange');
+
 
     const shadowRoot = this.attachShadow({mode: 'open'});
     shadowRoot.innerHTML = `<div style="width: 600px; height: 600px;"></div>`;
@@ -47,6 +50,56 @@ export class TransistorSoftMap extends HTMLElement {
 
     this.onMapLoaded();
 
+  }
+
+  // properties
+  set locations(value) {
+    this._locations = value;
+    this.renderMarkers();
+  }
+  get locations() {
+    return this._locations;
+  }
+
+  set showMarkers(value) {
+    this._showMarkers = value;
+    this.renderMarkers();
+  }
+  get showMarkers() {
+    return this._showMarkers;
+  }
+
+  set showGeofenceHits(value) {
+    this._showGeofenceHits = value;
+    this.renderMarkers();
+  }
+  get showGeofenceHits() {
+    return this._showGeofenceHits;
+  }
+
+  set showPolyline(value) {
+    this._showPolyline = value;
+    this.renderMarkers();
+  }
+  get showPolyline() {
+    return this._showPolyline;
+  }
+
+  set enableClustering(value) {
+    this._enableClustering = value;
+    this.renderMarkers();
+  }
+  get enableClustering() {
+    return this._enableClustering;
+  }
+
+  set selectedLocation(value) {
+    this._selectedLocation = value;
+    this.renderMarkers();
+  }
+
+  get selectedLocation() {
+    return this._selectedLocation;
   }
 
   fitBounds() {
@@ -243,10 +296,13 @@ export class TransistorSoftMap extends HTMLElement {
       this.selectedMarker = null;
       return;
     }
+
     let marker = this.markers.find((x) => x.location.uuid === location.uuid);
+
     if (!marker) {
       marker = this.geofenceHitMarkers.find((x) => x.location && x.location.uuid === location.uuid);
     }
+
     if (marker) {
       this.selectedMarker = marker;
       // marker.setFillColor('#000000');
@@ -368,6 +424,8 @@ export class TransistorSoftMap extends HTMLElement {
 
   onSelectLocation(uuid) {
     console.info(`Location selected: ${uuid}`);
+    this.dispatchEvent(this.selectionChangeEvent);
+    this.selectedLocation = uuid;
   }
 
   // Build a bread-crumb location marker.
@@ -407,6 +465,23 @@ export class TransistorSoftMap extends HTMLElement {
   }
 
   renderMarkers () {
+
+    // do not call more often than once a second
+    if (this._latestTimeOfRenderMarkers && this._latestTimeOfRenderMarkers + 1 * 1000 > new Date().getTime()) {
+      setTimeout( () => this.renderMarkers(), 100);
+      return;
+    }
+
+    // allow to assign properties all together before rendering
+    if (!this._avoidImmediate) {
+      setTimeout( () => this.renderMarkers(), 1);
+      this._avoidImmediate = true;
+      return;
+    }
+
+    // reset delay/buffering flags
+    this._latestTimeOfRenderMarkers = new Date().getTime();
+    this._avoidImmediate = false;
 
     // redraw everything for now.
     this.updateFlags = {

@@ -4,6 +4,32 @@
 </head>
 <body>
   <transistorsoft-map style="width: 600px; height: 600px;"></transistorsoft-map>
+
+  <div>
+    <h1>Demo filters</h1>
+
+    <div>
+      <input type="checkbox" id="showMarkers" checked></input>
+      <label for="showMarkers">Show Markers</label>
+    </div>
+
+    <div>
+      <input type="checkbox" id="showPolyline" checked></input>
+      <label for="showPolyline">Show Polyline</label>
+    </div>
+
+    <div>
+      <input type="checkbox" id="showGeofences" checked></input>
+      <label for="showGeofences">Show Geofence</label>
+    </div>
+
+    <div>
+      <input type="checkbox" id="useClusters" checked></input>
+      <label for="useClusters">Use Clusters</label>
+    </div>
+
+  </div>
+
   <script type="module">
     async function main() {
       const response = await fetch('./test1.json');
@@ -11,8 +37,35 @@
       const map = document.querySelector('transistorsoft-map');
       window.map = map;
       map.locations = data;
-      map.renderMarkers();
       map.fitBounds();
+
+      map.addEventListener('selectionchange', function() {
+         console.info('selection changed!');
+      });
+
+      // filters
+
+      const showMarkersCheckbox = document.querySelector('#showMarkers');
+      showMarkersCheckbox.addEventListener('change', function() {
+        map.showMarkers = showMarkersCheckbox.checked;
+      });
+
+      const showGeofenceCheckbox = document.querySelector('#showGeofences');
+      showGeofenceCheckbox.addEventListener('change', function() {
+        map.showGeofenceHits = showGeofenceCheckbox.checked;
+      });
+
+      const showPolylineCheckbox = document.querySelector('#showPolyline');
+      showPolylineCheckbox.addEventListener('change', function() {
+        map.showPolyline = showPolylineCheckbox.checked;
+      });
+
+      const useClustersCheckbox =
+      document.querySelector('#useClusters');
+      useClustersCheckbox.addEventListener('change', function() {
+        map.enableClustering = useClustersCheckbox.checked;
+      });
+
     }
     document.addEventListener('DOMContentLoaded', main);
 
