@@ -1,7 +1,7 @@
 {
-  "name": "my-webpack-project",
+  "name": "background-geolocation-console",
   "version": "1.0.0",
-  "description": "My webpack project",
+  "description": "background-geolocation-console",
   "main": "index.js",
   "scripts": {
     "start": "node server/index.js",
@@ -42,7 +42,6 @@
   "devDependencies": {
     "chai": "^4.2.0",
     "chai-http": "^4.3.0",
-    "concurrently": "^5.3.0",
     "jest": "^26.6.3",
     "sqlite3": "~5.0.1"
   }

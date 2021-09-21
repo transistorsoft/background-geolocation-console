@@ -20,6 +20,7 @@ export class TransistorSoftMap extends HTMLElement {
     this._showGeofenceHits = true;
     this._enableClustering = true;
 
+    // public properties
     this.currentLocation = null;
     this.isWatching = false;
     this.showGeofenceHits = true;
@@ -28,7 +29,6 @@ export class TransistorSoftMap extends HTMLElement {
 
     // internal properties
 
-    this.updateFlags = {};
     this.markers = [];
     this.geofenceHitMarkers = [];
     this.selectedMarker = null;
@@ -190,7 +190,7 @@ export class TransistorSoftMap extends HTMLElement {
     cluster.remove();
   }
 
-  buildLocationIcon(location, options) {
+  buildLocationIcon(location, options = {}) {
     let anchor;
     let fillColor = COLORS.polyline_color;
     let scale = options.scale || 2;
@@ -287,20 +287,20 @@ export class TransistorSoftMap extends HTMLElement {
   // previous marker is set to default icon, new marker or nothing is set to
   // selected icon
   updateSelectedLocation () {
-    const { selectedLocation } = this;
+    const selectedLocation = this.locations.filter( (x) => x.uuid === this.selectedLocation)[0];
     if (this.selectedMarker) {
       this.selectedMarker.setIcon(this.buildLocationIcon(this.selectedMarker.location));
       this.selectedMarker.setZIndex(1);
     }
-    if (!location) {
+    if (!selectedLocation) {
       this.selectedMarker = null;
       return;
     }
 
-    let marker = this.markers.find((x) => x.location.uuid === location.uuid);
+    let marker = this.markers.find((x) => x.location.uuid === selectedLocation.uuid);
 
     if (!marker) {
-      marker = this.geofenceHitMarkers.find((x) => x.location && x.location.uuid === location.uuid);
+      marker = this.geofenceHitMarkers.find((x) => x.location && x.location.uuid === selectedLocation.uuid);
     }
 
     if (marker) {
@@ -308,7 +308,7 @@ export class TransistorSoftMap extends HTMLElement {
       // marker.setFillColor('#000000');
       marker.setZIndex(100);
       marker.setIcon(
-        this.buildLocationIcon(location, {
+        this.buildLocationIcon(selectedLocation, {
           strokeColor: COLORS.red,
           strokeWeight: 2,
           selected: true,
@@ -472,6 +472,8 @@ export class TransistorSoftMap extends HTMLElement {
       return;
     }
 
+
+
     // allow to assign properties all together before rendering
     if (!this._avoidImmediate) {
       setTimeout( () => this.renderMarkers(), 1);
@@ -483,14 +485,30 @@ export class TransistorSoftMap extends HTMLElement {
     this._latestTimeOfRenderMarkers = new Date().getTime();
     this._avoidImmediate = false;
 
-    // redraw everything for now.
-    this.updateFlags = {
+    // calculate update flags, which properties changed since last render
+
+    const updateFlags = this.lastProps ? {
+      needsMarkersRedraw: this.lastProps.locations !== JSON.stringify(this.locations.map( (x) => x.uuid)),
+      needsTestMarkersRedraw: this.lastProps.testMarkers !== JSON.stringify(this.testMarkers),
+      needsShowMarkersUpdate: this.lastProps.showMarkers !== this.showMarkers || this.lastProps.enableClustering !== this.enableClustering,
+      needsShowPolylineUpdate: this.lastProps.showPolyline !== this.showPolyline,
+      needsShowGeofenceHitsUpdate: this.lastProps.showGeofenceHits !== this.showGeofenceHits
+    } : {
       needsMarkersRedraw: true,
       needsTestMarkersRedraw: true,
       needsShowMarkersUpdate: true,
       needsShowPolylineUpdate: true,
       needsShowGeofenceHitsUpdate: true
     };
+
+    this.lastProps = {
+      locations: JSON.stringify(this.locations.map( (x) => x.uuid)),
+      testMarkers: JSON.stringify(this.testMarkers),
+      showMarkers: this.showMarkers,
+      enableClustering: this.enableClustering,
+      showPolyline: this.showPolyline,
+      showGeofenceHits: this.showGeofenceHits
+    }
 
     console.time('renderMarkers');
     const {
@@ -505,10 +523,11 @@ export class TransistorSoftMap extends HTMLElement {
 
     // if locations have not changed - do not clear markers
     // just update current location, selected location and handle visibility of markers
-    if (this.updateFlags.needsTestMarkersRedraw && testMarkers.length) {
+    if (updateFlags.needsTestMarkersRedraw && testMarkers.length) {
       this.renderTestMarkers(testMarkers);
     }
-    if (this.updateFlags.needsMarkersRedraw) {
+
+    if (updateFlags.needsMarkersRedraw) {
       this.clearMarkers();
       this.cleanClustering();
 
@@ -545,24 +564,25 @@ export class TransistorSoftMap extends HTMLElement {
     } else {
       // keep existing markers - just update their visibility
       console.time('renderMarkers: Visibility');
-      if (this.updateFlags.needsShowMarkersUpdate) {
+      if (updateFlags.needsShowMarkersUpdate) {
         this.markers.forEach((marker) => {
           marker.setMap(showMarkers ? this.gmap : null);
         });
       }
-      if (this.updateFlags.needsShowPolylineUpdate) {
+      if (updateFlags.needsShowPolylineUpdate) {
         this.polyline.setMap(showPolyline ? this.gmap : null);
         this.motionChangePolylines.forEach((polyline) => {
           polyline.setMap(showPolyline ? this.gmap : null);
         });
       }
-      if (this.updateFlags.needsShowGeofenceHitsUpdate) {
+      if (updateFlags.needsShowGeofenceHitsUpdate) {
         this.geofenceHitMarkers.forEach(marker => {
           marker.setMap(showGeofenceHits ? this.gmap : null);
         });
       }
       console.timeEnd('renderMarkers: Visibility');
     }
+
     // handle current location
     if (isWatching && currentLocation) {
       console.time('renderMarkers: Current Location');

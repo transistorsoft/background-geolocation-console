@@ -1,9 +1,11 @@
 <head>
   <script src="https://maps.googleapis.com/maps/api/js?libraries=geometry&key=AIzaSyA9j72oZA5SmsA8ugu57pqXwpxh9Sn4xuM"></script>
   <script type="module" src="./map.component.js"></script>
+  <script type="module" src="./grid.component.js"></script>
 </head>
 <body>
   <transistorsoft-map style="width: 600px; height: 600px;"></transistorsoft-map>
+  <div id="grid" style="width: 1400px; height: 600px;"></div>
 
   <div>
     <h1>Demo filters</h1>
@@ -31,12 +33,14 @@
   </div>
 
   <script type="module">
+    import * as ListComponent from "./list.component.js";
     async function main() {
       const response = await fetch('./test1.json');
       const data = await response.json();
       const map = document.querySelector('transistorsoft-map');
       window.map = map;
       map.locations = data;
+      ListComponent.updateComponent(document.querySelector('#grid'), data);
       map.fitBounds();
 
       map.addEventListener('selectionchange', function() {
