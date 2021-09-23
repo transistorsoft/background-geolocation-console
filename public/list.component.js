@@ -217,7 +217,19 @@ export class TransistorSoftList extends HTMLElement {
       const tr = this.shadowRoot.querySelector(`tr[data-row-id="${this.selected}"]`);
       if (tr) {
         tr.classList.add('selected');
-        tr.scrollIntoViewIfNeeded();
+        // scroll into view
+        const hostRect = this.shadowRoot.host.getBoundingClientRect();
+        const trRect = tr.getBoundingClientRect();
+        const shouldScrollDown = trRect.bottom < hostRect.top;
+        const shouldScrollUp = trRect.top > hostRect.bottom;
+        if (shouldScrollDown) {
+          tr.scrollIntoView();
+          // tr.scrollIntoView({behavior: 'smooth', block: 'start'})
+        }
+        if (shouldScrollUp) {
+          tr.scrollIntoView();
+          // tr.scrollIntoView({behavior: 'smooth', block: 'end'});
+        }
       }
     }
   }
