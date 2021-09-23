@@ -41,7 +41,10 @@ export class TransistorSoftMap extends HTMLElement {
 
 
     const shadowRoot = this.attachShadow({mode: 'open'});
-    shadowRoot.innerHTML = `<div style="width: 600px; height: 600px;"></div>`;
+    shadowRoot.innerHTML = `
+      <style> :host { display: block } </style>
+      <div style="width: 100%; height: 100%; "></div>
+      `;
 
     this.gmap = new google.maps.Map(shadowRoot.querySelector('div'), {
       center: { lat: -34.397, lng: 150.644 },
@@ -49,6 +52,10 @@ export class TransistorSoftMap extends HTMLElement {
     });
 
     this.onMapLoaded();
+
+  }
+
+  connectedCallback() {
 
   }
 
@@ -184,7 +191,7 @@ export class TransistorSoftMap extends HTMLElement {
 
   }
 
-  onClusterClick() {
+  onClusterClick(cluster) {
     const markers = cluster.getMarkers();
     markers.forEach((x) => x.setMap(this.gmap) && x.setVisible(true));
     cluster.remove();

@@ -1,11 +1,11 @@
 <head>
   <script src="https://maps.googleapis.com/maps/api/js?libraries=geometry&key=AIzaSyA9j72oZA5SmsA8ugu57pqXwpxh9Sn4xuM"></script>
   <script type="module" src="./map.component.js"></script>
-  <script type="module" src="./grid.component.js"></script>
+  <script type="module" src="./list.component.js"></script>
 </head>
 <body>
-  <transistorsoft-map style="width: 600px; height: 600px;"></transistorsoft-map>
-  <div id="grid" style="width: 1400px; height: 600px;"></div>
+  <transistorsoft-map style="width: 600px; height: 400px;"></transistorsoft-map>
+  <transistorsoft-list style="width: 1200px; height: 300px;"></transistorsoft-list>
 
   <div>
     <h1>Demo filters</h1>
@@ -38,13 +38,17 @@
       const response = await fetch('./test1.json');
       const data = await response.json();
       const map = document.querySelector('transistorsoft-map');
+      const list = document.querySelector('transistorsoft-list');
       window.map = map;
       map.locations = data;
-      ListComponent.updateComponent(document.querySelector('#grid'), data);
+      list.locations = data;
       map.fitBounds();
 
       map.addEventListener('selectionchange', function() {
-         console.info('selection changed!');
+         list.selected = map.selectedLocation;
+      });
+      list.addEventListener('selectionchange', function() {
+         map.selectedLocation = list.selected;
       });
 
       // filters
