@@ -36,6 +36,7 @@ export class TransistorSoftMap extends HTMLElement {
     // bind handlers to this
     this.onBoundChange = this.onBoundChange.bind(this);
     this.onSelectLocation = this.onSelectLocation.bind(this);
+    this.onClusterClick = this.onClusterClick.bind(this);
 
     this.selectionChangeEvent = new CustomEvent('selectionchange');
 
@@ -126,12 +127,13 @@ export class TransistorSoftMap extends HTMLElement {
   onBoundChange() {
     console.time('onBoundChange');
 
-    const bound = this.gmap.getBounds();
-    this.markers
-      .filter((x) => !!x.getMap())
-      .forEach((x) => {
-        x.setVisible(bound.contains(x.getPosition()));
-      });
+    // const bound = this.gmap.getBounds();
+
+    // this.markers
+      // .filter((x) => !!x.getMap())
+      // .forEach((x) => {
+        // x.setVisible(bound.contains(x.getPosition()));
+      // });
 
     console.timeEnd('onBoundChange');
 
@@ -262,6 +264,7 @@ export class TransistorSoftMap extends HTMLElement {
 
   cleanClustering () {
     !!this.markerCluster && this.markerCluster.clearMarkers();
+    this.markerCluster = null;
   }
 
   clustering () {
@@ -431,8 +434,8 @@ export class TransistorSoftMap extends HTMLElement {
 
   onSelectLocation(uuid) {
     console.info(`Location selected: ${uuid}`);
-    this.dispatchEvent(this.selectionChangeEvent);
     this.selectedLocation = uuid;
+    this.dispatchEvent(this.selectionChangeEvent);
   }
 
   // Build a bread-crumb location marker.
@@ -572,9 +575,23 @@ export class TransistorSoftMap extends HTMLElement {
       // keep existing markers - just update their visibility
       console.time('renderMarkers: Visibility');
       if (updateFlags.needsShowMarkersUpdate) {
+
         this.markers.forEach((marker) => {
           marker.setMap(showMarkers ? this.gmap : null);
         });
+
+        if (showMarkers) {
+          if (this.enableClustering) {
+            if (!this.markerCluster) {
+              this.clustering();
+            }
+          } else {
+            this.cleanClustering();
+            this.markers.forEach((marker) => {
+              marker.setMap(this.gmap) && marker.setVisible(true);
+            });
+          }
+        }
       }
       if (updateFlags.needsShowPolylineUpdate) {
         this.polyline.setMap(showPolyline ? this.gmap : null);

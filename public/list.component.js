@@ -133,8 +133,8 @@ export class TransistorSoftList extends HTMLElement {
 
   onSelectLocation(uuid) {
     console.info(`Location selected: ${uuid}`);
-    this.dispatchEvent(this.selectionChangeEvent);
     this.selected = uuid;
+    this.dispatchEvent(this.selectionChangeEvent);
   }
 
   renderList() {
@@ -212,12 +212,13 @@ export class TransistorSoftList extends HTMLElement {
     for (let tr of selected) {
       tr.classList.remove('selected');
     }
-    const selectedItem = this.locations.filter( (x) => x.uuid === this.selected)[0];
-    const selectedItemIndex = this.locations.indexOf(selectedItem);
-    const tr = this.shadowRoot.querySelector('tbody').querySelectorAll('tr')[selectedItemIndex];
-    if (tr) {
-      tr.classList.add('selected');
-      tr.scrollIntoViewIfNeeded();
+
+    if (this.selected) {
+      const tr = this.shadowRoot.querySelector(`tr[data-row-id="${this.selected}"]`);
+      if (tr) {
+        tr.classList.add('selected');
+        tr.scrollIntoViewIfNeeded();
+      }
     }
   }
 }
