@@ -224,11 +224,9 @@ export class TransistorSoftList extends HTMLElement {
         const shouldScrollUp = trRect.top > hostRect.bottom;
         if (shouldScrollDown) {
           tr.scrollIntoView();
-          // tr.scrollIntoView({behavior: 'smooth', block: 'start'})
         }
         if (shouldScrollUp) {
           tr.scrollIntoView();
-          // tr.scrollIntoView({behavior: 'smooth', block: 'end'});
         }
       }
     }
