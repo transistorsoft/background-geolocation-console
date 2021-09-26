@@ -3,11 +3,7 @@ import { COLORS } from './constants.js';
 
 export class TransistorSoftMap extends HTMLElement {
 
-  // no properties (via markup):   hidemarkers hidepolygons hidegeofences noclustering maxmarkers
-
   // attributes:
-  // markers - JSON of markers
-  // selectedMarker - a currently selected marker or null
 
   constructor() {
     super();
@@ -533,7 +529,7 @@ export class TransistorSoftMap extends HTMLElement {
 
     // if locations have not changed - do not clear markers
     // just update current location, selected location and handle visibility of markers
-    if (updateFlags.needsTestMarkersRedraw && testMarkers.length) {
+    if (updateFlags.needsTestMarkersRedraw) {
       this.renderTestMarkers(testMarkers);
     }
 

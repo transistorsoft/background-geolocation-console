@@ -52,6 +52,60 @@ export class TransistorSoftMapSettings extends HTMLElement {
     const shadowRoot = this.attachShadow({mode: 'open'});
     shadowRoot.innerHTML = template;
 
+    this.settingsChangedEvent = new CustomEvent('change');
+
+    this.shadowRoot.querySelectorAll('[type=checkbox]').forEach( (element) => {
+      element.addEventListener('change', () => {
+        if (!this.ignoreEvents) {
+          this.dispatchEvent(this.settingsChangedEvent);
+          console.info('changed!');
+        }
+      });
+    });
   }
+
+
+  set showMarkers(value) {
+    this.ignoreEvents = true;
+    this.shadowRoot.querySelector('#hideMarkers').checked = !value;
+    this.ignoreEvents = false;
+  }
+
+  get showMarkers() {
+    return !this.shadowRoot.querySelector('#hideMarkers').checked;
+  }
+
+  set showPolyline(value) {
+    this.ignoreEvents = true;
+    this.shadowRoot.querySelector('#hidePolyline').checked = !value;
+    this.ignoreEvents = false;
+  }
+
+  get showPolyline() {
+    return !this.shadowRoot.querySelector('#hidePolyline').checked;
+  }
+
+  set showGeofences(value) {
+    this.ignoreEvents = true;
+    this.shadowRoot.querySelector('#hideGeofences').checked = !value;
+    this.ignoreEvents = false;
+  }
+
+  get showGeofences() {
+    return !this.shadowRoot.querySelector('#hideGeofences').checked;
+  }
+
+  set useClustering(value) {
+    this.ignoreEvents = true;
+    this.shadowRoot.querySelector('#disableClustering').checked = !value;
+    this.ignoreEvents = false;
+  }
+
+  get useClustering() {
+    return !this.shadowRoot.querySelector('#disableClustering').checked;
+  }
+
+
+
 }
 window.customElements.define('transistorsoft-mapsettings', TransistorSoftMapSettings);

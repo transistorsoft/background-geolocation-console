@@ -1,4 +1,3 @@
-
 const getLocalStorageKey = (key) => (key ? `settings#${key}` : 'settings');
 const removeUndefined = Object.keys(obj).forEach(key => obj[key] === undefined ? delete obj[key] : {});
 
