@@ -1,4 +1,3 @@
-
 export class TransistorSoftMapSettings extends HTMLElement {
 
   constructor() {
