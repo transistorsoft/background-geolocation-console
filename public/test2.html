@@ -6,6 +6,7 @@
   <script type="module" src="./layout.component.js"></script>
   <script type="module" src="./settings.component.js"></script>
   <script type="module" src="./filters.component.js"></script>
+  <script type="module" src="./customMarkers.component.js"></script>
 </head>
 <body>
 
@@ -21,6 +22,9 @@
   <transistorsoft-mapsettings style="width: 250px;">
 
   </transistorsoft-mapsettings>
+  <transistorsoft-custommarkers style="width: 250px;">
+
+  </transistorsoft-custommarkers>
 
   <script type="module">
     import * as ListComponent from "./list.component.js";
@@ -31,12 +35,17 @@
 
       const map = document.querySelector('transistorsoft-map');
       const list = document.querySelector('transistorsoft-list');
+      const customMarkers = document.querySelector('transistorsoft-custommarkers');
 
       window.map = map;
       window.list = list;
 
       map.locations = data;
       list.locations = data;
+
+      customMarkers.addEventListener('add', function(e) {
+         map.addTestMarker(e.detail);
+      });
 
     }
     document.addEventListener('DOMContentLoaded', main);

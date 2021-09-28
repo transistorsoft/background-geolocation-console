@@ -1,0 +1,25 @@
+ <!DOCTYPE html>
+<head>
+  <script type="module" src="./modal.component.js"></script>
+</head>
+<body>
+
+  <h1>Demo Modal</h1>
+  <button>Open</button>
+
+  <transistorsoft-modal>
+  </transistorsoft-modal>
+
+  <script type="module">
+    async function main() {
+        const button = this.querySelector('button');
+        const modal = this.querySelector('transistorsoft-modal');
+        button.addEventListener('click', function() {
+            modal.showModal();
+        });
+
+    }
+    document.addEventListener('DOMContentLoaded', main);
+
+  </script>
+</body>

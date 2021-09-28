@@ -527,12 +527,6 @@ export class TransistorSoftMap extends HTMLElement {
       testMarkers,
     } = this;
 
-    // if locations have not changed - do not clear markers
-    // just update current location, selected location and handle visibility of markers
-    if (updateFlags.needsTestMarkersRedraw) {
-      this.renderTestMarkers(testMarkers);
-    }
-
     if (updateFlags.needsMarkersRedraw) {
       this.clearMarkers();
       this.cleanClustering();
@@ -627,34 +621,30 @@ export class TransistorSoftMap extends HTMLElement {
     console.timeEnd('renderMarkers');
   }
 
-  renderTestMarkers (testMarkers) {
-    // 37.33313411,-122.05283635
-    for (let n = 0, len = testMarkers.length; n < len; n++) {
-      const record = testMarkers[n];
-      if (record.type === 'location') {
-        // eslint-disable-next-line no-new
-        new google.maps.Marker({
-          position: record.position,
-          map: this.gmap,
-          label: record.label,
-        });
-      } else if (record.type === 'geofence') {
-        // eslint-disable-next-line no-new
-        new google.maps.Circle({
-          zIndex: 2000,
-          fillOpacity: 0,
-          strokeColor: '#ff0000',
-          strokeWeight: 1,
-          strokeOpacity: 1,
-          radius: record.radius,
-          center: record.position,
-          map: this.gmap,
-        });
-      }
+  // add a single test marker
+  addTestMarker (record) {
+    const position = new google.maps.LatLng(record.lat, record.lng);
+    if (record.type === 'location') {
+      // eslint-disable-next-line no-new
+      new google.maps.Marker({
+        position: position,
+        map: this.gmap,
+        label: record.label,
+      });
+    } else if (record.type === 'geofence') {
+      new google.maps.Circle({
+        zIndex: 2000,
+        fillOpacity: 0,
+        strokeColor: '#ff0000',
+        strokeWeight: 1,
+        strokeOpacity: 1,
+        radius: record.radius,
+        center: position,
+        map: this.gmap,
+      });
     }
     // arbitrarily center on first marker.
-    const first = testMarkers[0];
-    this.gmap.setCenter(first.position);
+    this.gmap.setCenter(position);
   }
 
 }

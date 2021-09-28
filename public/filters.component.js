@@ -1,3 +1,6 @@
+import { dateTimeToString } from './date.js';
+import './modal.component.js';
+
 const svgReload = `<svg viewBox="0 0 512 512">
 	<path d="M411.826,289.391c0,86.061-69.766,155.826-155.826,155.826s-155.826-69.766-155.826-155.826S169.939,133.565,256,133.565
 			v66.783l100.174-100.174L256,0v66.783c-122.943,0-222.609,99.665-222.609,222.609S133.057,512,256,512
@@ -44,7 +47,25 @@ export class TransistorSoftFilters extends HTMLElement {
       position: absolute;
       top: 30px;
       right: 10px;
-      background: red;
+      background: #ee0000;
+      border-radius: 3px;
+      border: none;
+      height: 25px;
+      color: white;
+    }
+
+    #delete:active {
+      background: #aa0000;
+    }
+
+    .modal-buttons {
+      display: flex;
+      justify-content: end;
+      flex-direction: row
+    }
+    .modal-buttons button {
+      width: 80px;
+      margin: 0px 20px;
     }
 
     .row {
@@ -64,9 +85,11 @@ export class TransistorSoftFilters extends HTMLElement {
     }
 
     #reload svg {
+       position: relative;
        width: 20px;
        height: 20px;
        fill: white;
+       top: 3px;
     }
 
 
@@ -76,6 +99,8 @@ export class TransistorSoftFilters extends HTMLElement {
     }
 
     .watch-label {
+      cursor: pointer;
+      flex: 1;
       height: 30px;
       line-height: 30px;
     }
@@ -83,6 +108,7 @@ export class TransistorSoftFilters extends HTMLElement {
     .switch {
       position: relative;
       display: inline-block;
+      cursor: pointer;
     }
 
     .switch-input {
@@ -138,7 +164,27 @@ export class TransistorSoftFilters extends HTMLElement {
 
   </style>
   <h1>Locations</h1>
-  <input type=button id="delete" value="DELETE"></input>
+  <button id="delete">DELETE</button>
+  <transistorsoft-modal id="modal">
+    <h1 slot="header">Delete device locations</h1>
+    <div slot="message">
+      <div style="text-align: left;">
+        <div>
+          <input type="radio" checked name="range" id="all" value="all">
+          <label for="all">Delete all entries</label>
+        </div>
+        <div>
+          <input type="radio" name="range" id="custom" value="custom">
+          <label for="custom">Delete specific entries</label>
+        </div>
+        <div class="modal-buttons">
+          <button id="ok">DELETE</button>
+          <button id="cancel">CANCEL</button>
+        </div>
+      </div>
+
+    </div>
+  </transistorsoft-modal>
   <div id="companies-wrapper">
     <select id="companies"></select>
   </div>
@@ -158,18 +204,18 @@ export class TransistorSoftFilters extends HTMLElement {
       <input type="date"><input type="time">
     </div>
   </div>
-  <div>
-    <input type="button" value="Today">
-    <input type="button" value="Last week">
-    <input type="button" value="Last 1000 points">
+  <div class="row">
+    <button id="today">Today</button>
+    <button id="month">Last month</button>
+    <button id="year">Last year</button>
   </div>
   <div style="margin: 5px 0">
     <button id="reload">
-      ${svgReload}<span>RELOAD</span>
+      <span>${svgReload}RELOAD</span>
     </button>
   </div>
   <div class="row">
-    <span class="watch-label">Watch mode</span>
+    <span class="watch-label" for="watch">Watch mode</span>
     <div class="switch">
       <input id="watch" type="checkbox" class="switch-input" />
       <label for="watch" class="switch-label">Switch</label>
@@ -192,9 +238,136 @@ export class TransistorSoftFilters extends HTMLElement {
     this.companyChangedEvent = new CustomEvent('company-changed');
     this.deviceChangedEvent = new CustomEvent('device-changed');
 
+    this.shadowRoot.querySelector('#companies').addEventListener('change', () => {
+      if (!this.ignoreCompanyChanged) {
+        this.dispatchEvent(this.companyChangedEvent)
+      }
+    });
+
+    this.shadowRoot.querySelector('#devices').addEventListener('change', () => {
+      if (!this.ignoreDeviceChanged) {
+        this.dispatchEvent(this.deviceChangedEvent);
+      }
+    });
+
+    this.shadowRoot.querySelector('#watch').addEventListener('change', () => {
+      if (!this.ignoreWatchModeChanged) {
+        this.dispatchEvent(this.watchModeChangedEvent);
+      }
+    });
+
+    this.shadowRoot.querySelector('#from [type=date]').addEventListener('change', () => {
+      if (!this.ignoreFromChanged) {
+        this.dispatchEvent(this.fromChangedEvent);
+      }
+    });
+
+    this.shadowRoot.querySelector('#from [type=time]').addEventListener('change', () => {
+      if (!this.ignoreFromChanged) {
+        this.dispatchEvent(this.fromChangedEvent);
+      }
+    });
+
+    this.shadowRoot.querySelector('#to [type=date]').addEventListener('change', () => {
+      if (!this.ignoreToChanged) {
+        this.dispatchEvent(this.toChangedEvent);
+      }
+    });
+
+    this.shadowRoot.querySelector('#to [type=time]').addEventListener('change', () => {
+      if (!this.ignoreToChanged) {
+        this.dispatchEvent(this.toChangedEvent);
+      }
+    });
+
+    this.shadowRoot.querySelector('#delete').addEventListener('click', () => {
+      const modal = this.shadowRoot.querySelector('#modal');
+      if ( new Date(this.from).toString() === 'Invalid Date'  || new Date(this.to).toString() === 'Invalid Date') {
+        this.shadowRoot.querySelector('#all').checked = true;
+        this.shadowRoot.querySelector('[for=custom]').innerText = 'Invalid range selected';
+        this.shadowRoot.querySelector('#custom').disabled = true;
+      } else {
+        const message = `From ${this.from}Z to ${this.to}Z`;
+        this.shadowRoot.querySelector('[for=custom]').innerText = message;
+        this.shadowRoot.querySelector('#custom').disabled = false;
+      }
+      modal.showModal();
+    });
+
+    this.shadowRoot.querySelector('#cancel').addEventListener('click', () => {
+      const modal = this.shadowRoot.querySelector('#modal');
+      modal.hideModal();
+    });
+
+    this.shadowRoot.querySelector('#ok').addEventListener('click', () => {
+      const modal = this.shadowRoot.querySelector('#modal');
+      this.dispatchEvent(new CustomEvent('delete', { details: { range: this.shadowRoot.querySelector('#all').checked ? 'all' : 'custom' }}));
+      modal.hideModal();
+    });
+
+    this.shadowRoot.querySelector('#today').addEventListener('click', () => {
+      const today = new Date();
+      today.setHours(0);
+      today.setMinutes(0);
+      today.setSeconds(0)
+      today.setMilliseconds(0);
+
+      const now = new Date();
+      now.setHours(23);
+      now.setMinutes(59);
+      now.setSeconds(0)
+      now.setMilliseconds(0);
+
+      this.from = dateTimeToString(today);
+      this.to = dateTimeToString(now);
+      this.dispatchEvent(this.fromChangedEvent);
+      this.dispatchEvent(this.toChangedEvent);
+    });
+
+    this.shadowRoot.querySelector('#month').addEventListener('click', () => {
+      const monthAgo = new Date();
+      monthAgo.setHours(0);
+      monthAgo.setMinutes(0);
+      monthAgo.setSeconds(0)
+      monthAgo.setMilliseconds(0);
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+
+      const now = new Date();
+      now.setHours(23);
+      now.setMinutes(59);
+      now.setSeconds(0)
+      now.setMilliseconds(0);
+
+      this.from = dateTimeToString(monthAgo);
+      this.to = dateTimeToString(now);
+      this.dispatchEvent(this.fromChangedEvent);
+      this.dispatchEvent(this.toChangedEvent);
+    });
+
+    this.shadowRoot.querySelector('#year').addEventListener('click', () => {
+      const yearAgo = new Date();
+      yearAgo.setHours(0);
+      yearAgo.setMinutes(0);
+      yearAgo.setSeconds(0)
+      yearAgo.setMilliseconds(0);
+      yearAgo.setMonth(yearAgo.getMonth() - 12);
+
+      const now = new Date();
+      now.setHours(23);
+      now.setMinutes(59);
+      now.setSeconds(0)
+      now.setMilliseconds(0);
+
+      this.from = dateTimeToString(yearAgo);
+      this.to = dateTimeToString(now);
+      this.dispatchEvent(this.fromChangedEvent);
+      this.dispatchEvent(this.toChangedEvent);
+    });
+
   }
 
   set companies(value) {
+    this.ignoreCompanyChanged = true;
     this._companies = value;
     this.shadowRoot.querySelector('#companies').innerHTML = `
       <option value="" disabled selected hidden>Choose Company</option>
@@ -202,14 +375,17 @@ export class TransistorSoftFilters extends HTMLElement {
     ` ;
     const wrapperEl = this.shadowRoot.querySelector('#companies-wrapper');
     wrapperEl.style.display = value.length > 1 ? '' : 'none';
+    this.ignoreCompanyChanged = false;
   }
   get companies() {
     return this._companies;
   }
 
   set company(value) {
+    this.ignoreCompanyChanged = true;
     const el = this.shadowRoot.querySelector('#companies');
     el.value = value;
+    this.ignoreCompanyChanged = false;
   }
   get company() {
     const el = this.shadowRoot.querySelector('#companies');
@@ -217,11 +393,13 @@ export class TransistorSoftFilters extends HTMLElement {
   }
 
   set devices(value) {
+    this.ignoreDeviceChanged = true;
     this._devices = value;
     this.shadowRoot.querySelector('#devices').innerHTML = `
       <option value="" disabled selected hidden>Choose Device</option>
       ${this._devices.map( (device) => `<option value="${device.id}">${device.name}</option>`).join('\n')}
     ` ;
+    this.ignoreDeviceChanged = false;
   }
 
   get devices() {
@@ -229,8 +407,10 @@ export class TransistorSoftFilters extends HTMLElement {
   }
 
   set device(value) {
+    this.ignoreDeviceChanged = true;
     const el = this.shadowRoot.querySelector('#devices');
     el.value = value;
+    this.ignoreDeviceChanged = false;
   }
 
   get device() {
@@ -239,35 +419,39 @@ export class TransistorSoftFilters extends HTMLElement {
   }
 
   set from(value) {
+    this.ignoreFromChanged = true;
     const dateEl = this.shadowRoot.querySelector('#from [type=date]');
     const timeEl = this.shadowRoot.querySelector('#from [type=time]');
-    const asString = new Date(value).toISOString();
-    dateEl.value = asString.substring(0, 10);
-    timeEl.value = asString.substring(11, 16);
+    dateEl.value = value.substring(0, 10);
+    timeEl.value = value.substring(11, 16);
+    this.ignoreFromChanged = false;
   }
 
   get from() {
     const dateEl = this.shadowRoot.querySelector('#from [type=date]');
     const timeEl = this.shadowRoot.querySelector('#from [type=time]');
-    return new Date(`${dateEl.value}T${timeEl.value}Z`);
+    return (`${dateEl.value}T${timeEl.value}`);
   }
 
   set to(value) {
+    this.ignoreToChanged = true;
     const dateEl = this.shadowRoot.querySelector('#to [type=date]');
     const timeEl = this.shadowRoot.querySelector('#to [type=time]');
-    const asString = new Date(value).toISOString();
-    dateEl.value = asString.substring(0, 10);
-    timeEl.value = asString.substring(11, 16);
+    dateEl.value = value.substring(0, 10);
+    timeEl.value = value.substring(11, 16);
+    this.ignoreToChanged = false;
   }
 
   get to() {
-    const dateEl = this.shadowRoot.querySelector('#from [type=date]');
-    const timeEl = this.shadowRoot.querySelector('#from [type=time]');
-    return new Date(`${dateEl.value}T${timeEl.value}Z`);
+    const dateEl = this.shadowRoot.querySelector('#to [type=date]');
+    const timeEl = this.shadowRoot.querySelector('#to [type=time]');
+    return (`${dateEl.value}T${timeEl.value}`);
   }
 
   set watchMode(value) {
+    this.ignoreWatchModeChanged = true;
     this.shadowRoot.querySelector('#watch').checked = value;
+    this.ignoreWatchModeChanged = false;
   }
 
   get watchMode() {

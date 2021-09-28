@@ -3,10 +3,12 @@
   <script src="https://maps.googleapis.com/maps/api/js?libraries=geometry&key=AIzaSyA9j72oZA5SmsA8ugu57pqXwpxh9Sn4xuM"></script>
   <script type="module" src="./map.component.js"></script>
   <script type="module" src="./list.component.js"></script>
+  <script type="module" src="./details.component.js"></script>
 </head>
 <body>
   <transistorsoft-map style="width: 600px; height: 400px;"></transistorsoft-map>
   <transistorsoft-list style="width: 1200px; height: 300px;"></transistorsoft-list>
+  <transistorsoft-details style="width: 400px; height: 300px;"></transistorsoft-details>
 
   <div>
     <h1>Demo filters</h1>
@@ -40,6 +42,7 @@
       const data = await response.json();
       const map = document.querySelector('transistorsoft-map');
       const list = document.querySelector('transistorsoft-list');
+      const details = document.querySelector('transistorsoft-details');
       window.map = map;
       map.locations = data;
       list.locations = data;
@@ -47,9 +50,11 @@
 
       map.addEventListener('selectionchange', function() {
          list.selected = map.selectedLocation;
+         details.record = data.filter( (x) => x.uuid === list.selected)[0];
       });
       list.addEventListener('selectionchange', function() {
          map.selectedLocation = list.selected;
+         details.record = data.filter( (x) => x.uuid === list.selected)[0];
       });
 
       // filters
