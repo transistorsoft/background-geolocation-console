@@ -1,22 +1,16 @@
  <!DOCTYPE html>
 <head>
-  <script type="module" src="./modal.component.js"></script>
+  <script type="module" src="./login.component.js"></script>
 </head>
 <body>
 
-  <h1>Demo Modal</h1>
-  <button>Open</button>
+  <h1>Demo Login</h1>
 
-  <transistorsoft-modal>
-  </transistorsoft-modal>
+  <transistorsoft-login>
+  </transistorsoft-login>
 
   <script type="module">
     async function main() {
-        const button = this.querySelector('button');
-        const modal = this.querySelector('transistorsoft-modal');
-        button.addEventListener('click', function() {
-            modal.showModal();
-        });
 
     }
     document.addEventListener('DOMContentLoaded', main);
