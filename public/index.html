@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<script src="https://unpkg.com/@googlemaps/js-api-loader@1.0.0/dist/index.min.js"></script>
+<head>
+
+   <script>
+     const path = window.location.pathname;
+     const locationsMatch = path.match('/locations(/.*)');
+     if (locationsMatch) {
+       const newPath = locationsMatch[1];
+       window.history.replaceState(null, null, newPath);
+     }
+     const orgFromUrl = window.location.pathname.substring(1);
+
+     window.env = {}; // global environments
+     const fn = async () => {
+       try {
+         const response = await fetch('./api/site/env');
+         const data = await response.json();
+         for (var k in data) {
+           window.env[k] = data[k];
+         }
+       } catch(ex) {
+         console.info(`env.json not found, using default settings`);
+       }
+       // add google maps with key
+       const loader = new google.maps.plugins.loader.Loader({
+         apiKey: env.GOOGLE_MAPS_API_KEY || 'AIzaSyA9j72oZA5SmsA8ugu57pqXwpxh9Sn4xuM',
+         libraries: ["geometry"]
+       });
+       await loader.load();
+       console.info('Map is ready');
+       // assign token to the component
+       document.body.innerHTML = `
+         <transistorsoft-dashboard
+          api="/api/site"
+          org="${orgFromUrl}"
+          ${env.SHARED_DASHBOARD ? "shared" : ""}
+       />
+       `;
+     }
+     document.addEventListener('DOMContentLoaded', fn);
+   </script>
+
+   <script type="module" src="./dashboard.component.js"></script>
+   <style>
+      html, body { padding: 0; margin: 0; }
+      transistorsoft-dashboard {
+        position: fixed;
+        width: 100%;
+        height: 100%;
+      }
+   </style>
+</head>

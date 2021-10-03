@@ -312,6 +312,16 @@ router.post('/jwt', async (req, res) => {
   return res.status(401).send({ org, error: 'Await not public account and right password' });
 });
 
+router.get('/env', async (req, res) => {
+  res.json({
+    GOOGLE_ANALYTICS_ID: process.env.GOOGLE_ANALYTICS_ID,
+    GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
+    PURE_CHAT_ID: process.env.PURE_CHAT_ID,
+    FIREBASE_URL: process.env.FIREBASE_URL,
+    SHARED_DASHBOARD: !!process.env.SHARED_DASHBOARD
+  });
+});
+
 /**
  * Fetch iOS simulator city_drive route
  */

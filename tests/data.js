@@ -1,4 +1,4 @@
-exports.server = 'http://localhost:9000';
+exports.server = `http://localhost:${process.env.PORT || 9000}`;
 
 exports.regData = {
   framework: 'flutter',

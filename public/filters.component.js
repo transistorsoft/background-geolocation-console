@@ -389,7 +389,7 @@ export class TransistorSoftFilters extends HTMLElement {
   }
   get company() {
     const el = this.shadowRoot.querySelector('#companies');
-    return el[el.selectedIndex].value;
+    return el.value;
   }
 
   set devices(value) {
@@ -415,7 +415,7 @@ export class TransistorSoftFilters extends HTMLElement {
 
   get device() {
     const el = this.shadowRoot.querySelector('#devices');
-    return el[el.selectedIndex].value;
+    return el.value;
   }
 
   set from(value) {

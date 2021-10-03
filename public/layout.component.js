@@ -7,7 +7,7 @@ const template = `
           position: relative;
         }
         .headers {
-          height: 37px;
+          height: 42px;
           background: #3f51b5;
           color: white;
           white-space: nowrap;

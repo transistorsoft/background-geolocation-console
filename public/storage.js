@@ -1,5 +1,6 @@
-const getLocalStorageKey = (key) => (key ? `settings#${key}` : 'settings');
-const removeUndefined = Object.keys(obj).forEach(key => obj[key] === undefined ? delete obj[key] : {});
+const getLocalStorageKey = (key) => (key ? `transistorsoft-settings#${key}` : 'transistorsoft-settings');
+
+const removeUndefined = (obj) => Object.keys(obj).forEach(key => obj[key] === undefined ? delete obj[key] : {});
 
 export function getAuth() {
   const encodedSettings = window.localStorage.getItem(getLocalStorageKey('auth'));
@@ -90,11 +91,11 @@ function encodeEndDate(date) {
 }
 
 export function getUrlSettings() {
-  const params = queryString.parse(window.location.search);
+  const params = new URLSearchParams(window.location.search);
   const result = removeUndefined({
-      deviceId: params.device,
-      startDate: parseStartDate(params.start),
-      endDate: parseEndDate(params.end),
+      deviceId: params.get('device'),
+      startDate: parseStartDate(params.get('start')),
+      endDate: parseEndDate(params.get('end')),
   });
   return result;
 }
