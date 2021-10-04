@@ -439,13 +439,20 @@ export class TransistorSoftDashboard extends HTMLElement {
     this.loginEl.addEventListener('submit', async ({details}) => {
       const result = await this.login(details);
       if (result) {
-
+        this.loginEl.hideModal();
+        // we were able to log in as admin
       } else {
 
       }
     });
 
+    this.loginEl.style.visibility = this.shared ? '' : 'hidden';
+
     this.loadInitialData();
+  }
+
+  get shared() {
+    return this.hasAttribute('shared');
   }
 
   get companies() {

@@ -95,9 +95,9 @@ export class TransistorSoftLayout extends HTMLElement {
     const listEl = this.shadowRoot.querySelector('[data-content=list]');
 
     if (this.activeTab === 'map') {
-      mapEl.style.opacity = 1;
-      listEl.style.opacity = 0;
-      mapEl.zIndex = 1;
+      mapEl.style.visibility = '';
+      listEl.style.visibility = 'hidden';
+      mapEl.zIndex = 100;
       listEl.zIndex = 0;
 
       mapEl.style.left = '0%';
@@ -106,10 +106,10 @@ export class TransistorSoftLayout extends HTMLElement {
       listEl.style.width = '100%';
     }
     if (this.activeTab === 'list') {
-      mapEl.style.opacity = 0;
-      listEl.style.opacity = 1;
+      mapEl.style.visibility = 'hidden';
+      listEl.style.visibility = '';
       mapEl.zIndex = 0;
-      listEl.zIndex = 1;
+      listEl.zIndex = 100;
 
       mapEl.style.left = '0%';
       mapEl.style.width = '100%';
@@ -117,8 +117,8 @@ export class TransistorSoftLayout extends HTMLElement {
       listEl.style.width = '100%';
     }
     if (this.activeTab === 'split') {
-      mapEl.style.opacity = 1;
-      listEl.style.opacity = 1;
+      mapEl.style.visibility = '';
+      listEl.style.visibility = '';
 
       mapEl.style.left = '0%';
       mapEl.style.width = '50%';

@@ -81,7 +81,7 @@ export class TransistorSoftLogin extends HTMLElement {
     });
   }
 
-  hideModal: function() {
+  hideModal() {
     this.shadowRoot.querySelector('transistorsoft-modal').hideModal();
   }
 }

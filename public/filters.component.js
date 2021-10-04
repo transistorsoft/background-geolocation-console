@@ -74,6 +74,13 @@ export class TransistorSoftFilters extends HTMLElement {
       flex-direction: row
     }
 
+    [type=date] {
+      font-size: 12px;
+    }
+    [type=time] {
+      font-size: 12px;
+    }
+
     #reload {
        width: 100%;
        background: #3f51b5;
