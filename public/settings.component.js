@@ -28,22 +28,22 @@ export class TransistorSoftMapSettings extends HTMLElement {
   </style>
   <h1>Map</h1>
     <div>
-      <input type="checkbox" id="hideMarkers" checked></input>
+      <input type="checkbox" id="hideMarkers" ></input>
       <label for="hideMarkers">Hide Markers</label>
     </div>
 
     <div>
-      <input type="checkbox" id="hidePolyline" checked></input>
+      <input type="checkbox" id="hidePolyline" ></input>
       <label for="hidePolyline">Hide Polyline</label>
     </div>
 
     <div>
-      <input type="checkbox" id="hideGeofences" checked></input>
+      <input type="checkbox" id="hideGeofences" ></input>
       <label for="hideGeofences">Hide Geofences </label>
     </div>
 
     <div>
-      <input type="checkbox" id="disableClustering" checked></input>
+      <input type="checkbox" id="disableClustering" ></input>
       <label for="disableClustering">Disable Clustering</label>
     </div>
 `;

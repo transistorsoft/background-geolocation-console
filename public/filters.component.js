@@ -1,4 +1,4 @@
-import { dateTimeToString } from './date.js';
+import * as DateUtils from './date.js';
 import './modal.component.js';
 
 const svgReload = `<svg viewBox="0 0 512 512">
@@ -306,20 +306,8 @@ export class TransistorSoftFilters extends HTMLElement {
     });
 
     this.shadowRoot.querySelector('#today').addEventListener('click', () => {
-      const today = new Date();
-      today.setHours(0);
-      today.setMinutes(0);
-      today.setSeconds(0)
-      today.setMilliseconds(0);
-
-      const now = new Date();
-      now.setHours(23);
-      now.setMinutes(59);
-      now.setSeconds(0)
-      now.setMilliseconds(0);
-
-      this.from = dateTimeToString(today);
-      this.to = dateTimeToString(now);
+      this.from = DateUtils.getTodayStart();
+      this.to = DateUtils.getTodayEnd();
       this.dispatchEvent(this.fromChangedEvent);
       this.dispatchEvent(this.toChangedEvent);
     });
@@ -332,14 +320,8 @@ export class TransistorSoftFilters extends HTMLElement {
       monthAgo.setMilliseconds(0);
       monthAgo.setMonth(monthAgo.getMonth() - 1);
 
-      const now = new Date();
-      now.setHours(23);
-      now.setMinutes(59);
-      now.setSeconds(0)
-      now.setMilliseconds(0);
-
-      this.from = dateTimeToString(monthAgo);
-      this.to = dateTimeToString(now);
+      this.from = DateUtils.dateTimeToString(monthAgo);
+      this.to = DateUtils.getTodayEnd();
       this.dispatchEvent(this.fromChangedEvent);
       this.dispatchEvent(this.toChangedEvent);
     });
@@ -352,16 +334,15 @@ export class TransistorSoftFilters extends HTMLElement {
       yearAgo.setMilliseconds(0);
       yearAgo.setMonth(yearAgo.getMonth() - 12);
 
-      const now = new Date();
-      now.setHours(23);
-      now.setMinutes(59);
-      now.setSeconds(0)
-      now.setMilliseconds(0);
 
-      this.from = dateTimeToString(yearAgo);
-      this.to = dateTimeToString(now);
+      this.from = DateUtils.dateTimeToString(yearAgo);
+      this.to = DateUtils.getTodayEnd();
       this.dispatchEvent(this.fromChangedEvent);
       this.dispatchEvent(this.toChangedEvent);
+    });
+
+    this.shadowRoot.querySelector('#reload').addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('reload'));
     });
 
   }

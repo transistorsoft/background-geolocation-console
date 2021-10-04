@@ -10,7 +10,7 @@ export class TransistorSoftMap extends HTMLElement {
 
     // default properties
     this._locations = [];
-    this._selectedLocation = null;
+    this._selected = null;
     this._showPolyline = true;
     this._showMarkers = true;
     this._showGeofenceHits = true;
@@ -97,13 +97,13 @@ export class TransistorSoftMap extends HTMLElement {
     return this._enableClustering;
   }
 
-  set selectedLocation(value) {
-    this._selectedLocation = value;
+  set selected(value) {
+    this._selected = value;
     this.renderMarkers();
   }
 
-  get selectedLocation() {
-    return this._selectedLocation;
+  get selected() {
+    return this._selected;
   }
 
   fitBounds() {
@@ -293,20 +293,20 @@ export class TransistorSoftMap extends HTMLElement {
   // previous marker is set to default icon, new marker or nothing is set to
   // selected icon
   updateSelectedLocation () {
-    const selectedLocation = this.locations.filter( (x) => x.uuid === this.selectedLocation)[0];
+    const selected = this.locations.filter( (x) => x.uuid === this.selected)[0];
     if (this.selectedMarker) {
       this.selectedMarker.setIcon(this.buildLocationIcon(this.selectedMarker.location));
       this.selectedMarker.setZIndex(1);
     }
-    if (!selectedLocation) {
+    if (!selected) {
       this.selectedMarker = null;
       return;
     }
 
-    let marker = this.markers.find((x) => x.location.uuid === selectedLocation.uuid);
+    let marker = this.markers.find((x) => x.location.uuid === selected.uuid);
 
     if (!marker) {
-      marker = this.geofenceHitMarkers.find((x) => x.location && x.location.uuid === selectedLocation.uuid);
+      marker = this.geofenceHitMarkers.find((x) => x.location && x.location.uuid === selected.uuid);
     }
 
     if (marker) {
@@ -314,7 +314,7 @@ export class TransistorSoftMap extends HTMLElement {
       // marker.setFillColor('#000000');
       marker.setZIndex(100);
       marker.setIcon(
-        this.buildLocationIcon(selectedLocation, {
+        this.buildLocationIcon(selected, {
           strokeColor: COLORS.red,
           strokeWeight: 2,
           selected: true,
@@ -430,7 +430,7 @@ export class TransistorSoftMap extends HTMLElement {
 
   onSelectLocation(uuid) {
     console.info(`Location selected: ${uuid}`);
-    this.selectedLocation = uuid;
+    this.selected = uuid;
     this.dispatchEvent(this.selectionChangeEvent);
   }
 

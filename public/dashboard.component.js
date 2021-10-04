@@ -1,4 +1,5 @@
 import * as Storage from './storage.js';
+import * as DateUtils from './date.js';
 import './customMarkers.component.js';
 import './details.component.js';
 import './filters.component.js';
@@ -7,7 +8,6 @@ import './list.component.js';
 import './login.component.js';
 import './map.component.js';
 import './settings.component.js';
-import './storage.js';
 
 // react reducer goes here
 const GlobalController = {
@@ -21,10 +21,9 @@ const GlobalController = {
   },
 
   getDefaultJwt: async function(token) {
-    const apiUrl = this.getAttribute('api');
     try {
       const response = await fetch(
-        `${apiUrl}/jwt`,
+        `${this.apiUrl}/jwt`,
         {
           method: 'post',
           headers: { 'Content-Type': 'application/json' },
@@ -41,30 +40,6 @@ const GlobalController = {
     }
   },
 
-  loadInitialData: async function() {
-    const storedAuth = Storage.getAuth() || {};
-    if (storedAuth.org === 'admin' && storedAuth.accessToken) {
-      //special case - try to use that token
-    }
-    const org = this.getAttribute('org');
-    const jwtResponse = await this.getDefaultJwt(org);
-
-    Storage.setAuth({
-      org,
-      accessToken: jwtResponse.access_token
-    });
-
-    const existingSettings = Storage.getSettings(org);
-    const urlSettings =  Storage.getUrlSettings();
-
-    this.applyExistingSettings(existingSettings);
-    this.applyExistingSettings(urlSettings);
-
-    await this.reload();
-    setTimeout(() => this.reload(), 60 * 1000);
-    this.sendEvent('tracker', `load:${id}`);
-  },
-
   sendEvent: function() {
     if (window.GA) {
       window.GA.sendEvent.apply(GA, arguments);
@@ -75,7 +50,50 @@ const GlobalController = {
     Object.assign(this, settings);
   },
 
+  loadInitialData: async function() {
+    const storedAuth = Storage.getAuth() || {};
+    if (storedAuth.org === 'admin' && storedAuth.accessToken) {
+      //special case - try to use that token
+    }
+    const jwtResponse = await this.getDefaultJwt(this.org);
+
+    Storage.setAuth({
+      org: this.org,
+      accessToken: jwtResponse.access_token
+    });
+
+    const existingSettings = Storage.getSettings(this.org);
+    const urlSettings =  Storage.getUrlSettings();
+
+    this.applyExistingSettings(existingSettings);
+    this.applyExistingSettings(urlSettings);
+
+    await this.reload();
+    setTimeout(() => this.reload(), 60 * 1000);
+    this.sendEvent('tracker', `load:${this.org}`);
+  },
+
   reload: async function() {
+    // do not call more than once a second
+    // when called multiple times on javascript event handler - call only once
+
+    if (this._latestTimeOfReload && this._latestTimeOfReload + 1 * 1000 > new Date().getTime()) {
+      setTimeout( () => this.reload(), 100);
+      return;
+    }
+
+    // allow to assign properties all together before rendering
+    if (!this._avoidImmediate) {
+      setTimeout( () => this.reload(), 1);
+      this._avoidImmediate = true;
+      return;
+    }
+
+    // reset delay/buffering flags
+    this._latestTimeOfReload = new Date().getTime();
+    this._avoidImmediate = false;
+
+    console.info('reloading');
 
     await this.loadOrgTokens();
     await this.autoselectOrInvalidateSelectedOrgToken();
@@ -89,11 +107,9 @@ const GlobalController = {
   },
 
   loadOrgTokens: async function() {
-    const org = this.getAttribute('org');
-    const apiUrl = this.getAttribute('api');
-    const params = new URLSearchParams({ company_token: org});
+    const params = new URLSearchParams({ company_token: this.org});
     const headers = this.makeHeaders();
-    const response = await fetch(`${apiUrl}/company_tokens?${params}`, { headers });
+    const response = await fetch(`${this.apiUrl}/company_tokens?${params}`, { headers });
     const records = await response.json();
     this.companies = records.map((x) => ({
       id: x.id,
@@ -114,14 +130,12 @@ const GlobalController = {
   },
 
   loadDevices: async function() {
-    const org = this.getAttribute('org');
-    const apiUrl = this.getAttribute('api');
     const params = new URLSearchParams({
-      company_token: org,
+      company_token: this.org,
       company_id: this.company
     });
     const headers = this.makeHeaders();
-    const response = await fetch(`${apiUrl}/devices?${params}`, { headers });
+    const response = await fetch(`${this.apiUrl}/devices?${params}`, { headers });
     const records = await response.json();
     const devices = records.map(({
         id, device_id: deviceId, framework,
@@ -134,7 +148,7 @@ const GlobalController = {
     this.devices = devices;
   },
 
-  autoselectOrInvalidateSelectedDevice: function() {
+  autoselectOrInvalidateSelectedDevice: async function() {
     if (this.devices.length === 0) {
       this.device = '';
     }
@@ -144,10 +158,47 @@ const GlobalController = {
     if (this.device.length > 1) {
       this.device = this.device;
     }
+  },
+
+  loadLocations: async function() {
+    this.sendEvent('tracker', 'loadLocations', this.org);
+    const params = new URLSearchParams({
+      company_token: this.org,
+      company_id: this.company,
+      device_id: this.device,
+      limit: this.maxMarkers,
+      start_date: new Date(this.from).toISOString(),
+      end_date: new Date(this.to).toISOString()
+    });
+
+    const headers = this.makeHeaders();
+    const response = await fetch(`${this.apiUrl}/locations?${params}`, { headers });
+    const records = await response.json();
+    this.locations = records;
+  },
+
+  loadCurrentLocation: async function() {
+    const params = new URLSearchParams({
+      company_token: this.org,
+      company_id: this.company,
+      device_id: this.device
+    });
+    const headers = this.makeHeaders();
+    const response = await fetch(`${this.apiUrl}/locations/latest?${params}`, { headers });
+    this.currentLocation = await response.json();
+  },
+
+  invalidateSelectedLocation: async function() {
+    const existingLocation = this.locations.filter( (x) => x.uuid === this.location)[0];
+    if (!existingLocation) {
+      this.location = null;
+    }
+  },
+
+  deleteActiveDevice: async function(range) {
+
 
   }
-
-
 
 };
 
@@ -278,9 +329,9 @@ export class TransistorSoftDashboard extends HTMLElement {
       <span class="collapse-button"><span>&lt;</span></span>
     </div>
     <div class="panel-content">
-      <transistorsoft-filters></transistorsoft-filters>
+      <transistorsoft-filters ></transistorsoft-filters>
       <transistorsoft-mapsettings></transistorsoft-mapsettings>
-      <transistorsoft-custommarkers></transistorsoft-markers>
+      <transistorsoft-custommarkers></transistorsoft-custommarkers>
     </div>
   </div>
   <div id="center">
@@ -293,7 +344,7 @@ export class TransistorSoftDashboard extends HTMLElement {
       <transistorsoft-map slot="map"></transistorsoft-map>
       <transistorsoft-list slot="list"></transistorsoft-list>
     </transistorsoft-layout>
-    <transistorsoft-login>
+    <transistorsoft-login />
   </div>
   <div id="right">
     <div class="panel-header">
@@ -310,7 +361,19 @@ export class TransistorSoftDashboard extends HTMLElement {
     const shadowRoot = this.attachShadow({mode: 'open'});
     shadowRoot.innerHTML = template;
 
+    this.mapEl = this.shadowRoot.querySelector('transistorsoft-map');
+    this.listEl = this.shadowRoot.querySelector('transistorsoft-list');
+    this.filtersEl = this.shadowRoot.querySelector('transistorsoft-filters');
+    this.customMarkersEl = this.shadowRoot.querySelector('transistorsoft-custommarkers');
+    this.settingsEl = this.shadowRoot.querySelector('transistorsoft-mapsettings');
+    this.detailsEl = this.shadowRoot.querySelector('transistorsoft-details');
+    this.loginEl = this.shadowRoot.querySelector('transistorsoft-login');
 
+    Object.assign(this, GlobalController);
+    this.from = DateUtils.getTodayStart();
+    this.to = DateUtils.getTodayEnd();
+
+    // manage panels visibility
     this.shadowRoot.querySelector('#left .collapse-button').addEventListener('click', () => {
       this.collapseFiltersPanel();
     });
@@ -323,12 +386,64 @@ export class TransistorSoftDashboard extends HTMLElement {
       this.collapseLocationPanel();
     });
 
-    this.mapEl = this.shadowRoot.querySelector('transistorsoft-map');
-    this.listEl = this.shadowRoot.querySelector('transistorsoft-list');
-    this.filtersEl = this.shadowRoot.querySelector('transistorsoft-filters');
-    this.settingsEl = this.shadowRoot.querySelector('transistorsoft-settings');
+    // connect all elements together
+    this.customMarkersEl.addEventListener('add', e => {
+      this.mapEl.addTestMarker(e.detail);
+    });
 
-    Object.assign(this, GlobalController);
+    this.mapEl.addEventListener('selectionchange', () => {
+      this.listEl.selected = this.mapEl.selected;
+      this.detailsEl.record = this.locations.filter( (x) => x.uuid === this.listEl.selected)[0];
+      this.expandLocationPanel();
+    });
+
+    this.listEl.addEventListener('selectionchange', () => {
+      this.mapEl.selected = this.listEl.selected;
+      this.detailsEl.record = data.filter( (x) => x.uuid === this.listEl.selected)[0];
+      this.expandLocationPanel();
+    });
+
+    this.settingsEl.addEventListener('change', () => {
+      this.mapEl.showMarkers = this.settingsEl.showMarkers;
+      this.mapEl.showPolyline = this.settingsEl.showPolyline;
+      this.mapEl.showGeofences = this.settingsEl.showGeofences;
+      this.mapEl.useClustering = this.settingsEl.useClustering;
+    });
+
+    this.filtersEl.addEventListener('company-changed', () => {
+      this.reload();
+    });
+
+    this.filtersEl.addEventListener('device-changed', () => {
+      this.reload();
+    });
+
+    this.filtersEl.addEventListener('from-changed', () => {
+      this.reload();
+    });
+
+    this.filtersEl.addEventListener('to-changed', () => {
+      this.reload();
+    });
+
+    this.filtersEl.addEventListener('reload', () => {
+      this.reload();
+    });
+
+    this.filtersEl.addEventListener('delete', async ({details}) => {
+      const { range } = details; // 'all' | 'custom'
+      await this.deleteActiveDevice(range);
+      await this.reload();
+    });
+
+    this.loginEl.addEventListener('submit', async ({details}) => {
+      const result = await this.login(details);
+      if (result) {
+
+      } else {
+
+      }
+    });
 
     this.loadInitialData();
   }
@@ -365,6 +480,52 @@ export class TransistorSoftDashboard extends HTMLElement {
 
   set device(value) {
     this.filtersEl.device = value;
+  }
+
+  get locations() {
+    return this._locations || [];
+  }
+
+  set locations(value) {
+    this._locations = value;
+    this.mapEl.locations = value;
+    this.listEl.locations = value;
+  }
+
+  get location() {
+    return this.mapEl.selected;
+  }
+
+  set location(value) {
+    this.mapEl.selected = value;
+    this.listEl.selected = value;
+  }
+
+  get from() {
+    return this.filtersEl.from;
+  }
+  set from(value) {
+    this.filtersEl.from = value;
+  }
+
+  get to() {
+    return this.filtersEl.to
+  }
+
+  set to(value) {
+    this.filtersEl.to = value;
+  }
+
+  get org() {
+    return this.getAttribute('org');
+  }
+
+  get apiUrl() {
+    return this.getAttribute('api');
+  }
+
+  get maxMarkers() {
+    return 100;
   }
 
   expandLocationPanel() {

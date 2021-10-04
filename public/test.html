@@ -49,11 +49,11 @@
       map.fitBounds();
 
       map.addEventListener('selectionchange', function() {
-         list.selected = map.selectedLocation;
+         list.selected = map.selected;
          details.record = data.filter( (x) => x.uuid === list.selected)[0];
       });
       list.addEventListener('selectionchange', function() {
-         map.selectedLocation = list.selected;
+         map.selected = list.selected;
          details.record = data.filter( (x) => x.uuid === list.selected)[0];
       });
 

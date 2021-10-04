@@ -76,9 +76,13 @@ export class TransistorSoftLogin extends HTMLElement {
       const name = this.shadowRoot.querySelector('#name').value;
       const password = this.shadowRoot.querySelector('#password').value;
       if (name && password) {
-        this.dispatchEvent(new CustomEvent('submit', { detail: { name, password }}));
+        this.dispatchEvent(new CustomEvent('submit', { details: { name, password }}));
       }
     });
+  }
+
+  hideModal: function() {
+    this.shadowRoot.querySelector('transistorsoft-modal').hideModal();
   }
 }
 
