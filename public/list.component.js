@@ -67,6 +67,14 @@ const template = `
         background-color: #16BE42;
         color: #fff;
       }
+      #warning {
+        position: absolute;
+        width: 100%;
+        text-align: center;
+        font-weight: bold;
+        left: 0%;
+        top: -2px;
+      }
 
       </style>
       <table>
@@ -89,16 +97,21 @@ const template = `
 
         </tbody>
       </table>
+      <div id="warning" style="visibility: hidden;"><span>You are in the Watch mode. Only the latest location is being displayed here</span></div>
 `;
 export class TransistorSoftList extends HTMLElement {
   constructor() {
     super();
 
+    this._currentLocation = null;
+    this._watchMode = false;
     this._locations = [];
     this._selected = null;
 
     const shadowRoot = this.attachShadow({mode: 'open'});
     shadowRoot.innerHTML = template;
+
+    this.warningEl = this.shadowRoot.querySelector('#warning');
 
     this.selectionChangeEvent = new CustomEvent('selectionchange');
 
@@ -131,6 +144,26 @@ export class TransistorSoftList extends HTMLElement {
     return this._selected;
   }
 
+  get watchMode() {
+    return this._watchMode;
+  }
+
+  set watchMode(value) {
+    this._watchMode = value;
+    this.renderList();
+    this.updateSelection();
+    this.warningEl.style.visibility = value ? '' : 'hidden';
+  }
+
+  get currentLocation() {
+    return this._currentLocation;
+  }
+
+  set currentLocation(value) {
+    this.renderList();
+    this._currentLocation = value;
+  }
+
   onSelectLocation(uuid) {
     console.info(`Location selected: ${uuid}`);
     this.selected = uuid;
@@ -139,44 +172,56 @@ export class TransistorSoftList extends HTMLElement {
 
   renderList() {
 
-  const format = function(x) {
-    const date = new Date(x);
-    return date.toISOString().substring(5, 23).replace('T', ' ').replace('.', ':')
-  }
+    const format = function(x) {
+      const date = new Date(x);
+      return date.toISOString().substring(5, 23).replace('T', ' ').replace('.', ':')
+    }
 
-  const getRowData = function(location) {
-    let event = location.event || '';
-    switch (location.event) {
-      case 'geofence':
-        event = `${location.event
+    const getRowData = function(location) {
+      let event = location.event || '';
+      switch (location.event) {
+        case 'geofence':
+          event = `${location.event
       }: ${
         location.geofence
           ? `${location.geofence.action} ${location.geofence.identifier}`
           : 'empty'}`;
-        break;
-      default:
+          break;
+        default:
+      }
+      return {
+        uuid: location.uuid,
+        device_id: +location.device_id,
+        company_id: location.company_id,
+        coordinate:
+        `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`,
+        recorded_at: format(new Date(location.recorded_at)),
+        created_at: format(new Date(location.created_at)),
+        is_moving: location.is_moving ? 'true' : 'false',
+        accuracy: location.accuracy,
+        speed: location.speed,
+        odometer: location.odometer,
+        event,
+        activity: `${location.activity_type} (${location.activity_confidence}%)`,
+        battery_level: `${(location.battery_level * 100).toFixed(0)}%`,
+        battery_is_charging: location.battery_is_charging,
+      }
+    };
+
+    const ids = (items) => JSON.stringify( items.map( (item) => item.uuid));
+
+    const itemsToDisplay = this.watchMode ? [this.currentLocation] : this.locations;
+
+    if (ids(itemsToDisplay) === this.previousItemsToDisplay) {
+      // exactly same data; nothing to update here
+      return;
     }
-    return {
-      uuid: location.uuid,
-      device_id: +location.device_id,
-      company_id: location.company_id,
-      coordinate:
-      `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`,
-      recorded_at: format(new Date(location.recorded_at)),
-      created_at: format(new Date(location.created_at)),
-      is_moving: location.is_moving ? 'true' : 'false',
-      accuracy: location.accuracy,
-      speed: location.speed,
-      odometer: location.odometer,
-      event,
-      activity: `${location.activity_type} (${location.activity_confidence}%)`,
-      battery_level: `${(location.battery_level * 100).toFixed(0)}%`,
-      battery_is_charging: location.battery_is_charging,
-  }
-  };
+    this.previousItemsToDisplay = ids(itemsToDisplay);
+
+
 
   const rowsHtml = `
-        ${this.locations.map(function(location) {
+        ${itemsToDisplay.map(function(location) {
           const item = getRowData(location);
           return `
             <tr data-row-id="${item.uuid}">

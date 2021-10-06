@@ -4,6 +4,12 @@ export class TransistorSoftLogin extends HTMLElement {
     super();
     const template = `
   <style>
+    #error {
+      position: absolute;
+      color: red;
+      top: 75px;
+      left: 133px;
+    }
     .form {
       text-align: left;
     }
@@ -46,6 +52,7 @@ export class TransistorSoftLogin extends HTMLElement {
   <transistorsoft-modal>
     <h1 slot="header">Sign in</h1>
     <div slot="message">
+      <div id="error" style="visibility: hidden;">Wrong login/password</div>
       <div class="form">
         <div>
           <label for="name">Name:</label>
@@ -73,16 +80,20 @@ export class TransistorSoftLogin extends HTMLElement {
     });
 
     this.shadowRoot.querySelector('#ok').addEventListener('click', () => {
-      const name = this.shadowRoot.querySelector('#name').value;
+      const login = this.shadowRoot.querySelector('#name').value;
       const password = this.shadowRoot.querySelector('#password').value;
-      if (name && password) {
-        this.dispatchEvent(new CustomEvent('submit', { details: { name, password }}));
+      if (login && password) {
+        this.dispatchEvent(new CustomEvent('submit', { detail: { login, password }}));
       }
     });
   }
 
   hideModal() {
     this.shadowRoot.querySelector('transistorsoft-modal').hideModal();
+  }
+
+  showError() {
+    this.shadowRoot.querySelector('#error').style.visibility = '';
   }
 }
 

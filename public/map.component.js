@@ -16,15 +16,12 @@ export class TransistorSoftMap extends HTMLElement {
     this._showGeofenceHits = true;
     this._enableClustering = true;
 
-    // public properties
-    this.currentLocation = null;
-    this.isWatching = false;
-    this.showGeofenceHits = true;
-    this.motionChangePolylines = [];
-    this.testMarkers = [];
+    this._currentLocation = null;
+    this._watchMode = false;
+    this._showGeofenceHits = true;
 
     // internal properties
-
+    this.motionChangePolylines = [];
     this.markers = [];
     this.geofenceHitMarkers = [];
     this.selectedMarker = null;
@@ -63,6 +60,22 @@ export class TransistorSoftMap extends HTMLElement {
   }
   get locations() {
     return this._locations;
+  }
+
+  set watchMode(value) {
+    this._watchMode = value;
+    this.renderMarkers();
+  }
+
+  get watchMode() {
+    return this._watchMode;
+  }
+
+  set currentLocation(value) {
+    this._currentLocation = value;
+  }
+  get currentLocation() {
+    return this._currentLocation;
   }
 
   set showMarkers(value) {
@@ -495,7 +508,6 @@ export class TransistorSoftMap extends HTMLElement {
 
     const updateFlags = this.lastProps ? {
       needsMarkersRedraw: this.lastProps.locations !== JSON.stringify(this.locations.map( (x) => x.uuid)),
-      needsTestMarkersRedraw: this.lastProps.testMarkers !== JSON.stringify(this.testMarkers),
       needsShowMarkersUpdate: this.lastProps.showMarkers !== this.showMarkers || this.lastProps.enableClustering !== this.enableClustering,
       needsShowPolylineUpdate: this.lastProps.showPolyline !== this.showPolyline,
       needsShowGeofenceHitsUpdate: this.lastProps.showGeofenceHits !== this.showGeofenceHits
@@ -509,7 +521,6 @@ export class TransistorSoftMap extends HTMLElement {
 
     this.lastProps = {
       locations: JSON.stringify(this.locations.map( (x) => x.uuid)),
-      testMarkers: JSON.stringify(this.testMarkers),
       showMarkers: this.showMarkers,
       enableClustering: this.enableClustering,
       showPolyline: this.showPolyline,
@@ -519,12 +530,11 @@ export class TransistorSoftMap extends HTMLElement {
     console.time('renderMarkers');
     const {
       currentLocation,
-      isWatching,
+      watchMode,
       locations,
       showGeofenceHits,
       showMarkers,
-      showPolyline,
-      testMarkers,
+      showPolyline
     } = this;
 
     if (updateFlags.needsMarkersRedraw) {
@@ -598,7 +608,7 @@ export class TransistorSoftMap extends HTMLElement {
     }
 
     // handle current location
-    if (isWatching && currentLocation) {
+    if (watchMode && currentLocation) {
       console.time('renderMarkers: Current Location');
       const latLng = new google.maps.LatLng(currentLocation.latitude, currentLocation.longitude);
       this.gmap.setCenter(latLng);

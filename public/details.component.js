@@ -7,7 +7,7 @@ export class TransistorSoftDetails extends HTMLElement {
       display: block;
       padding: 10px;
     }
-    pre { font-size: 12px; overflow: auto; height: 100%; line-height: 1.4; }
+    pre { font-size: 12px; line-height: 1.4; }
   </style>
   <pre></pre>
 `;

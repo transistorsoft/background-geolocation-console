@@ -52,15 +52,19 @@ const GlobalController = {
 
   loadInitialData: async function() {
     const storedAuth = Storage.getAuth() || {};
-    if (storedAuth.org === 'admin' && storedAuth.accessToken) {
-      //special case - try to use that token
+    if (storedAuth.org && !this.org) {
+      console.info('TransistorSoft-dashboard: using an org ${storedAuth.org} from localStorage');
+      this.org = storedAuth.org;
     }
-    const jwtResponse = await this.getDefaultJwt(this.org);
-
-    Storage.setAuth({
-      org: this.org,
-      accessToken: jwtResponse.access_token
-    });
+    if (this.org === 'admin' && storedAuth.accessToken) {
+      //special case - try to use that token without entering a password
+    } else {
+      const jwtResponse = await this.getDefaultJwt(this.org);
+      Storage.setAuth({
+        org: this.org,
+        accessToken: jwtResponse.access_token
+      });
+    }
 
     const existingSettings = Storage.getSettings(this.org);
     const urlSettings =  Storage.getUrlSettings();
@@ -198,8 +202,31 @@ const GlobalController = {
   deleteActiveDevice: async function(range) {
 
 
-  }
+  },
 
+  login: async function({login, password}) {
+      const response = await fetch(
+        `${this.apiUrl}/auth`,
+        {
+          method: 'post',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ login, password }),
+        },
+      );
+      const {
+        access_token: accessToken,
+        org,
+        error,
+      } = await response.json();
+
+      if (accessToken) {
+        Storage.setAuth({org: 'admin', accessToken});
+        window.history.replaceState(null, null, '/admin');
+        return true;
+      } else {
+        return false;
+      }
+  }
 };
 
 export class TransistorSoftDashboard extends HTMLElement {
@@ -351,9 +378,9 @@ export class TransistorSoftDashboard extends HTMLElement {
       <h2>Location</h2>
       <span class="collapse-button"><span>&lt;</span></span>
     </div>
-    <panel-header>
+    <div class="panel-content">
      <transistorsoft-details></transistorsoft-details>
-    </panel-header>
+    </div>
   </div>
 `;
 
@@ -383,7 +410,9 @@ export class TransistorSoftDashboard extends HTMLElement {
     });
 
     this.shadowRoot.querySelector('#right .collapse-button').addEventListener('click', () => {
-      this.collapseLocationPanel();
+      if (!this.watchMode) {
+        this.collapseLocationPanel();
+      }
     });
 
     // connect all elements together
@@ -430,19 +459,32 @@ export class TransistorSoftDashboard extends HTMLElement {
       this.reload();
     });
 
+    this.filtersEl.addEventListener('watchmode-changed', () => {
+      this.listEl.watchMode = this.watchMode;
+      this.mapEl.watchMode = this.watchMode;
+
+      if (this.watchMode) {
+        this.detailsEl.record = this.currentLocation;
+        this.expandLocationPanel();
+      } else {
+        this.detailsEl.record = this.locations.filter( (x) => x.uuid === this.listEl.selected)[0];
+        this.detailsEl.record ?  this.expandLocationPanel() : this.collapseLocationPanel();
+      }
+
+    });
+
     this.filtersEl.addEventListener('delete', async ({details}) => {
       const { range } = details; // 'all' | 'custom'
       await this.deleteActiveDevice(range);
       await this.reload();
     });
 
-    this.loginEl.addEventListener('submit', async ({details}) => {
-      const result = await this.login(details);
+    this.loginEl.addEventListener('submit', async (e) => {
+      const result = await this.login(e.detail);
       if (result) {
         this.loginEl.hideModal();
-        // we were able to log in as admin
       } else {
-
+        this.loginEl.showError();
       }
     });
 
@@ -508,6 +550,26 @@ export class TransistorSoftDashboard extends HTMLElement {
     this.listEl.selected = value;
   }
 
+  get currentLocation() {
+    return this._currentLocation;
+  }
+
+  set currentLocation(value) {
+    this._currentLocation = value;
+    this.mapEl.currentLocation = value;
+    this.listEl.currentLocation = value;
+  }
+
+  get watchMode() {
+    return this.filtersEl.watchMode;
+  }
+
+  set watchMode(value) {
+    this.filtersEl.watchMode = value;
+    this.mapEl.watchMode = value;
+    this.listEl.watchMode = value;
+  }
+
   get from() {
     return this.filtersEl.from;
   }
@@ -527,12 +589,16 @@ export class TransistorSoftDashboard extends HTMLElement {
     return this.getAttribute('org');
   }
 
+  set org(value) {
+    this.setAttribute('org', value);
+  }
+
   get apiUrl() {
     return this.getAttribute('api');
   }
 
   get maxMarkers() {
-    return 100;
+    return 1000;
   }
 
   expandLocationPanel() {
