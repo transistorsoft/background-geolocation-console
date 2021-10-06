@@ -200,8 +200,14 @@ const GlobalController = {
   },
 
   deleteActiveDevice: async function(range) {
-
-
+    const params = range === 'all' ? {} : {
+      start_date: new Date(this.from).toISOString(),
+      end_date: new Date(this.to).toISOString()
+    }
+    await fetch(`${this.apiUrl}/devices/${this.device}?${paramsAsString}`,
+      { method: 'delete', headers }
+    )
+    await this.reload();
   },
 
   login: async function({login, password}) {
