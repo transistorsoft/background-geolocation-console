@@ -479,8 +479,8 @@ export class TransistorSoftDashboard extends HTMLElement {
 
     });
 
-    this.filtersEl.addEventListener('delete', async ({details}) => {
-      const { range } = details; // 'all' | 'custom'
+    this.filtersEl.addEventListener('delete', async ({detail}) => {
+      const { range } = detail; // 'all' | 'custom'
       await this.deleteActiveDevice(range);
       await this.reload();
     });

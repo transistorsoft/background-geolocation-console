@@ -308,7 +308,7 @@ export class TransistorSoftFilters extends HTMLElement {
 
     this.shadowRoot.querySelector('#ok').addEventListener('click', () => {
       const modal = this.shadowRoot.querySelector('#modal');
-      this.dispatchEvent(new CustomEvent('delete', { details: { range: this.shadowRoot.querySelector('#all').checked ? 'all' : 'custom' }}));
+      this.dispatchEvent(new CustomEvent('delete', { detail: { range: this.shadowRoot.querySelector('#all').checked ? 'all' : 'custom' }}));
       modal.hideModal();
     });
 
