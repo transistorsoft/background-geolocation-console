@@ -60,7 +60,7 @@ Database will create automaticaly in non production.
 ### Production mode:
 
 ```bash
-npm run server
+npm start
 ```
 
 production version will available on:
@@ -70,12 +70,12 @@ http://localhost:9000/
 ### Developer mode:
 
 ```bash
-npm run dev
+npm start
 ```
 
 hot reload version will available on:
 
-http://localhost:8080/
+http://localhost:9000/
 
 
 ### Tests
@@ -83,10 +83,8 @@ http://localhost:8080/
 Application have a jest api tests
 
 ```bash
-npm run test
+npm test
 ```
-
-Works with `npm run dev`
 
 If you are in an environment that supports opening a web browser, a browser window will automatically launch the front-end web app at the end of the server startup procedure.
 

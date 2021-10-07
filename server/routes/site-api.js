@@ -302,6 +302,7 @@ router.post('/jwt', async (req, res) => {
     const accessToken = sign(jwtInfo);
     return res.send({
       access_token: accessToken,
+      isAdmin,
       org,
       token_type: 'Bearer',
     });
@@ -317,7 +318,7 @@ router.get('/env', async (req, res) => {
     GOOGLE_ANALYTICS_ID: process.env.GOOGLE_ANALYTICS_ID,
     GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
     PURE_CHAT_ID: process.env.PURE_CHAT_ID,
-    FIREBASE_URL: process.env.FIREBASE_URL,
+    FIREBASE: !!process.env.FIREBASE_URL,
     SHARED_DASHBOARD: !!process.env.SHARED_DASHBOARD
   });
 });

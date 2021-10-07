@@ -32,7 +32,7 @@
        // assign token to the component
        document.body.innerHTML = `
          <transistorsoft-dashboard
-          api="/api/site"
+          api="/api/${env.FIREBASE ? 'firebase' : 'site'}"
           org="${orgFromUrl}"
           ${env.SHARED_DASHBOARD ? "shared" : ""}
        />

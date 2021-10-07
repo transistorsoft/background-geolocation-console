@@ -56,7 +56,7 @@ const GlobalController = {
       console.info('TransistorSoft-dashboard: using an org ${storedAuth.org} from localStorage');
       this.org = storedAuth.org;
     }
-    if (this.org === 'admin' && storedAuth.accessToken) {
+    if (storedAuth.isAdmin && this.org === storedAuth.org && storedAuth.accessToken) {
       //special case - try to use that token without entering a password
     } else {
       const jwtResponse = await this.getDefaultJwt(this.org);
@@ -72,23 +72,23 @@ const GlobalController = {
     this.applyExistingSettings(existingSettings);
     this.applyExistingSettings(urlSettings);
 
-    await this.reload();
-    setTimeout(() => this.reload(), 60 * 1000);
+    await this.reload({reloadCompanies: true, fitBounds: true});
+    setTimeout(() => this.reload({fitBounds: false}), 60 * 1000);
     this.sendEvent('tracker', `load:${this.org}`);
   },
 
-  reload: async function() {
+  reload: async function({reloadCompanies: false, fitBounds: true }) {
     // do not call more than once a second
     // when called multiple times on javascript event handler - call only once
 
     if (this._latestTimeOfReload && this._latestTimeOfReload + 1 * 1000 > new Date().getTime()) {
-      setTimeout( () => this.reload(), 100);
+      setTimeout( () => this.reload({reloadCompanies, fitBounds }), 100);
       return;
     }
 
     // allow to assign properties all together before rendering
     if (!this._avoidImmediate) {
-      setTimeout( () => this.reload(), 1);
+      setTimeout( () => this.reload({reloadCompanies, fitBounds}), 1);
       this._avoidImmediate = true;
       return;
     }
@@ -99,15 +99,20 @@ const GlobalController = {
 
     console.info('reloading');
 
-    await this.loadOrgTokens();
-    await this.autoselectOrInvalidateSelectedOrgToken();
-    await this.loadDevices();
+    if (reloadCompanies) {
+        await this.loadOrgTokens(),
+        await this.autoselectOrInvalidateSelectedOrgToken();
+    }
+    await this.loadDevices(),
     await this.autoselectOrInvalidateSelectedDevice();
-    await this.loadLocations();
-    await this.loadCurrentLocation();
+    await this.loadLocations(),
     await this.invalidateSelectedLocation();
+    await this.loadCurrentLocation()
 
-    this.mapEl.fitBounds();
+
+    if (fitBounds) {
+      this.mapEl.fitBounds();
+    }
   },
 
   loadOrgTokens: async function() {
@@ -207,7 +212,7 @@ const GlobalController = {
     await fetch(`${this.apiUrl}/devices/${this.device}?${paramsAsString}`,
       { method: 'delete', headers }
     )
-    await this.reload();
+    this.device = "";
   },
 
   login: async function({login, password}) {
@@ -226,8 +231,10 @@ const GlobalController = {
       } = await response.json();
 
       if (accessToken) {
-        Storage.setAuth({org: 'admin', accessToken});
-        window.history.replaceState(null, null, '/admin');
+        this.org = login;
+        Storage.setAuth({org: login, accessToken, isAdmin: true});
+        window.history.replaceState(null, null, '/' + login);
+        await this.reload({ reloadCompanies: true, fitBounds: true});
         return true;
       } else {
         return false;
