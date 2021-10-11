@@ -77,18 +77,20 @@ const GlobalController = {
     this.sendEvent('tracker', `load:${this.org}`);
   },
 
-  reload: async function({reloadCompanies: false, fitBounds: true }) {
+  reload: async function(options = {}) {
+    const reloadCompanies = options.reloadCompanies || false;
+    const fitBounds = options.fitBounds || true;
     // do not call more than once a second
     // when called multiple times on javascript event handler - call only once
 
     if (this._latestTimeOfReload && this._latestTimeOfReload + 1 * 1000 > new Date().getTime()) {
-      setTimeout( () => this.reload({reloadCompanies, fitBounds }), 100);
+      setTimeout( () => this.reload(options), 100);
       return;
     }
 
     // allow to assign properties all together before rendering
     if (!this._avoidImmediate) {
-      setTimeout( () => this.reload({reloadCompanies, fitBounds}), 1);
+      setTimeout( () => this.reload(options), 1);
       this._avoidImmediate = true;
       return;
     }
@@ -134,7 +136,11 @@ const GlobalController = {
       this.company = this.companies[0].id;
     }
     if (this.companies.length > 1) {
-      this.company = this.company;
+      if (this.company) {
+        this.company = this.company;
+      } else {
+        this.company = this.companies[0].id;
+      }
     }
   },
 
@@ -164,8 +170,12 @@ const GlobalController = {
     if (this.devices.length === 1) {
       this.device = this.devices[0].id;
     }
-    if (this.device.length > 1) {
-      this.device = this.device;
+    if (this.devices.length > 1) {
+      if (this.device) {
+        this.device = this.device;
+      } else {
+        this.device = this.devices[0].id;
+      }
     }
   },
 
@@ -205,14 +215,15 @@ const GlobalController = {
   },
 
   deleteActiveDevice: async function(range) {
-    const params = range === 'all' ? {} : {
+    const params = new URLSearchParams(range === 'all' ? {} : {
       start_date: new Date(this.from).toISOString(),
       end_date: new Date(this.to).toISOString()
-    }
-    await fetch(`${this.apiUrl}/devices/${this.device}?${paramsAsString}`,
+    });
+    const headers = this.makeHeaders();
+    await fetch(`${this.apiUrl}/devices/${this.device}?${params}`,
       { method: 'delete', headers }
     )
-    this.device = "";
+    await this.reload();
   },
 
   login: async function({login, password}) {

@@ -294,7 +294,7 @@ export class TransistorSoftFilters extends HTMLElement {
         this.shadowRoot.querySelector('[for=custom]').innerText = 'Invalid range selected';
         this.shadowRoot.querySelector('#custom').disabled = true;
       } else {
-        const message = `From ${this.from}Z to ${this.to}Z`;
+        const message = `From ${this.from} to ${this.to}`;
         this.shadowRoot.querySelector('[for=custom]').innerText = message;
         this.shadowRoot.querySelector('#custom').disabled = false;
       }
@@ -357,10 +357,16 @@ export class TransistorSoftFilters extends HTMLElement {
   set companies(value) {
     this.ignoreCompanyChanged = true;
     this._companies = value;
+    const selectedCompany = this.company;
     this.shadowRoot.querySelector('#companies').innerHTML = `
       <option value="" disabled selected hidden>Choose Company</option>
       ${this._companies.map( (company) => `<option value="${company.id}">${company.name}</option>`).join('\n')}
     ` ;
+
+    if (this.companies.filter( (x) => x.id.toString() === selectedCompany)) {
+      this.company = selectedCompany;
+    }
+
     const wrapperEl = this.shadowRoot.querySelector('#companies-wrapper');
     wrapperEl.style.display = value.length > 1 ? '' : 'none';
     this.ignoreCompanyChanged = false;
@@ -383,10 +389,14 @@ export class TransistorSoftFilters extends HTMLElement {
   set devices(value) {
     this.ignoreDeviceChanged = true;
     this._devices = value;
+    const selectedDevice = this.device;
     this.shadowRoot.querySelector('#devices').innerHTML = `
       <option value="" disabled selected hidden>Choose Device</option>
       ${this._devices.map( (device) => `<option value="${device.id}">${device.name}</option>`).join('\n')}
     ` ;
+    if (this.devices.filter( (x) => x.id.toString() === selectedDevice)[0]) {
+      this.device = selectedDevice;
+    }
     this.ignoreDeviceChanged = false;
   }
 
