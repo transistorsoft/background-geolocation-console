@@ -8,7 +8,7 @@ You may read the news about this [application in our article on Medium](https://
 
 ## Install
 
-You must have [node.js 14.5.0](https://nodejs.org/en/blog/release/v14.5.0/) and [npm](https://www.npmjs.org/) installed on your computer.
+You must have [node.js 14.5.0](https://nodejs.org/en/blog/release/v14.5.0/) or later and [npm](https://www.npmjs.org/) installed on your computer.
 From the root project directory run these commands from the command line:
 
 ```bash
@@ -19,8 +19,8 @@ npm install
 
 Environment variables:
 ```bash
-export DATABASE_URL=postgres://postgres:password@localhost:5432/geolocation
-export GOOGLE_MAPS_API_KEY=AIz...vNkg
+export DATABASE_URL=postgres://postgres:password@localhost:5432/geolocation # or skip this line to use sqlite
+export GOOGLE_MAPS_API_KEY=AIz...vNkg # or skip this line
 # Do you use it for a lot of organisation or users?
 export SHARED_DASHBOARD=1      # with auth,
 # export SHARED_DASHBOARD=1    # empty - without auth,

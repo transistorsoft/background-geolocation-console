@@ -136,9 +136,7 @@ const GlobalController = {
       this.company = this.companies[0].id;
     }
     if (this.companies.length > 1) {
-      if (this.company) {
-        this.company = this.company;
-      } else {
+      if (!this.company) {
         this.company = this.companies[0].id;
       }
     }
@@ -171,9 +169,7 @@ const GlobalController = {
       this.device = this.devices[0].id;
     }
     if (this.devices.length > 1) {
-      if (this.device) {
-        this.device = this.device;
-      } else {
+      if (!this.device) {
         this.device = this.devices[0].id;
       }
     }
@@ -452,7 +448,7 @@ export class TransistorSoftDashboard extends HTMLElement {
 
     this.listEl.addEventListener('selectionchange', () => {
       this.mapEl.selected = this.listEl.selected;
-      this.detailsEl.record = data.filter( (x) => x.uuid === this.listEl.selected)[0];
+      this.detailsEl.record = this.locations.filter( (x) => x.uuid === this.listEl.selected)[0];
       this.expandLocationPanel();
     });
 
@@ -460,7 +456,7 @@ export class TransistorSoftDashboard extends HTMLElement {
       this.mapEl.showMarkers = this.settingsEl.showMarkers;
       this.mapEl.showPolyline = this.settingsEl.showPolyline;
       this.mapEl.showGeofences = this.settingsEl.showGeofences;
-      this.mapEl.useClustering = this.settingsEl.useClustering;
+      this.mapEl.enableClustering = this.settingsEl.useClustering;
     });
 
     this.filtersEl.addEventListener('company-changed', () => {
