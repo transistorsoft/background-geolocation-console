@@ -8,6 +8,9 @@
     "test": "jest",
     "server": "node server/index.js"
   },
+  "engines": {
+    "node": "16.x"
+  },
   "type": "commonjs",
   "author": "Chris Scott, Transistor Software",
   "license": "MIT",
