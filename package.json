@@ -9,7 +9,7 @@
     "server": "node server/index.js"
   },
   "engines": {
-    "node": "16.x"
+    "node": "17.x"
   },
   "type": "commonjs",
   "author": "Chris Scott, Transistor Software",
