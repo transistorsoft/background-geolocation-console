@@ -8,7 +8,7 @@ const template = `
         }
 
       table {
-        font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+        font-family: "Helvetica", "Arial", sans-serif;
         font-size: 13px;
         table-layout: fixed;
         border-collapse: collapse;

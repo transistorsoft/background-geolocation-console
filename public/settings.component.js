@@ -15,7 +15,7 @@ export class TransistorSoftMapSettings extends HTMLElement {
     }
     h1 {
       font-size: 24px;
-      font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+      font-family: "Helvetica", "Arial", sans-serif;
       font-weight: 400;
       line-height: 1.33;
       letter-spacing: 0;
