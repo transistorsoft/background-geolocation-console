@@ -1,5 +1,5 @@
 import MarkerClusterer from './MarkerClusterer.js';
-import { COLORS } from './constants.js';
+import { COLORS } from './utils.js';
 
 export class TransistorSoftMap extends HTMLElement {
 
@@ -14,7 +14,7 @@ export class TransistorSoftMap extends HTMLElement {
     this._showPolyline = true;
     this._showMarkers = true;
     this._showGeofenceHits = true;
-    this._enableClustering = true;
+    this._useClustering = true;
 
     this._currentLocation = null;
     this._watchMode = false;
@@ -102,12 +102,12 @@ export class TransistorSoftMap extends HTMLElement {
     return this._showPolyline;
   }
 
-  set enableClustering(value) {
-    this._enableClustering = value;
+  set useClustering(value) {
+    this._useClustering = value;
     this.renderMarkers();
   }
-  get enableClustering() {
-    return this._enableClustering;
+  get useClustering() {
+    return this._useClustering;
   }
 
   set selected(value) {
@@ -277,10 +277,10 @@ export class TransistorSoftMap extends HTMLElement {
   }
 
   clustering () {
-    const { enableClustering, showMarkers } = this;
+    const { useClustering, showMarkers } = this;
     if (
       !showMarkers ||
-      !enableClustering ||
+      !useClustering ||
       !this.gmap
     ) {
       return;
@@ -508,7 +508,7 @@ export class TransistorSoftMap extends HTMLElement {
 
     const updateFlags = this.lastProps ? {
       needsMarkersRedraw: this.lastProps.locations !== JSON.stringify(this.locations.map( (x) => x.uuid)),
-      needsShowMarkersUpdate: this.lastProps.showMarkers !== this.showMarkers || this.lastProps.enableClustering !== this.enableClustering,
+      needsShowMarkersUpdate: this.lastProps.showMarkers !== this.showMarkers || this.lastProps.useClustering !== this.useClustering,
       needsShowPolylineUpdate: this.lastProps.showPolyline !== this.showPolyline,
       needsShowGeofenceHitsUpdate: this.lastProps.showGeofenceHits !== this.showGeofenceHits
     } : {
@@ -522,7 +522,7 @@ export class TransistorSoftMap extends HTMLElement {
     this.lastProps = {
       locations: JSON.stringify(this.locations.map( (x) => x.uuid)),
       showMarkers: this.showMarkers,
-      enableClustering: this.enableClustering,
+      useClustering: this.useClustering,
       showPolyline: this.showPolyline,
       showGeofenceHits: this.showGeofenceHits
     }
@@ -581,7 +581,7 @@ export class TransistorSoftMap extends HTMLElement {
         });
 
         if (showMarkers) {
-          if (this.enableClustering) {
+          if (this.useClustering) {
             if (!this.markerCluster) {
               this.clustering();
             }

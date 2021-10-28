@@ -1,5 +1,4 @@
-import * as Storage from './storage.js';
-import * as DateUtils from './date.js';
+import * as Utils from './utils.js';
 import './customMarkers.component.js';
 import './details.component.js';
 import './filters.component.js';
@@ -12,7 +11,7 @@ import './settings.component.js';
 // react reducer goes here
 const GlobalController = {
   makeHeaders: function() {
-    const accessToken = (Storage.getAuth() || {}).accessToken;
+    const accessToken = (Utils.getAuth() || {}).accessToken;
     const headers = { 'Content-Type': 'application/json' };
     if (accessToken) {
       headers.Authorization = `Bearer ${accessToken}`;
@@ -51,7 +50,7 @@ const GlobalController = {
   },
 
   loadInitialData: async function() {
-    const storedAuth = Storage.getAuth() || {};
+    const storedAuth = Utils.getAuth() || {};
     if (storedAuth.org && !this.org) {
       console.info('TransistorSoft-dashboard: using an org ${storedAuth.org} from localStorage');
       this.org = storedAuth.org;
@@ -60,17 +59,14 @@ const GlobalController = {
       //special case - try to use that token without entering a password
     } else {
       const jwtResponse = await this.getDefaultJwt(this.org);
-      Storage.setAuth({
+      Utils.setAuth({
         org: this.org,
         accessToken: jwtResponse.access_token
       });
     }
 
-    const existingSettings = Storage.getSettings(this.org);
-    const urlSettings =  Storage.getUrlSettings();
-
+    const existingSettings = Utils.getSettings(this.org);
     this.applyExistingSettings(existingSettings);
-    this.applyExistingSettings(urlSettings);
 
     await this.reload({reloadCompanies: true, fitBounds: true});
     setTimeout(() => this.reload({fitBounds: false}), 60 * 1000);
@@ -239,13 +235,24 @@ const GlobalController = {
 
       if (accessToken) {
         this.org = login;
-        Storage.setAuth({org: login, accessToken, isAdmin: true});
+        Utils.setAuth({org: login, accessToken, isAdmin: true});
         window.history.replaceState(null, null, '/' + login);
         await this.reload({ reloadCompanies: true, fitBounds: true});
         return true;
       } else {
         return false;
       }
+  },
+
+  saveSettings: function() {
+      Utils.setSettings(this.org, {
+        showMarkers: this.showMarkers,
+        showPolyline: this.showPolyline,
+        showGeofences: this.showGeofences,
+        useClustering: this.useClustering,
+        from: this.from,
+        to: this.to
+      });
   }
 };
 
@@ -417,8 +424,8 @@ export class TransistorSoftDashboard extends HTMLElement {
     this.loginEl = this.shadowRoot.querySelector('transistorsoft-login');
 
     Object.assign(this, GlobalController);
-    this.from = DateUtils.getTodayStart();
-    this.to = DateUtils.getTodayEnd();
+    this.from = Utils.getTodayStart();
+    this.to = Utils.getTodayEnd();
 
     // manage panels visibility
     this.shadowRoot.querySelector('#left .collapse-button').addEventListener('click', () => {
@@ -453,10 +460,15 @@ export class TransistorSoftDashboard extends HTMLElement {
     });
 
     this.settingsEl.addEventListener('change', () => {
-      this.mapEl.showMarkers = this.settingsEl.showMarkers;
-      this.mapEl.showPolyline = this.settingsEl.showPolyline;
-      this.mapEl.showGeofences = this.settingsEl.showGeofences;
-      this.mapEl.enableClustering = this.settingsEl.useClustering;
+
+      this.showMarkers = this.settingsEl.showMarkers;
+      this.showPolyline = this.settingsEl.showPolyline;
+      this.showGeofences = this.settingsEl.showGeofences;
+      this.useClustering = this.settingsEl.useClustering;
+
+      this.saveSettings();
+
+
     });
 
     this.filtersEl.addEventListener('company-changed', () => {
@@ -468,10 +480,12 @@ export class TransistorSoftDashboard extends HTMLElement {
     });
 
     this.filtersEl.addEventListener('from-changed', () => {
+      this.saveSettings();
       this.reload();
     });
 
     this.filtersEl.addEventListener('to-changed', () => {
+      this.saveSettings();
       this.reload();
     });
 
@@ -605,6 +619,46 @@ export class TransistorSoftDashboard extends HTMLElement {
     this.filtersEl.to = value;
   }
 
+  get showMarkers() {
+    return this._showMarkers;
+  }
+
+  set showMarkers(value) {
+    this._showMarkers = value;
+    this.mapEl.showMarkers = value;
+    this.settingsEl.showMarkers = value;
+  }
+
+  get showPolyline() {
+    return this._showPolyline;
+  }
+
+  set showPolyline(value) {
+    this._showPolyline = value;
+    this.mapEl.showPolyline = value;
+    this.settingsEl.showPolyline = value;
+  }
+
+  get showGeofences() {
+    return this._showGeofences;
+  }
+
+  set showGeofences(value) {
+    this._showGeofences = value;
+    this.mapEl.showGeofences = value;
+    this.settingsEl.showGeofences = value;
+  }
+
+  get useClustering() {
+    return this._useClustering;
+  }
+
+  set useClustering(value) {
+    this._useClustering = value;
+    this.mapEl.useClustering = value;
+    this.settingsEl.useClustering = value;
+  }
+
   get org() {
     return this.getAttribute('org');
   }
@@ -616,6 +670,12 @@ export class TransistorSoftDashboard extends HTMLElement {
   get apiUrl() {
     return this.getAttribute('api');
   }
+
+
+
+
+
+
 
   get maxMarkers() {
     return 1000;

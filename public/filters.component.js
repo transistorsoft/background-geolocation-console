@@ -1,4 +1,4 @@
-import * as DateUtils from './date.js';
+import * as Utils from './utils.js';
 import './modal.component.js';
 
 const svgReload = `<svg viewBox="0 0 512 512">
@@ -313,8 +313,8 @@ export class TransistorSoftFilters extends HTMLElement {
     });
 
     this.shadowRoot.querySelector('#today').addEventListener('click', () => {
-      this.from = DateUtils.getTodayStart();
-      this.to = DateUtils.getTodayEnd();
+      this.from = Utils.getTodayStart();
+      this.to = Utils.getTodayEnd();
       this.dispatchEvent(this.fromChangedEvent);
       this.dispatchEvent(this.toChangedEvent);
     });
@@ -327,8 +327,8 @@ export class TransistorSoftFilters extends HTMLElement {
       monthAgo.setMilliseconds(0);
       monthAgo.setMonth(monthAgo.getMonth() - 1);
 
-      this.from = DateUtils.dateTimeToString(monthAgo);
-      this.to = DateUtils.getTodayEnd();
+      this.from = Utils.dateTimeToString(monthAgo);
+      this.to = Utils.getTodayEnd();
       this.dispatchEvent(this.fromChangedEvent);
       this.dispatchEvent(this.toChangedEvent);
     });
@@ -342,8 +342,8 @@ export class TransistorSoftFilters extends HTMLElement {
       yearAgo.setMonth(yearAgo.getMonth() - 12);
 
 
-      this.from = DateUtils.dateTimeToString(yearAgo);
-      this.to = DateUtils.getTodayEnd();
+      this.from = Utils.dateTimeToString(yearAgo);
+      this.to = Utils.getTodayEnd();
       this.dispatchEvent(this.fromChangedEvent);
       this.dispatchEvent(this.toChangedEvent);
     });
