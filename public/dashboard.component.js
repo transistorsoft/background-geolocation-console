@@ -264,6 +264,7 @@ export class TransistorSoftDashboard extends HTMLElement {
   <style>
     :host {
       display: block;
+      font-family: Roboto, sans-serif;
     }
     #left {
       border-right: 3px solid grey;

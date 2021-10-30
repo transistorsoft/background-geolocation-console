@@ -31,7 +31,8 @@ class TransistorSoftModal extends HTMLElement {
 				-webkit-animation-name: animatetop;
 				-webkit-animation-duration: 0.4s;
 				animation-name: animatetop;
-				animation-duration: 0.4s
+	 			animation-duration: 0.4s;
+        font-family: Roboto, sans-serif;
 			}
 
 			/* Add Animation */

@@ -9,6 +9,7 @@ export class TransistorSoftLogin extends HTMLElement {
       color: red;
       top: 75px;
       left: 133px;
+      font-family: Roboto, sans-serif;
     }
     .form {
       text-align: left;

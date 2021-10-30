@@ -5,6 +5,7 @@ export class TransistorSoftCustomMarkers extends HTMLElement {
     const template = `
   <style>
     :host {
+      font-family: Roboto, sans-serif;
       display: block;
       padding: 10px;
       overflow: hidden;

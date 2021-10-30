@@ -6,6 +6,7 @@ export class TransistorSoftDetails extends HTMLElement {
     :host {
       display: block;
       padding: 10px;
+      font-family: Roboto, sans-serif;
     }
     pre { font-size: 12px; line-height: 1.4; }
   </style>

@@ -5,6 +5,7 @@ const template = `
         :host {
           display: block;
           position: relative;
+          font-family: Roboto, sans-serif;
         }
         .headers {
           height: 42px;

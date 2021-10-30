@@ -5,6 +5,7 @@ const template = `
           box-sizing: border-box;
           overflow-y: scroll;
           overflow-x: scroll;
+          font-family: Roboto, sans-serif;
         }
 
       table {

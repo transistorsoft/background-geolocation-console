@@ -12,6 +12,7 @@ export class TransistorSoftMapSettings extends HTMLElement {
       border-radius: 4px;
       color: rgba(0, 0, 0, 0.87);
       background-color: #fff;
+      font-family: Roboto, sans-serif;
     }
     h1 {
       font-size: 24px;
