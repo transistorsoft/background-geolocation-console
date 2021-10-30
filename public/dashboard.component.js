@@ -299,10 +299,13 @@ export class TransistorSoftDashboard extends HTMLElement {
       justify-content: space-between;
       font-size: 20px;
     }
+
     #center-header h2 {
       margin: 15px;
-      margin-left: 55px;
+      margin-left: 33px;
     }
+
+
     #center transistorsoft-layout {
       flex: 1;
     }
@@ -696,12 +699,14 @@ export class TransistorSoftDashboard extends HTMLElement {
           this.shadowRoot.querySelector('#left').style.left = '-250px';
           this.shadowRoot.querySelector('#center').style.left = '0px';
           this.shadowRoot.querySelector('#center .expand-button').style.visibility = '';
+          this.shadowRoot.querySelector('#center-header h2').style.marginLeft = '55px';
   }
 
   expandFiltersPanel() {
           this.shadowRoot.querySelector('#left').style.left = '0px';
           this.shadowRoot.querySelector('#center').style.left = '253px';
           this.shadowRoot.querySelector('#center .expand-button').style.visibility = 'hidden';
+          this.shadowRoot.querySelector('#center-header h2').style.marginLeft = '33px';
   }
 
 }
