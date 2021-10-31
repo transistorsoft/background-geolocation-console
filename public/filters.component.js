@@ -77,6 +77,24 @@ export class TransistorSoftFilters extends HTMLElement {
     [type=date] {
       font-size: 12px;
     }
+
+    .chrome [type=date] {
+      width: 110px;
+    }
+
+    .chrome [type=time] {
+      width: 85px;
+    }
+
+    ::-webkit-calendar-picker-indicator {
+      padding: 0;
+      margin: 0;
+      width: 20px;
+    }
+
+
+
+
     [type=time] {
       font-size: 12px;
     }
@@ -232,6 +250,11 @@ export class TransistorSoftFilters extends HTMLElement {
 
     const shadowRoot = this.attachShadow({mode: 'open'});
     shadowRoot.innerHTML = template;
+
+    if (navigator.userAgent.includes('Chrome')) {
+      shadowRoot.querySelector('#from').classList.add('chrome');
+      shadowRoot.querySelector('#to').classList.add('chrome');
+    }
 
     this._companies = [];
     this._devices = [];
