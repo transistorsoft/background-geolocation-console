@@ -83,7 +83,7 @@ export class TransistorSoftFilters extends HTMLElement {
     }
 
     .chrome [type=time] {
-      width: 85px;
+      min-width: 85px;
     }
 
     ::-webkit-calendar-picker-indicator {

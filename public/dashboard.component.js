@@ -305,6 +305,11 @@ export class TransistorSoftDashboard extends HTMLElement {
       margin-left: 33px;
     }
 
+    #center-header img {
+      height: 100%;
+      margin-right: -11px;
+    }
+
 
     #center transistorsoft-layout {
       flex: 1;
@@ -396,7 +401,7 @@ export class TransistorSoftDashboard extends HTMLElement {
     <div id="center-header">
       <span class="expand-button" style="visibility: hidden;"><span>≡</span></span>
       <h2>Background Geolocation Console</h2>
-      <img src="./images/transistor-logo.svg">
+      <a href="https://www.transistorsoft.com" target="_blank"><img src="./images/transistor-logo.svg"></a>
     </div>
     <transistorsoft-layout>
       <transistorsoft-map slot="map"></transistorsoft-map>
