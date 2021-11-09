@@ -14,21 +14,6 @@ export class TransistorSoftCompany extends HTMLElement {
       margin: 10px 0;
     }
 
-    .modal-buttons button {
-      width: 100%;
-      height: 30px;
-      background: #3f51b5;
-      color: white;
-      border: none;
-      border-radius: 3px;
-    }
-
-    .modal-buttons button:active {
-      width: 100%;
-      height: 30px;
-      background: #1f3195;
-    }
-
     #search {
       width: 382px;
       margin-bottom: 3px;
@@ -52,6 +37,10 @@ export class TransistorSoftCompany extends HTMLElement {
     #items > div.selected {
         background: #ccc;
     }
+
+    #company {
+      width: 100%;
+
 
   </style>
   <button id="company"></button>
@@ -77,11 +66,11 @@ export class TransistorSoftCompany extends HTMLElement {
       this.updateSearch();
     });
 
-    this.shadowRoot.querySelector('#items').addEventListener('click', (e) => {
+    this.shadowRoot.querySelector('#items').addEventListener('mousedown', (e) => {
       const row = e.target.closest('div[data-id]');
       if (row) {
         const id = row.getAttribute('data-id');
-        this.company = id;
+        this.company = this.companies.filter( (x) => x.id.toString() === id)[0].id;
         this.dispatchEvent(new CustomEvent('change'));
         this.hideModal();
       }
@@ -109,7 +98,7 @@ export class TransistorSoftCompany extends HTMLElement {
     const search = this.shadowRoot.querySelector('#search').value;
     const items = this.companies.filter( (x) => !search ? true : x.name.toLowerCase().indexOf(search.toLowerCase()) !== -1).slice(0, 100);
     const divContent = items.map( (item) => `
-      <div data-id="${item.id}" class="${item.id === this.company ? 'selected' : ''}">${item.name}</div>
+      <div data-id="${item.id}" class="${item.id.toString() === this.company ? 'selected' : ''}">${item.name}</div>
     `).join('');
     this.shadowRoot.querySelector('#items').innerHTML = divContent;
   }
