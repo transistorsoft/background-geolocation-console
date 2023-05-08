@@ -317,6 +317,8 @@ router.get('/env', async (req, res) => {
   res.json({
     GOOGLE_ANALYTICS_ID: process.env.GOOGLE_ANALYTICS_ID,
     GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
+    GOOGLE_TAG_MANAGER_ID: process.env.GOOGLE_TAG_MANAGER_ID,
+    GOOGLE_TAG_ID: process.env.GOOGLE_TAG_ID,
     PURE_CHAT_ID: process.env.PURE_CHAT_ID,
     FIREBASE: !!process.env.FIREBASE_URL,
     SHARED_DASHBOARD: !!process.env.SHARED_DASHBOARD
