@@ -1,5 +1,6 @@
 import * as Utils from './utils.js';
 import './modal.component.js';
+import './company.component.js';
 
 const svgReload = `<svg viewBox="0 0 512 512">
 	<path d="M411.826,289.391c0,86.061-69.766,155.826-155.826,155.826s-155.826-69.766-155.826-155.826S169.939,133.565,256,133.565
@@ -211,7 +212,7 @@ export class TransistorSoftFilters extends HTMLElement {
     </div>
   </transistorsoft-modal>
   <div id="companies-wrapper">
-    <select id="companies"></select>
+    <transistorsoft-company id="companies"></transistorsoft-company>
   </div>
   <div>
     <select id="devices"><option value="" disabled selected hidden>Choose Device</option></select>
@@ -379,34 +380,22 @@ export class TransistorSoftFilters extends HTMLElement {
 
   set companies(value) {
     this.ignoreCompanyChanged = true;
-    this._companies = value;
-    const selectedCompany = this.company;
-    this.shadowRoot.querySelector('#companies').innerHTML = `
-      <option value="" disabled selected hidden>Choose Company</option>
-      ${this._companies.map( (company) => `<option value="${company.id}">${company.name}</option>`).join('\n')}
-    ` ;
-
-    if (this.companies.filter( (x) => x.id.toString() === selectedCompany)) {
-      this.company = selectedCompany;
-    }
-
+    this.shadowRoot.querySelector('#companies').companies = value;
     const wrapperEl = this.shadowRoot.querySelector('#companies-wrapper');
     wrapperEl.style.display = value.length > 1 ? '' : 'none';
     this.ignoreCompanyChanged = false;
   }
   get companies() {
-    return this._companies;
+    return this.shadowRoot.querySelector('#companies').companies;
   }
 
   set company(value) {
     this.ignoreCompanyChanged = true;
-    const el = this.shadowRoot.querySelector('#companies');
-    el.value = value;
+    this.shadowRoot.querySelector('#companies').company = value;
     this.ignoreCompanyChanged = false;
   }
   get company() {
-    const el = this.shadowRoot.querySelector('#companies');
-    return el.value;
+    return this.shadowRoot.querySelector('#companies').company;
   }
 
   set devices(value) {

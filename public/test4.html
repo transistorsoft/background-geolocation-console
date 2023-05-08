@@ -1,0 +1,21 @@
+ <!DOCTYPE html>
+<head>
+  <script type="module" src="./company.component.js"></script>
+</head>
+<body>
+
+  <h1>Demo Company</h1>
+
+  <transistorsoft-company></transistorsoft-company>
+
+  <script type="module">
+    async function main() {
+      const c = document.querySelector('transistorsoft-company');
+      c.companies = [{ id: 1, name: 'c1' }, { id: 2, name: 'c2' }];
+      c.company = '1';
+
+    }
+    document.addEventListener('DOMContentLoaded', main);
+
+  </script>
+</body>
