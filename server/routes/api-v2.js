@@ -147,10 +147,13 @@ router.all('/refresh_token', checkAuth(verify), async (req, res) => {
       .update(accessToken)
       .digest('hex');
 
+    const refreshExpiresIn = 12341234;
+
     return res.send({
       accessToken,
       expires: -1,
       refreshToken,
+      refreshExpiresIn
     });
   } catch (err) {
     if (err instanceof AccessDeniedError) {

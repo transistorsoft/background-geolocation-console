@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <script src="https://unpkg.com/@googlemaps/js-api-loader@1.0.0/dist/index.min.js"></script>
 <head>
-   <link href='https://fonts.googleapis.com/css?family=Roboto:300,400,500,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Roboto:300,400,500,700' rel='stylesheet' type='text/css'>
+
 
    <script>
      const path = window.location.pathname;
@@ -23,6 +24,39 @@
        } catch(ex) {
          console.info(`./api/site/env not found, using default settings`);
        }
+
+       // Google Tag Manager
+       (function(w,d,s,l,i){
+        w[l]=w[l]||[];w[l].push({
+          'gtm.start':
+          new Date().getTime(),
+          event:'gtm.js'
+        });
+        var f=d.getElementsByTagName(s)[0],
+          j=d.createElement(s),
+          dl=l!='dataLayer'?'&l='+l:'';
+          j.async=true;
+          j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+          f.parentNode.insertBefore(j,f);
+        })(window,document,'script','dataLayer', env.GOOGLE_TAG_MANAGER_ID);
+        // End Google Tag Manager
+
+        // GTAG START
+        var gTagScript = document.createElement('script');
+        gTagScript.type = 'text/javascript';
+        gTagScript.async = true;
+        gTagScript.src = "https://www.googletagmanager.com/gtag/js?id=" + env.GOOGLE_TAG_ID;
+        gTagScript.onload = gTagScript.onreadystatechange = function() {
+          window.dataLayer = window.dataLayer || [];
+          function gtag() {
+            dataLayer.push(arguments);
+          }
+          gtag('js', new Date());
+          gtag('config', env.GOOGLE_TAG_ID);
+        }
+        document.head.appendChild(gTagScript);
+        // GTAG END
+
        // add google maps with key
        const loader = new google.maps.plugins.loader.Loader({
          apiKey: env.GOOGLE_MAPS_API_KEY || 'AIzaSyA9j72oZA5SmsA8ugu57pqXwpxh9Sn4xuM',
