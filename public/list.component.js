@@ -175,7 +175,7 @@ export class TransistorSoftList extends HTMLElement {
 
     const format = function(x) {
       const date = new Date(x);
-      return date.toLocaleDateString('en-US', {month: 'numeric', day: 'numeric'}) + ' ' + (date.toTimeString().split(' ').shift()) + '.' + date.getMilliseconds();
+      return date.toLocaleDateString('en-US', {month: 'numeric', day: 'numeric'}) + ' ' + (date.toTimeString('en-US').split(' ').shift()) + '.' + date.getMilliseconds();
     }
 
     const getRowData = function(location) {
