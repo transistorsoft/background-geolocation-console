@@ -27,7 +27,7 @@ const template = `
         position: sticky;
       }
 
-      ${[180,80,80,90,80,80,80,180,80,140,80].map( (width, index) => (
+      ${[180,80,80,80,90,90,80,90,180,80,140,80].map( (width, index) => (
         `thead th:nth-child(${index + 1}) { width: ${width}px; } `
       )).join('\n')}
 
@@ -82,12 +82,13 @@ const template = `
           <tr>
             <th>UUID</th>
             <th>RECORDED AT</th>
+            <th>AGE (ms)</th>
             <th>CREATED AT</th>
             <th>COORDINATE</th>
-            <th>ACCURACY</th>
-            <th>SPEED</th>
-            <th>ODOMETER</th>
-            <th>EVENT</th>
+            <th>ACCURACY (m)</th>
+            <th>SPEED (m/s)</th>
+            <th>ODOMETER (m)</th>
+            <th class="event">EVENT</th>
             <th>IS MOVING</th>
             <th>ACTIVITY</th>
             <th>BATTERY</th>
@@ -174,11 +175,22 @@ export class TransistorSoftList extends HTMLElement {
 
     const format = function(x) {
       const date = new Date(x);
-      return date.toISOString().substring(5, 23).replace('T', ' ').replace('.', ':')
+      return date.toLocaleDateString('en-US', {month: 'numeric', day: 'numeric'}) + ' ' + (date.toTimeString().split(' ').shift()) + '.' + date.getMilliseconds();
     }
 
     const getRowData = function(location) {
       let event = location.event || '';
+      if (location.extras) {
+        // Analyze location.extras for helpful event information.
+        if (location.extras.event) {
+          // eg: extras: {event: "background-fetch"}
+          event = location.extras.event;
+        } else if (location.extras.getCurrentPosition) {
+          // eg: extras: {getCurrentPosition: true}
+          event = 'getCurrentPosition';
+        }
+      }
+
       switch (location.event) {
         case 'geofence':
           event = `${location.event
@@ -196,6 +208,7 @@ export class TransistorSoftList extends HTMLElement {
         coordinate:
         `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`,
         recorded_at: format(new Date(location.recorded_at)),
+        age: location.age,
         created_at: format(new Date(location.created_at)),
         is_moving: location.is_moving ? 'true' : 'false',
         accuracy: location.accuracy,
@@ -227,6 +240,7 @@ export class TransistorSoftList extends HTMLElement {
             <tr data-row-id="${item.uuid}">
               <td>${item.uuid}</td>
               <td>${item.recorded_at}</td>
+              <td>${item.age}</td>
               <td>${item.created_at}</td>
               <td>${item.coordinate}</td>
               <td>${item.accuracy}</td>
