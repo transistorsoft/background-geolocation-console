@@ -61,8 +61,8 @@ export async function getLocations(params, isAdmin) {
   const rows = await LocationModel.findAll({
     where: whereConditions,
     order: [
-      ['created_at', desc],
       ['recorded_at', desc],
+      ['created_at', desc]
     ],
     limit: params.limit,
     include,
