@@ -208,7 +208,7 @@ export class TransistorSoftList extends HTMLElement {
         coordinate:
         `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`,
         recorded_at: format(new Date(location.recorded_at)),
-        age: location.age,
+        age: location.age || '',  // <-- Older versions of the bg-geo SDK don't provide location.age
         created_at: format(new Date(location.created_at)),
         is_moving: location.is_moving ? 'true' : 'false',
         accuracy: location.accuracy,
