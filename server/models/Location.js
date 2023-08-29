@@ -151,6 +151,10 @@ export async function createLocations(
   );
 }
 
+/// RegExp:  Does this companyToken begin with "transistor-" or "_transistor-"?  That data is special and doesn't get DELETEd
+///
+const IS_TRANSITOR_TOKEN = /^_?transistor-.*/;
+
 export async function removeOld(org) {
   if (org) {
     org = org.org || org;
@@ -162,10 +166,10 @@ export async function removeOld(org) {
     }
     return;
   }
-
+  // Org names of form "_transistor-*" / "transistor-*" get special treatment.  Don't delete those records!
   const organization = await CompanyModel.findOne({ where: { company_token: org } });
   const count = await LocationModel.count({ where: { company_id: organization.id } });
-  if (count > 10000 && organization.company_token.indexOf('transistor-') !== 0) {
+  if (count > 10000 && !IS_TRANSISTOR_TOKEN.test(organization.company_token)) {
     const entry = await LocationModel.findOne({
       where: { company_id: organization.id },
       offset: 10000,
