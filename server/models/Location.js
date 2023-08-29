@@ -153,7 +153,7 @@ export async function createLocations(
 
 /// RegExp:  Does this companyToken begin with "transistor-" or "_transistor-"?  That data is special and doesn't get DELETEd
 ///
-const IS_TRANSITOR_TOKEN = /^_?transistor-.*/;
+const IS_TRANSISTOR_TOKEN = /^_?transistor-.*/;
 
 export async function removeOld(org) {
   if (org) {
