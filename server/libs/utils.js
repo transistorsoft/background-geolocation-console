@@ -156,7 +156,7 @@ export const checkCompany = ({ org, model }) => {
     throw new AccessDeniedError(
       'This is a question from the CEO of Transistor Software.\n' +
       'Why are you spamming my demo server1/v2?\n' +
-      'Please email me at chris@transistorsoft.com.',
+      'Please email me at chris@transistorsoft.com.', {cause: 'banned'}
     );
   }
 
@@ -164,7 +164,7 @@ export const checkCompany = ({ org, model }) => {
     throw new AccessDeniedError(
       'This is a question from the CEO of Transistor Software.\n' +
       'Why are you spamming my demo server2/v2?\n' +
-      'Please email me at chris@transistorsoft.com.',
+      'Please email me at chris@transistorsoft.com.', {cause: 'banned'}
     );
   }
 };

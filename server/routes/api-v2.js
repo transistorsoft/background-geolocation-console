@@ -336,7 +336,18 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
-      return res.status(403).send({ error: err.toString() });
+      if (err.cause === 'banned') {
+        // Sends background-geolocation RPC commands back to the SDK to try and stop this device from spamming us.
+        return res.status(403).send({
+          error: 'BANNED',
+          background_geolocation: [  // <-- Send an RPC
+            ['setConfig', {maxRecordsToPersist: 0, extras: {event: 'BANNED'}}],
+            ['stop']
+          ]
+        });
+      } else {
+        return res.status(403).send({ error: err.toString() });
+      }
     }
     if (err instanceof RegistrationRequiredError) {
       return res.status(406).send({ error: err.toString() });

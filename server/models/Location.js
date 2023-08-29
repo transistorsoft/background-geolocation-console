@@ -250,14 +250,14 @@ export async function create(
     throw new AccessDeniedError(
       'This is a question from the CEO of Transistor Software.\n' +
           'Why are you spamming my demo server1?\n' +
-          'Please email me at chris@transistorsoft.com.',
+          'Please email me at chris@transistorsoft.com.', {cause: 'banned'}
     );
   }
   if (isDeniedDevice(device.device_model)) {
     throw new AccessDeniedError(
       'This is a question from the CEO of Transistor Software.\n' +
         'Why are you spamming my demo server2?\n' +
-        'Please email me at chris@transistorsoft.com.',
+        'Please email me at chris@transistorsoft.com.', {cause: 'banned'}
     );
   }
 
