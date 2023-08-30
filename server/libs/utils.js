@@ -154,16 +154,16 @@ export const getAuth = verifier => (req, res, next) => {
 export const checkCompany = ({ org, model }) => {
   if (isDeniedCompany(org)) {
     throw new AccessDeniedError(
-      'This is a question from the CEO of Transistor Software.\n' +
-      'Why are you spamming my demo server1/v2?\n' +
+      'This is a question from the CEO of Transistor Software:\n' +
+      'Why are you spamming my demo server?\n' +
       'Please email me at chris@transistorsoft.com.', {cause: 'banned'}
     );
   }
 
   if (isDeniedDevice(model)) {
     throw new AccessDeniedError(
-      'This is a question from the CEO of Transistor Software.\n' +
-      'Why are you spamming my demo server2/v2?\n' +
+      'This is a question from the CEO of Transistor Software:\n' +
+      'Why are you spamming my demo server?\n' +
       'Please email me at chris@transistorsoft.com.', {cause: 'banned'}
     );
   }
