@@ -341,8 +341,9 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
         return res.status(403).send({
           error: 'BANNED',
           background_geolocation: [  // <-- Send an RPC
-            ['setConfig', {maxRecordsToPersist: 0, extras: {event: 'BANNED'}}],
-            ['stop']
+            ['setConfig', {maxRecordsToPersist: 0, debug: true}],
+            ['stop'],
+            ['ban', err.message]
           ]
         });
       } else {
