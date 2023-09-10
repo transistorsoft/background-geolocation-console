@@ -390,7 +390,7 @@ export class TransistorSoftMap extends HTMLElement {
           strokeColor: COLORS.polyline_color,
           strokeOpacity: 0.8,
           strokeWeight: 2,
-          fillColors: COLORS.green,
+          fillColor: COLORS.green,
           fillOpacity: 0.2
         }));
 
