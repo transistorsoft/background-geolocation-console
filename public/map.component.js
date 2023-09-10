@@ -369,6 +369,7 @@ export class TransistorSoftMap extends HTMLElement {
     if (!circle) {
       let center;
       let radius = 200;
+      // Detect polygon geofence:
       if (geofence.extras && geofence.extras.vertices && (geofence.extras.vertices.length > 0)) {
         const coords = geofence.extras.vertices.map((vertex) => {
           return {lat: vertex[0], lng: vertex[1]};
@@ -378,8 +379,6 @@ export class TransistorSoftMap extends HTMLElement {
           bounds.extend(coords[i]);
         }
         center = bounds.getCenter();
-        console.log("********  center: ", center.lat());
-
         radius = google.maps.geometry.spherical.computeDistanceBetween(center, bounds.getNorthEast());
         let polygon = new google.maps.Polygon({
           map: options.map,
@@ -406,9 +405,6 @@ export class TransistorSoftMap extends HTMLElement {
           center: center,
           map: options.map,
         });
-        this.geofenceMarkers[geofence.identifier] = circle;
-        this.geofenceHitMarkers.push(circle);
-
       } else {
         if (geofence.extras && geofence.extras.center) {
           center = new google.maps.LatLng(geofence.extras.center.latitude, geofence.extras.center.longitude);
@@ -430,9 +426,9 @@ export class TransistorSoftMap extends HTMLElement {
           map: options.map,
         });
       }
-      this.geofenceMarkers[geofence.identifier] = circle;
-      this.geofenceHitMarkers.push(circle);
     }
+    this.geofenceMarkers[geofence.identifier] = circle;
+    this.geofenceHitMarkers.push(circle);
     let color;
     if (geofence.action === 'ENTER') {
       color = COLORS.green;
@@ -470,11 +466,6 @@ export class TransistorSoftMap extends HTMLElement {
       fillColor: color,
     });
     this.geofenceHitMarkers.push(locationMarker);
-
-    console.log('*** geofence: ', geofence);
-    console.log('*** circle: ', circle);
-
-    console.log("****** buildGeofendeMarker circleEdgeLatLng", circleEdgeLatLng.lat(), ", locationMarker: ", locationMarker.getPosition().lat());
 
     const polyline = new google.maps.Polyline({
       map: options.map,
