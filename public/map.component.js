@@ -413,7 +413,7 @@ export class TransistorSoftMap extends HTMLElement {
           bounds.extend(coords[i]);
         }
         center = bounds.getCenter();
-        var radius = bounds.getRadius();
+        radius = google.maps.geometry.spherical.computeDistanceBetween(center, bounds.getNorthEast());
         circle = new google.maps.Polygon({
           getCenter: () => {
             return center;
