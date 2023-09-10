@@ -378,6 +378,8 @@ export class TransistorSoftMap extends HTMLElement {
           bounds.extend(coords[i]);
         }
         center = bounds.getCenter();
+        console.log("********  center: ", center.lat());
+
         radius = google.maps.geometry.spherical.computeDistanceBetween(center, bounds.getNorthEast());
         let polygon = new google.maps.Polygon({
           map: options.map,
