@@ -400,8 +400,8 @@ export class TransistorSoftMap extends HTMLElement {
           strokeColor: COLORS.black,
           strokeWeight: 1,
           strokeOpacity: 1,
-          radius,
-          center,
+          radius: radius,
+          center: center,
           map: options.map,
         });
         this.geofenceMarkers[geofence.identifier] = circle;
@@ -423,8 +423,8 @@ export class TransistorSoftMap extends HTMLElement {
           strokeColor: COLORS.black,
           strokeWeight: 1,
           strokeOpacity: 1,
-          radius,
-          center,
+          radius: radius,
+          center: center,
           map: options.map,
         });
       }
