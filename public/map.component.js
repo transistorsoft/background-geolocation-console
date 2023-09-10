@@ -389,8 +389,8 @@ export class TransistorSoftMap extends HTMLElement {
           paths: coords,
           geodesic: true,
           strokeColor: COLORS.polyline_color,
-          strokeOpacity: 0.8,
-          strokeWeight: 3,
+          strokeOpacity: 0.3,
+          strokeWeight: 5,
           fillColor: COLORS.green,
           fillOpacity: 0.2
         }));
