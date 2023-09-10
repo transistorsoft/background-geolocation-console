@@ -390,7 +390,7 @@ export class TransistorSoftMap extends HTMLElement {
           geodesic: true,
           strokeColor: COLORS.polyline_color,
           strokeOpacity: 0.8,
-          strokeWeight: 5,
+          strokeWeight: 3,
           fillColor: COLORS.green,
           fillOpacity: 0.2
         }));
@@ -399,7 +399,7 @@ export class TransistorSoftMap extends HTMLElement {
           zIndex: 2000,
           fillOpacity: 0,
           strokeColor: COLORS.black,
-          strokeWeight: 2,
+          strokeWeight: 1,
           strokeOpacity: 1,
           radius: radius,
           center: center,
