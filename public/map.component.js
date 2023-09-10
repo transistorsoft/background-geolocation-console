@@ -413,10 +413,12 @@ export class TransistorSoftMap extends HTMLElement {
           bounds.extend(coords[i]);
         }
         center = bounds.getCenter();
+        var radius = bounds.getRadius();
         circle = new google.maps.Polygon({
           getCenter: () => {
             return center;
           },
+          getRadius: () => { return radius; },
           paths: coords,
           strokeColor: COLORS.polyline_color,
           strokeOpacity: 0.8,
