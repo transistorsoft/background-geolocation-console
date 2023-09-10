@@ -387,10 +387,11 @@ export class TransistorSoftMap extends HTMLElement {
           },
           getRadius: () => { return radius; },
           paths: coords,
+          geodesic: true,
           strokeColor: COLORS.polyline_color,
           strokeOpacity: 0.8,
-          strokeWeight: 2,
-          fillColors: COLORS.green,
+          strokeWeight: 5,
+          fillColor: COLORS.green,
           fillOpacity: 0.2
         }));
 
