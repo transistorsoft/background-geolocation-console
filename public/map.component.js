@@ -380,7 +380,7 @@ export class TransistorSoftMap extends HTMLElement {
         }
         center = bounds.getCenter();
         radius = google.maps.geometry.spherical.computeDistanceBetween(center, bounds.getNorthEast());
-        let polygon = new google.maps.Polygon({
+        this.geofenceHitMarkers.push(new google.maps.Polygon({
           map: options.map,
           getCenter: () => {
             return center;
@@ -392,8 +392,7 @@ export class TransistorSoftMap extends HTMLElement {
           strokeWeight: 2,
           fillColors: COLORS.green,
           fillOpacity: 0.2
-        });
-        this.geofenceHitMarkers.push(polygon);
+        }));
 
         circle = new google.maps.Circle({
           zIndex: 2000,
