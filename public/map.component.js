@@ -408,7 +408,15 @@ export class TransistorSoftMap extends HTMLElement {
         const coords = geofence.extras.vertices.map((vertex) => {
           return {lat: vertex[0], lng: vertex[1]};
         });
+        const bounds = new google.maps.LatLngBounds();
+        for (var i=0; i < coords.length; i++) {
+          bounds.extend(coords[i]);
+        }
+        center = bounds.getCenter();
         circle = new google.maps.Polygon({
+          getCenter: () => {
+            return center;
+          },
           paths: coords,
           strokeColor: COLORS.polyline_color,
           strokeOpacity: 0.8,
@@ -417,25 +425,27 @@ export class TransistorSoftMap extends HTMLElement {
           fillOpacity: 0.2
         });
 
-      } else if (geofence.extras && geofence.extras.center) {
-        center = new google.maps.LatLng(geofence.extras.center.latitude, geofence.extras.center.longitude);
-        radius = geofence.extras.radius;
-        if (typeof radius === 'string') {
-          radius = parseInt(radius, 10);
-        }
       } else {
-        center = new google.maps.LatLng(location.latitude, location.longitude);
+        if (geofence.extras && geofence.extras.center) {
+          center = new google.maps.LatLng(geofence.extras.center.latitude, geofence.extras.center.longitude);
+          radius = geofence.extras.radius;
+          if (typeof radius === 'string') {
+            radius = parseInt(radius, 10);
+          }
+        } else {
+          center = new google.maps.LatLng(location.latitude, location.longitude);
+        }
+        circle = new google.maps.Circle({
+          zIndex: 2000,
+          fillOpacity: 0,
+          strokeColor: COLORS.black,
+          strokeWeight: 1,
+          strokeOpacity: 1,
+          radius,
+          center,
+          map: options.map,
+        });
       }
-      circle = new google.maps.Circle({
-        zIndex: 2000,
-        fillOpacity: 0,
-        strokeColor: COLORS.black,
-        strokeWeight: 1,
-        strokeOpacity: 1,
-        radius,
-        center,
-        map: options.map,
-      });
       this.geofenceMarkers[geofence.identifier] = circle;
       this.geofenceHitMarkers.push(circle);
     }
