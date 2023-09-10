@@ -469,6 +469,9 @@ export class TransistorSoftMap extends HTMLElement {
     });
     this.geofenceHitMarkers.push(locationMarker);
 
+    console.log('*** geofence: ', geofence);
+    console.log('*** circle: ', circle);
+
     console.log("****** buildGeofendeMarker circleEdgeLatLng", circleEdgeLatLng.lat(), ", locationMarker: ", locationMarker.getPosition().lat());
 
     const polyline = new google.maps.Polyline({
