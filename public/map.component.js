@@ -369,41 +369,6 @@ export class TransistorSoftMap extends HTMLElement {
     if (!circle) {
       let center;
       let radius = 200;
-      // If the geofence contains information about its center & radius in #extras...
-      /////////////////////// TEST
-      ///
-      ///
-      geofence.extras.vertices = [
-        [
-          45.520121059899424,
-          -73.60103379317766
-        ],
-        [
-          45.519380742186264,
-          -73.60195299524844
-        ],
-        [
-          45.51843255124532,
-          -73.60213961316367
-        ],
-        [
-          45.51800293360295,
-          -73.60126699709313
-        ],
-        [
-          45.51820175868804,
-          -73.59979628143864
-        ],
-        [
-          45.519297463317166,
-          -73.59950485627363
-        ],
-        [
-          45.52008835261256,
-          -73.59971681470499
-        ]
-      ]
-      ///////////////////////
       if (geofence.extras && geofence.extras.vertices && (geofence.extras.vertices.length > 0)) {
         const coords = geofence.extras.vertices.map((vertex) => {
           return {lat: vertex[0], lng: vertex[1]};
@@ -415,6 +380,7 @@ export class TransistorSoftMap extends HTMLElement {
         center = bounds.getCenter();
         radius = google.maps.geometry.spherical.computeDistanceBetween(center, bounds.getNorthEast());
         circle = new google.maps.Polygon({
+          map: options.map,
           getCenter: () => {
             return center;
           },
