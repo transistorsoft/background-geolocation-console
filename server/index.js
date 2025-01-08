@@ -44,6 +44,7 @@ app.use(bodyParser.raw(parserLimits));
 console.log("********** HERE 1");
 
 ((async () => {
+  console.log("********** HERE 2");
   await initializeDatabase();
 
   const index = resolve(staticContent, 'index.html');
@@ -85,7 +86,7 @@ console.log("********** HERE 1");
   });
 
 
-  console.log("********** HERE 2");
+  console.log("********** HERE before app.listen");
   app.listen(port, () => {
     console.log('╔═══════════════════════════════════════════════════════════'.green.bold);
     console.log('║ Background Geolocation Server | port: %s, dyno: %s'.green.bold, port, dyno);
