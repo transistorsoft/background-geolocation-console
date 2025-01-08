@@ -46,7 +46,7 @@ console.log("********** HERE 1");
 ((async () => {
   console.log("********** HERE 2");
   await initializeDatabase();
-
+  console.log("********** HERE 3");
   const index = resolve(staticContent, 'index.html');
 
   app.use(siteApi);
