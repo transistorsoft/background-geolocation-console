@@ -82,6 +82,8 @@ app.use(bodyParser.raw(parserLimits));
       .send({ message: err.message || 'Something broke!' });
   });
 
+  console.log("*********** PORT: ", port);
+
   app.listen(port, () => {
     console.log('╔═══════════════════════════════════════════════════════════'.green.bold);
     console.log('║ Background Geolocation Server | port: %s, dyno: %s'.green.bold, port, dyno);
