@@ -84,7 +84,7 @@ app.use(bodyParser.raw(parserLimits));
 
   console.log("*********** PORT: ", port);
 
-  app.listen(port, () => {
+  app.listen(process.env.PORT || 9000, () => {
     console.log('╔═══════════════════════════════════════════════════════════'.green.bold);
     console.log('║ Background Geolocation Server | port: %s, dyno: %s'.green.bold, port, dyno);
     console.log('╚═══════════════════════════════════════════════════════════'.green.bold);
