@@ -41,12 +41,8 @@ app.use(compress());
 app.use(bodyParser.json(parserLimits));
 app.use(bodyParser.raw(parserLimits));
 
-console.log("********** HERE 1");
-
 ((async () => {
-  console.log("********** HERE 2");
   await initializeDatabase();
-  console.log("********** HERE 3");
   const index = resolve(staticContent, 'index.html');
 
   app.use(siteApi);
@@ -85,8 +81,6 @@ console.log("********** HERE 1");
       .send({ message: err.message || 'Something broke!' });
   });
 
-
-  console.log("********** HERE before app.listen");
   app.listen(port, () => {
     console.log('╔═══════════════════════════════════════════════════════════'.green.bold);
     console.log('║ Background Geolocation Server | port: %s, dyno: %s'.green.bold, port, dyno);
