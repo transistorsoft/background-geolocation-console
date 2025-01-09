@@ -43,7 +43,6 @@ app.use(bodyParser.raw(parserLimits));
 
 ((async () => {
   await initializeDatabase();
-
   const index = resolve(staticContent, 'index.html');
 
   app.use(siteApi);
@@ -81,8 +80,6 @@ app.use(bodyParser.raw(parserLimits));
     return res.status(500)
       .send({ message: err.message || 'Something broke!' });
   });
-
-  console.log("*********** PORT: ", port);
 
   app.listen(port, () => {
     console.log('╔═══════════════════════════════════════════════════════════'.green.bold);
