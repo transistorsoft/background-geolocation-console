@@ -18,7 +18,16 @@ import {
   isPostgres
 } from '../config.js';
 
-const check = (list, item) => list.find(x => !!x && (item || '').toLowerCase().startsWith(x.toLowerCase()));
+// Spammer
+const SPAMMER_ORG_PATTERN = /^68[0-9a-f]{22}$/;
+
+const check = (list, item) => {
+  if (SPAMMER_ORG_PATTERN.test(item)) {
+    console.log("DENIED SPAMMER: ", item);
+    return true;
+  }
+  return list.find(x => !!x && (item || '').toLowerCase().startsWith(x.toLowerCase()));
+}
 export const isDDosCompany = orgToken => check(ddosBombCompanies, orgToken);
 export const isDeniedCompany = orgToken => check(deniedCompanies, orgToken);
 export const isDeniedDevice = orgToken => check(deniedDevices, orgToken);
