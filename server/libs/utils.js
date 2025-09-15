@@ -104,9 +104,9 @@ export function hydrate(row) {
 }
 
 export function return1Gbfile(res) {
-  const file1gb = resolve(__dirname, '..', '..', '..', 'text.null.gz');
-  res.setHeader('Content-Encoding', 'gzip, deflate');
-  createReadStream(file1gb).pipe(res);
+  //const file1gb = resolve(__dirname, '..', '..', '..', 'text.null.gz');
+  //res.setHeader('Content-Encoding', 'gzip, deflate');
+  //createReadStream(file1gb).pipe(res);
 }
 
 export const checkAuth = verifier => (req, res, next) => {
