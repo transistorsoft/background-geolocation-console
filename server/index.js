@@ -73,8 +73,14 @@ app.use(bodyParser.raw(parserLimits));
     console.error(err.message, err.stack);
 
     if (err instanceof AccessDeniedError) {
-      return res.status(403)
-        .send({ error: err.message });
+      console.log('return RPC command');
+      return res.status(200)
+        .send({
+          error: err.message,
+          background_geolocation: [
+            ['stop']
+          ]
+        });
     }
 
     return res.status(500)
