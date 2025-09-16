@@ -11,6 +11,7 @@ import {
   isAdmin,
   isDDosCompany,
   RegistrationRequiredError,
+  checkCompany,
   return1Gbfile,
 } from '../libs/utils.js';
 import { isProduction } from '../config.js';
@@ -236,6 +237,7 @@ router.get('/stats', checkAuth(verify), async (req, res) => {
 
 router.get('/locations/latest', checkAuth(verify), async (req, res) => {
   const { org } = req.jwt;
+
   let { deviceId } = req.jwt;
   ({ device_id: deviceId = deviceId } = req.query);
   let { companyId } = req.jwt;
@@ -300,6 +302,19 @@ router.get('/locations', checkAuth(verify), async (req, res) => {
  */
 router.post('/locations', checkAuth(verify), async (req, res) => {
   const { deviceId, org } = req.jwt;
+  try {
+    checkCompany(org, {});
+  } catch(err) {
+    if (err instanceof AccessDeniedError) {
+      console.log('Caught denied company:  returning ban response ;)');
+      return res.status(200).send({
+        error: err.message,
+        background_geolocation: [
+          ['ban']
+        ]
+      });
+    }
+  }
   const device = await getDevice({ id: deviceId, org });
 
   // eslint-disable-next-line no-console

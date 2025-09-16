@@ -13,8 +13,10 @@ import {
   isAdmin,
   isAdminToken,
   isDDosCompany,
+  isDeniedCompany,
   isPassword,
   return1Gbfile,
+  checkCompany
 } from '../libs/utils.js';
 import { deleteDevice, getDevices } from '../models/Device.js';
 import {
