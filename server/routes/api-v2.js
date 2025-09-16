@@ -65,6 +65,26 @@ router.post('/register', async (req, res) => {
     framework,
   );
 
+  try {
+    checkCompany(org, {});
+  } catch(err) {
+    if (err instanceof AccessDeniedError) {
+      if (err.cause === 'banned') {
+        console.log('Caught denied company:  returning ban response ;)');
+        return res.status(200).send({
+          error: err.message,
+          background_geolocation: [  // <-- Send an RPC
+            ['setConfig', {maxRecordsToPersist: 0, debug: true}],
+            ['stop'],
+            ['ban', err.message]
+          ]
+        });
+      } else {
+        return res.status(403).send({ error: err.toString() });
+      }
+    }
+  }
+
   // eslint-disable-next-line no-console
   dataLogOn && console.log(`v2:post:register:${org}`.yellow, JSON.stringify(req.body));
 
