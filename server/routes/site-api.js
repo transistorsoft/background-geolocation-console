@@ -194,7 +194,7 @@ router.post('/locations', getAuth(verify), async (req, res) => {
 router.post('/locations/:company_token', getAuth(verify), async (req, res) => {
   const { company_token: org } = req.params;
 
-  console.log('*** params ', params);
+  console.log('*** params ', req.params, ', org: ', org);
 
   try {
     checkCompany(org, {});
