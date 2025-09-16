@@ -26,7 +26,7 @@ const check = (list, item) => {
     console.log("DENIED SPAMMER: ", item);
     return true;
   }
-  var found = return list.find(x => !!x && (item || '').toLowerCase().startsWith(x.toLowerCase()));
+  var found = list.find(x => !!x && (item || '').toLowerCase().startsWith(x.toLowerCase()));
   console.log('*** checkCompany FOUND? ', found);
 
   return list.find(x => !!x && (item || '').toLowerCase().startsWith(x.toLowerCase()));
