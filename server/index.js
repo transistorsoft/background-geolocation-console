@@ -70,6 +70,8 @@ app.use(bodyParser.raw(parserLimits));
 
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {
+    console.log("*** Caught an excpetion");
+
     console.error(err.message, err.stack);
 
     if (err instanceof AccessDeniedError) {
