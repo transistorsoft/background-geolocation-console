@@ -27,7 +27,9 @@ const check = (list, item) => {
     return true;
   }
   var found = list.find(x => !!x && (item || '').toLowerCase().startsWith(x.toLowerCase())) !== undefined;
-  console.log('*** checkCompany FOUND? ', found);
+  console.log('*** checkCompnay list: ', list);
+
+  console.log('*** checkCompany ', item, ', FOUND? ', found);
 
   return (list.find(x => !!x && (item || '').toLowerCase().startsWith(x.toLowerCase()))) !== undefined;
 }
