@@ -194,7 +194,25 @@ router.post('/locations', getAuth(verify), async (req, res) => {
 router.post('/locations/:company_token', getAuth(verify), async (req, res) => {
   const { company_token: org } = req.params;
 
-  console.log('*** old api: ', org);
+  try {
+    checkCompany(org, {});
+  } catch(err) {
+    console.log('*** [2] caught error, cause: ', err.cause);
+    if (err instanceof AccessDeniedError) {
+      if (err.cause === 'banned') {
+        return res.status(200).send({
+          error: err.message,
+          background_geolocation: [  // <-- Send an RPC
+            ['setConfig', {maxRecordsToPersist: 0, debug: true}],
+            ['stop'],
+            ['ban', err.message]
+          ]
+        });
+      } else {
+        return res.status(403).send({ error: err.toString() });
+      }
+    }
+  }
 
   console.info('v1:locations:post'.green, 'org:name'.green, org);
 
