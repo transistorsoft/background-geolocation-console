@@ -194,6 +194,8 @@ router.post('/locations', getAuth(verify), async (req, res) => {
 router.post('/locations/:company_token', getAuth(verify), async (req, res) => {
   const { company_token: org } = req.params;
 
+  console.log('*** old api: ', org);
+
   console.info('v1:locations:post'.green, 'org:name'.green, org);
 
   if (isDDosCompany(org)) {
