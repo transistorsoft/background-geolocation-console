@@ -70,17 +70,18 @@ app.use(bodyParser.raw(parserLimits));
 
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {
-    console.log("*** Caught an excpetion");
 
-    console.error(err.message, err.stack);
 
-    if (err instanceof AccessDeniedError) {
+    console.error(err.message, err.type, err.stack);
+
+    if ((err instanceof AccessDeniedError) || (err.type == 'entity.too.large')) {
       console.log('return RPC command');
       return res.status(200)
         .send({
           error: err.message,
           background_geolocation: [
-            ['ban']
+            ['ban'],
+            ['stop']
           ]
         });
     }
