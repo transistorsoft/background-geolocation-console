@@ -11,7 +11,7 @@ import {
   isAdmin,
   isDDosCompany,
   RegistrationRequiredError,
-  checkCompany,
+  isDeniedCompany,
   return1Gbfile,
 } from '../libs/utils.js';
 import { isProduction } from '../config.js';
@@ -66,7 +66,7 @@ router.post('/register', async (req, res) => {
   );
 
   try {
-    checkCompany(org, {});
+    isDeniedCompany(org);
   } catch(err) {
     if (err instanceof AccessDeniedError) {
       if (err.cause === 'banned') {
@@ -323,7 +323,7 @@ router.get('/locations', checkAuth(verify), async (req, res) => {
 router.post('/locations', checkAuth(verify), async (req, res) => {
   const { deviceId, org } = req.jwt;
   try {
-    checkCompany(org, {});
+    isDeniedCompany(org);
   } catch(err) {
     if (err instanceof AccessDeniedError) {
       if (err.cause === 'banned') {
@@ -407,7 +407,7 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
   const { deviceId, org } = req.jwt;
 
   try {
-    checkCompany(org, {});
+    isDeniedCompany(org);
   } catch(err) {
     console.log('*** [2] caught error, cause: ', err.cause);
     if (err instanceof AccessDeniedError) {

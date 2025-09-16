@@ -15,8 +15,7 @@ import {
   isDDosCompany,
   isDeniedCompany,
   isPassword,
-  return1Gbfile,
-  checkCompany
+  return1Gbfile
 } from '../libs/utils.js';
 import { deleteDevice, getDevices } from '../models/Device.js';
 import {
@@ -197,7 +196,7 @@ router.post('/locations/:company_token', getAuth(verify), async (req, res) => {
 
   try {
     console.log('*** [BEFORE] checkCompany: ', org);
-    checkCompany(org, {});
+    isDeniedCompany(org);
     console.log('*** [AFTER] checkCompany: ', org);
   } catch(err) {
     console.log('*** [2] caught error, cause: ', err.cause);
