@@ -411,6 +411,7 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
   try {
     checkCompany(org, {});
   } catch(err) {
+    console.log('*** [2] caught error, cause: ', err.cause);
     if (err instanceof AccessDeniedError) {
       if (err.cause === 'banned') {
         console.log('Caught denied company:  returning ban response ;)');
