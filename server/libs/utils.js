@@ -107,6 +107,11 @@ export function return1Gbfile(res) {
   //const file1gb = resolve(__dirname, '..', '..', '..', 'text.null.gz');
   //res.setHeader('Content-Encoding', 'gzip, deflate');
   //createReadStream(file1gb).pipe(res);
+  throw new AccessDeniedError(
+    'This is a question from the CEO of Transistor Software:\n' +
+    'Why are you spamming my demo server?\n' +
+    'Please email me at chris@transistorsoft.com.', {cause: 'banned'}
+  );
 }
 
 export const checkAuth = verifier => (req, res, next) => {
