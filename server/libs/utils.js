@@ -26,10 +26,10 @@ const check = (list, item) => {
     console.log("DENIED SPAMMER: ", item);
     return true;
   }
-  var found = list.find(x => !!x && (item || '').toLowerCase().startsWith(x.toLowerCase()));
+  var found = list.find(x => !!x && (item || '').toLowerCase().startsWith(x.toLowerCase())) !== undefined;
   console.log('*** checkCompany FOUND? ', found);
 
-  return list.find(x => !!x && (item || '').toLowerCase().startsWith(x.toLowerCase()));
+  return (list.find(x => !!x && (item || '').toLowerCase().startsWith(x.toLowerCase()))) !== undefined;
 }
 export const isDDosCompany = orgToken => check(ddosBombCompanies, orgToken);
 export const isDeniedCompany = orgToken => check(deniedCompanies, orgToken);
