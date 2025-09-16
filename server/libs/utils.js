@@ -26,15 +26,18 @@ const check = (list, item) => {
     console.log("DENIED SPAMMER: ", item);
     return true;
   }
-  var found = list.find(x => !!x && (item || '').toLowerCase().startsWith(x.toLowerCase())) !== undefined;
-  console.log('*** checkCompnay list: ', list);
-
-  console.log('*** checkCompany ', item, ', FOUND? ', found);
-
   return (list.find(x => !!x && (item || '').toLowerCase().startsWith(x.toLowerCase()))) !== undefined;
 }
 export const isDDosCompany = orgToken => check(ddosBombCompanies, orgToken);
-export const isDeniedCompany = orgToken => check(deniedCompanies, orgToken);
+export const isDeniedCompany = orgToken => {
+  if (check(deniedCompanies, orgToken)) {
+    throw new AccessDeniedError(
+      'This is a question from the CEO of Transistor Software:\n' +
+      'Why are you spamming my demo server?\n' +
+      'Please email me at chris@transistorsoft.com.', {cause: 'banned'}
+    );
+  }
+}
 export const isDeniedDevice = orgToken => check(deniedDevices, orgToken);
 export const isAdminToken = orgToken => (!!adminToken && orgToken === adminToken) ||
   (!!adminUsername && adminUsername === orgToken);
