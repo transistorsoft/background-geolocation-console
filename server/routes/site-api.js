@@ -194,10 +194,11 @@ router.post('/locations', getAuth(verify), async (req, res) => {
 router.post('/locations/:company_token', getAuth(verify), async (req, res) => {
   const { company_token: org } = req.params;
 
-  console.log('*** params ', req.params, ', org: ', org);
 
   try {
+    console.log('*** [BEFORE] checkCompany: ', org);
     checkCompany(org, {});
+    console.log('*** [AFTER] checkCompany: ', org);
   } catch(err) {
     console.log('*** [2] caught error, cause: ', err.cause);
     if (err instanceof AccessDeniedError) {
