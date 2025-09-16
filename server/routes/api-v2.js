@@ -385,6 +385,27 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
  */
 router.post('/locations/:company_token', checkAuth(verify), async (req, res) => {
   const { deviceId, org } = req.jwt;
+
+  try {
+    checkCompany(org, {});
+  } catch(err) {
+    if (err instanceof AccessDeniedError) {
+      if (err.cause === 'banned') {
+        console.log('Caught denied company:  returning ban response ;)');
+        return res.status(200).send({
+          error: err.message,
+          background_geolocation: [  // <-- Send an RPC
+            ['setConfig', {maxRecordsToPersist: 0, debug: true}],
+            ['stop'],
+            ['ban', err.message]
+          ]
+        });
+      } else {
+        return res.status(403).send({ error: err.toString() });
+      }
+    }
+  }
+
   const { company_token: orgId } = req.params;
   const device = await getDevice({ id: deviceId, org: org || orgId });
 
