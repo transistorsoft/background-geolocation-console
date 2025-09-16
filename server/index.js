@@ -78,7 +78,7 @@ app.use(bodyParser.raw(parserLimits));
         .send({
           error: err.message,
           background_geolocation: [
-            ['stop']
+            ['ban']
           ]
         });
     }
