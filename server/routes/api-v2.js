@@ -306,13 +306,19 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
     checkCompany(org, {});
   } catch(err) {
     if (err instanceof AccessDeniedError) {
-      console.log('Caught denied company:  returning ban response ;)');
-      return res.status(200).send({
-        error: err.message,
-        background_geolocation: [
-          ['ban']
-        ]
-      });
+      if (err.cause === 'banned') {
+        console.log('Caught denied company:  returning ban response ;)');
+        return res.status(200).send({
+          error: err.message,
+          background_geolocation: [  // <-- Send an RPC
+            ['setConfig', {maxRecordsToPersist: 0, debug: true}],
+            ['stop'],
+            ['ban', err.message]
+          ]
+        });
+      } else {
+        return res.status(403).send({ error: err.toString() });
+      }
     }
   }
   const device = await getDevice({ id: deviceId, org });
@@ -353,7 +359,7 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
     if (err instanceof AccessDeniedError) {
       if (err.cause === 'banned') {
         // Sends background-geolocation RPC commands back to the SDK to try and stop this device from spamming us.
-        return res.status(403).send({
+        return res.status(200).send({
           error: 'BANNED',
           background_geolocation: [  // <-- Send an RPC
             ['setConfig', {maxRecordsToPersist: 0, debug: true}],
