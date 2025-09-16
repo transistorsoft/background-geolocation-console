@@ -409,7 +409,9 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
   const { deviceId, org } = req.jwt;
 
   try {
+    console.log('*** [BEFORE] checkCompany: ', org);
     checkCompany(org, {});
+    console.log('*** [AFTER] checkCompany: ', org);
   } catch(err) {
     console.log('*** [2] caught error, cause: ', err.cause);
     if (err instanceof AccessDeniedError) {
