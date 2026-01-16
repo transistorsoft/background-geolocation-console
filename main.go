@@ -14,7 +14,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = fmt.Fprintln(w, "Hello from Go World")
+		_, _ = fmt.Fprintln(w, "Hello from Go World, overlaying new Tracker in 2026")
 	})
 
 	addr := ":" + port
