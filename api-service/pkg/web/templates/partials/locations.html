@@ -1,0 +1,51 @@
+{{define "partials/locations"}}
+<div class="locations-scroll">
+	<table class="locations-table">
+		<thead>
+			<tr>
+				<th>UUID</th>
+				<th>Recorded</th>
+				<th>Coordinate</th>
+				<th>Accuracy</th>
+				<th>Speed</th>
+				<th>Event</th>
+				<th>Moving</th>
+				<th>Activity</th>
+				<th>Battery</th>
+			</tr>
+		</thead>
+		<tbody>
+		{{if .Locations}}
+		{{range .Locations}}
+			<tr data-uuid="{{.UUID}}">
+				<td class="mono uuid-cell" title="{{.UUID}}">{{shortUUID .UUID}}&hellip;</td>
+				<td class="timestamp-cell" data-recorded="{{.RecordedAtISO}}">
+					<div class="meta-date">{{.RecordedDateUTC}}</div>
+					<div class="meta-time">{{.RecordedTimeUTC}}</div>
+				</td>
+			<td>{{.Coordinate}}</td>
+			<td>{{.Accuracy}}</td>
+			<td>{{.Speed}}</td>
+				<td>{{.Event}}</td>
+				<td>{{formatBool .IsMoving}}</td>
+				<td>{{.ActivityDetails}}</td>
+				<td>
+					<span class="battery {{if .BatteryCharging}}charging{{end}}">
+						{{.Battery}}
+					</span>
+				</td>
+			</tr>
+			{{end}}
+		{{else}}
+			<tr>
+				<td colspan="9" class="empty-row">No locations recorded for this selection yet.</td>
+			</tr>
+		{{end}}
+		</tbody>
+	</table>
+	<div hx-swap-oob="outerHTML:#location-stats">
+		{{template "partials/stats" .}}
+	</div>
+	<script type="application/json" id="map-data" hx-swap-oob="outerHTML:#map-data">{{.MapLocationsJSON}}</script>
+</div>
+{{end}}

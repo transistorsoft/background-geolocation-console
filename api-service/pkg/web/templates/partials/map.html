@@ -1,0 +1,13 @@
+{{define "partials/map"}}
+<div class="map-panel" id="map-panel">
+	{{if .HasMap}}
+		<transistorsoft-map id="dashboard-map"></transistorsoft-map>
+	{{else}}
+		<div class="empty-state compact">
+			<h3>Map unavailable</h3>
+			<p>Provide a Google Maps API key in server.toml to enable map view.</p>
+		</div>
+	{{end}}
+</div>
+<script type="application/json" id="map-data">{{.MapLocationsJSON}}</script>
+{{end}}

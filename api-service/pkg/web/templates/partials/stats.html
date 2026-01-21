@@ -1,0 +1,5 @@
+{{define "partials/stats"}}
+<div class="panel-heading" id="location-stats">
+	<p>{{.TotalLocations}} recent locations · updates every {{printf "%.0f" .PollEvery.Seconds}}s</p>
+</div>
+{{end}}

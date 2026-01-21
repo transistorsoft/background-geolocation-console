@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 8d6de698b3bada51f13c2255acbe96e3210a1208 Dave Lazar <dlazar@resistorsoftware.coom> 1762370482 -0500	commit (initial): initial commit
+8d6de698b3bada51f13c2255acbe96e3210a1208 9275e887efce4b32e8ef4a300e7c11428def0226 Dave Lazar <dlazar@resistorsoftware.coom> 1763136999 -0500	commit: updated to add the public routes to show off collected locations for a device
+9275e887efce4b32e8ef4a300e7c11428def0226 252be3fe52512cc3b5326073ed95dc92999ee895 Dave Lazar <dlazar@resistorsoftware.coom> 1763392249 -0500	commit: added go for public views
+252be3fe52512cc3b5326073ed95dc92999ee895 fe2ada5c04638aa878cddb53d7ce9717b39b1d59 Dave Lazar <dlazar@resistorsoftware.coom> 1763572881 -0500	commit: shaved some yaks in the display of UUID and date time timezone
+fe2ada5c04638aa878cddb53d7ce9717b39b1d59 4d70478a9acab3c1ecae9319210b07529b69b3d8 Dave Lazar <dlazar@resistorsoftware.coom> 1763735973 -0500	commit: added a working map to dashboard
+4d70478a9acab3c1ecae9319210b07529b69b3d8 3102b517ceccb6ddc965bdeae290d90fadd449a4 Dave Lazar <dlazar@resistorsoftware.coom> 1763992336 -0500	commit: map tweaks for initial render
+3102b517ceccb6ddc965bdeae290d90fadd449a4 4cd1d7bf473c2a34bc28468e554b219f7883d6bb Dave Lazar <dlazar@resistorsoftware.coom> 1764256015 -0500	commit: completed most of the refactor of the App from Node to Go
+4cd1d7bf473c2a34bc28468e554b219f7883d6bb 060982f0a39fd6ab7e01e025b134d496907462f8 Dave Lazar <dlazar@resistorsoftware.coom> 1764770093 -0500	commit: basic PG smoke test in place, separate from main thread
+060982f0a39fd6ab7e01e025b134d496907462f8 b83d1c2373c55965314de799e95deabcf159dc97 Dave Lazar <dlazar@resistorsoftware.coom> 1765296993 -0500	merge integrated-smoke-test: Fast-forward

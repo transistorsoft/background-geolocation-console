@@ -1,0 +1,37 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>{{block "title" .}}Background Geolocation Console{{end}}</title>
+	<link rel="stylesheet" href="/dashboard/assets/dashboard.css">
+	<script src="https://unpkg.com/htmx.org@1.9.12"></script>
+	<script defer src="/dashboard/assets/dashboard.js"></script>
+	{{if .HasMap}}
+	<script
+		async
+		defer
+		src="https://maps.googleapis.com/maps/api/js?key={{.GoogleMapsKey}}&loading=async&v=weekly"
+		crossorigin="anonymous"
+	></script>
+	<script type="module" src="/dashboard/assets/js/map.component.js"></script>
+	{{end}}
+</head>
+<body>
+	<header class="app-header">
+		<div class="brand">
+			<img src="/dashboard/assets/images/transistor-logo.svg" alt="TransistorSoft" />
+			<span>Background Geolocation Console</span>
+		</div>
+		<nav>
+			<a href="/dashboard">Dashboard</a>
+			<a href="/healthz" target="_blank" rel="noreferrer">Health</a>
+		</nav>
+	</header>
+	<main>
+		{{block "content" .}}{{end}}
+	</main>
+</body>
+</html>
+{{end}}

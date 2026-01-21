@@ -1,0 +1,148 @@
+{{define "dashboard"}}
+	{{template "base" .}}
+{{end}}
+
+{{define "title"}}Background Geolocation Console{{end}}
+
+{{define "content"}}
+<section class="dashboard-shell">
+	<div class="panel panel-controls">
+		<h2>Organization</h2>
+		<form method="get" action="/dashboard" class="form-control">
+			<label for="org">Company token</label>
+			<input type="text" id="org" name="org" value="{{if .Org}}{{.Org}}{{else}}_resistor{{end}}" placeholder="Enter your company token">
+			<p class="hint">Example: <code>_resistor</code>. Required to load devices and locations.</p>
+			<button type="submit">Load</button>
+		</form>
+		{{if .Org}}
+		<form method="get" action="/dashboard/{{.Org}}" class="form-control stacked">
+			<input type="hidden" name="org" value="{{.Org}}">
+			<label for="company">Company</label>
+			<select id="company" name="company_id" onchange="this.form.submit()">
+				{{range .Companies}}
+				<option value="{{.ID}}" {{if eq $.SelectedCompanyID .ID}}selected{{end}}>{{.CompanyToken}}</option>
+				{{end}}
+			</select>
+			<label for="device">Device</label>
+			<select id="device" name="device_id" onchange="this.form.submit()">
+				<option value="">All devices</option>
+				{{range .Devices}}
+				<option value="{{.ID}}" {{if eq $.SelectedDeviceID .ID}}selected{{end}}>
+					{{.DeviceID}} {{if .Framework}}({{.Framework}}){{end}}
+				</option>
+				{{end}}
+			</select>
+		</form>
+		<div class="map-toggles" aria-label="Map display options">
+			<h3>Map Options</h3>
+			<label class="checkbox">
+				<input type="checkbox" id="toggle-show-markers"> Show markers
+			</label>
+			<label class="checkbox">
+				<input type="checkbox" id="toggle-show-polyline"> Show polyline
+			</label>
+			<label class="checkbox">
+				<input type="checkbox" id="toggle-show-geofences"> Show geofences
+			</label>
+			<label class="checkbox">
+				<input type="checkbox" id="toggle-use-clustering"> Enable clustering
+			</label>
+		</div>
+		<div class="login-panel">
+			<h3>Dashboard Login</h3>
+			<form id="login-form" class="login-form">
+				<label for="login-username">Username</label>
+				<input type="text" id="login-username" autocomplete="username" placeholder="admin">
+				<label for="login-password">Password</label>
+				<input type="password" id="login-password" autocomplete="current-password" placeholder="••••••••">
+				<button type="submit">Sign in</button>
+			</form>
+			<button type="button" id="logout-button" class="logout-button">Sign out</button>
+			<p id="login-status" class="login-status">Not authenticated</p>
+		</div>
+		{{end}}
+	</div>
+
+	<div class="panel panel-main" data-view-mode="both" data-company-id="{{.SelectedCompanyID}}">
+		{{if not .Org}}
+		<div class="empty-state">
+			<h2>Select an organization token</h2>
+			<p>Provide the company token you registered with the API to inspect devices and locations in real time.</p>
+		</div>
+		{{else}}
+		<div class="panel-header">
+			<div class="header-title">{{if .Org}}{{.Org}}{{else}}Background Geolocation{{end}}</div>
+			<div class="actions">
+				<div class="menu-wrapper">
+					<button type="button" class="menu-toggle" id="panel-menu-toggle" aria-label="Menu">
+						<span></span><span></span><span></span>
+					</button>
+					<div class="panel-menu" id="panel-menu">
+						<button type="button" id="menu-refresh">Refresh Now</button>
+						<button type="button" id="reset-zoom">Reset Zoom</button>
+						<button type="button" id="clear-locations" class="danger">Delete Locations</button>
+						<button type="button" id="toggle-theme">Switch to Light Mode</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="view-and-stats">
+			<div class="view-toggle" id="view-toggle">
+				<button type="button" data-view="map">Map</button>
+				<button type="button" data-view="both" class="active">Map + List</button>
+				<button type="button" data-view="list">List</button>
+			</div>
+			<div class="stats-pill">
+				{{template "partials/stats" .}}
+			</div>
+		</div>
+
+		{{template "partials/map" .}}
+
+			<div class="location-detail-panel hidden" id="location-detail-panel">
+				<div class="detail-header">
+					<div class="detail-title">
+						<h3>Location Details</h3>
+						<p class="detail-hint" id="location-detail-hint">Select a location on the map or list to inspect the raw payload.</p>
+					</div>
+					<button type="button" class="detail-close" id="location-detail-close" aria-label="Clear selected location">
+						&times;
+					</button>
+				</div>
+				<pre id="location-detail-json">{}</pre>
+			</div>
+
+		<div class="filters" hx-get="{{.PartialLocationsURL}}" hx-target="#locations-panel" hx-swap="innerHTML" hx-include="#filters-form">
+			<form id="filters-form" class="filters-form">
+				<div>
+					<label for="start_date">From</label>
+					<input type="datetime-local" id="start_date" name="start_date" value="{{.From}}">
+				</div>
+				<div>
+					<label for="end_date">To</label>
+					<input type="datetime-local" id="end_date" name="end_date" value="{{.To}}">
+				</div>
+				<div class="filter-row">
+					<label class="checkbox">
+						<input type="checkbox" name="watch_mode" value="true" {{if .WatchMode}}checked{{end}}> Watch mode
+					</label>
+					<label class="checkbox">
+						<input type="checkbox" id="toggle-local" autocomplete="off"> Local time
+					</label>
+				</div>
+			</form>
+		</div>
+
+		<div id="locations-panel"
+			class="locations-panel"
+			hx-get="{{.PartialLocationsURL}}"
+			hx-trigger="load, every {{printf "%.0f" .PollEvery.Seconds}}s, refresh"
+			hx-target="#locations-panel"
+			hx-swap="innerHTML"
+			hx-include="#filters-form">
+			{{template "partials/locations" .}}
+		</div>
+		{{end}}
+	</div>
+</section>
+{{end}}
