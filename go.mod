@@ -57,4 +57,4 @@ require (
 	gorm.io/gorm v1.30.0 // indirect
 )
 
-replace github.com/resistorsoftware/api-service => ../api-service
+replace github.com/resistorsoftware/api-service => ./api-service
