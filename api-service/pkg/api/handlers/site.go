@@ -22,11 +22,6 @@ type (
 	publicJWTRequest struct {
 		Org string `json:"org"`
 	}
-
-	publicAuthRequest struct {
-		Login    string `json:"login"`
-		Password string `json:"password"`
-	}
 )
 
 // SiteGetEnv exposes safe frontend-facing configuration bits.
@@ -63,36 +58,6 @@ func SitePostJWT(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"access_token": token, "org": req.Org, "token_type": "Bearer"})
-}
-
-// SitePostAuth verifies admin credentials and returns an elevated JWT.
-func SitePostAuth(c *gin.Context) {
-	var req publicAuthRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "missing login or password"})
-		return
-	}
-	cfg, err := config.Auth()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	if req.Login == "" || req.Password == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
-		return
-	}
-	if req.Login != cfg.AdminUsername || req.Password != cfg.Password {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
-		return
-	}
-
-	token, err := issueDashboardToken(req.Login, true)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"access_token": token, "org": req.Login, "isAdmin": true, "token_type": "Bearer"})
 }
 
 // SiteGetCompanyTokens lists companies accessible to the caller.
@@ -174,22 +139,6 @@ func SiteDeleteDevice(c *gin.Context) {
 			status = http.StatusForbidden
 		}
 		c.JSON(status, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"success": true})
-}
-
-// SiteDeleteLocations removes all stored locations for the current scope.
-func SiteDeleteLocations(c *gin.Context) {
-	claims := middleware.Claims(c)
-	filters := services.LocationFilters{Org: claims.Org}
-	if id := parseIDPtr(c.Query("company_id")); id != nil {
-		filters.CompanyID = id
-	} else if claims.CompanyID != 0 {
-		filters.CompanyID = &claims.CompanyID
-	}
-	if err := services.DeleteLocations(filters); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true})

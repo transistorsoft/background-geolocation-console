@@ -79,62 +79,6 @@ body.theme-light {
 	color: #e2e8f0;
 }
 
-.login-panel {
-	margin-top: 1.5rem;
-	padding: 1rem;
-	border: 1px solid #262b3d;
-	border-radius: 12px;
-	background: #111629;
-	display: flex;
-	flex-direction: column;
-	gap: 0.6rem;
-}
-
-.login-panel h3 {
-	margin: 0;
-	font-size: 1rem;
-	color: #e2e8f0;
-}
-
-.login-form {
-	display: flex;
-	flex-direction: column;
-	gap: 0.4rem;
-}
-
-.login-form input {
-	padding: 0.45rem;
-	border-radius: 6px;
-	border: 1px solid #2d364b;
-	background: #101425;
-	color: #e2e8f0;
-}
-
-.login-form button {
-	margin-top: 0.4rem;
-	padding: 0.5rem;
-	border-radius: 6px;
-	border: none;
-	background: #3b82f6;
-	color: #fff;
-	cursor: pointer;
-	font-weight: 600;
-}
-
-.logout-button {
-	padding: 0.45rem;
-	border-radius: 6px;
-	border: 1px solid rgba(255, 255, 255, 0.2);
-	background: transparent;
-	color: #e2e8f0;
-	cursor: pointer;
-}
-
-.login-status {
-	margin: 0;
-	font-size: 0.85rem;
-	color: #94a3b8;
-}
 
 .panel-main {
 	min-height: 70vh;
@@ -240,9 +184,6 @@ body.theme-light {
 	background: rgba(255,255,255,0.1);
 }
 
-.panel-menu button.danger {
-	color: #fca5a5;
-}
 .filters {
 	padding: 0 0 1rem 0;
 }
@@ -263,6 +204,15 @@ body.theme-light {
 }
 
 .filters-form input[type="datetime-local"] {
+	width: 100%;
+	padding: 0.45rem;
+	border-radius: 6px;
+	border: 1px solid #2d364b;
+	background: #0f1323;
+	color: #e2e8f0;
+}
+
+.filters-form select {
 	width: 100%;
 	padding: 0.45rem;
 	border-radius: 6px;
@@ -468,29 +418,6 @@ body.theme-light .map-toggles h3 {
 	color: #0f172a;
 }
 
-body.theme-light .login-panel {
-	background: #f5f8ff;
-	border-color: #d9e2ec;
-}
-
-body.theme-light .login-panel h3 {
-	color: #0f172a;
-}
-
-body.theme-light .login-form input {
-	background: #ffffff;
-	border-color: #d9e2ec;
-	color: #0f172a;
-}
-
-body.theme-light .logout-button {
-	border-color: rgba(15, 23, 42, 0.2);
-	color: #0f172a;
-}
-
-body.theme-light .login-status {
-	color: #334155;
-}
 
 body.theme-light .menu-toggle {
 	background: #ffffff;
@@ -515,9 +442,6 @@ body.theme-light .panel-menu button:hover {
 	background: rgba(15, 23, 42, 0.08);
 }
 
-body.theme-light .panel-menu button.danger {
-	color: #b91c1c;
-}
 
 body.theme-light .filters-form label,
 body.theme-light .checkbox {
@@ -525,6 +449,7 @@ body.theme-light .checkbox {
 }
 
 body.theme-light .filters-form input[type="datetime-local"],
+body.theme-light .filters-form select,
 body.theme-light .form-control input,
 body.theme-light .form-control select {
 	background: #ffffff;

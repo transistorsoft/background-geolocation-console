@@ -1,6 +1,5 @@
 const VIEW_MODE_KEY = 'dashboard:view-mode';
 const THEME_KEY = 'dashboard:theme';
-const AUTH_STORAGE_KEY = 'transistorsoft-settings#auth';
 let seenRows = new Set();
 let initializedRows = false;
 let useLocalTime = false;
@@ -143,14 +142,6 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 
-	const clearBtn = document.getElementById('clear-locations');
-	if (clearBtn) {
-		clearBtn.addEventListener('click', () => {
-			panelMenu?.classList.remove('show');
-			deleteAllLocations();
-		});
-	}
-
 	const toggle = document.getElementById('toggle-local');
 	if (toggle) {
 		toggle.addEventListener('change', (e) => {
@@ -161,6 +152,40 @@ document.addEventListener('DOMContentLoaded', () => {
 			} else {
 				restoreUTCTimes(rows);
 			}
+		});
+	}
+
+	const quickRange = document.getElementById('date-range-select');
+	if (quickRange) {
+		const startInput = document.getElementById('start_date');
+		const endInput = document.getElementById('end_date');
+		quickRange.addEventListener('change', () => {
+			if (!startInput || !endInput) {
+				return;
+			}
+			const selection = quickRange.value;
+			if (!selection) {
+				return;
+			}
+			const now = new Date();
+			let start = null;
+			let end = null;
+			if (selection === 'today') {
+				start = startOfLocalDay(now);
+				end = now;
+			} else if (selection === 'yesterday') {
+				const yesterday = new Date(now);
+				yesterday.setDate(yesterday.getDate() - 1);
+				start = startOfLocalDay(yesterday);
+				end = endOfLocalDay(yesterday);
+			} else if (selection === 'last-3-days') {
+				const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2);
+				start = startOfLocalDay(startDate);
+				end = now;
+			}
+			startInput.value = start ? formatDateTimeLocal(start) : '';
+			endInput.value = end ? formatDateTimeLocal(end) : '';
+			triggerRefresh();
 		});
 	}
 
@@ -181,7 +206,6 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 	initializeMapToggles();
-	initLoginPanel();
 
 	const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
 	applyTheme(savedTheme);
@@ -256,6 +280,22 @@ function applyLocalTime(rows) {
 			cell.innerHTML = `<div class="meta-date">${datePart}</div><div class="meta-time">${timePart} ${tz}</div>`;
 		}
 	});
+}
+
+function formatDateTimeLocal(date) {
+	if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+		return '';
+	}
+	const pad = (value) => String(value).padStart(2, '0');
+	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function startOfLocalDay(date) {
+	return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+}
+
+function endOfLocalDay(date) {
+	return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 0, 0);
 }
 
 function handleLocationSelection(uuid, options = {}) {
@@ -468,171 +508,11 @@ function triggerRefresh() {
 	}
 }
 
-function getSelectedCompanyId() {
-	const panel = document.querySelector('.panel-main');
-	if (!panel) {
-		return '';
-	}
-	return panel.getAttribute('data-company-id') || '';
-}
-
-function getStoredAuth() {
-	try {
-		const raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
-		if (!raw) {
-			return null;
-		}
-		return JSON.parse(raw);
-	} catch (err) {
-		return null;
-	}
-}
-
-function getAuthToken() {
-	const stored = getStoredAuth();
-	return stored?.accessToken || '';
-}
-
 function resetMapView() {
 	if (!mapElement) {
 		mapElement = document.getElementById('dashboard-map');
 	}
 	if (mapElement && typeof mapElement.resetView === 'function') {
 		mapElement.resetView();
-	}
-}
-
-function initLoginPanel() {
-	const form = document.getElementById('login-form');
-	const logoutBtn = document.getElementById('logout-button');
-	if (!form || !logoutBtn) {
-		return;
-	}
-	updateLoginStatus();
-	form.addEventListener('submit', async (evt) => {
-		evt.preventDefault();
-		const username = document.getElementById('login-username')?.value.trim();
-		const passwordField = document.getElementById('login-password');
-		const password = passwordField?.value || '';
-		if (!username || !password) {
-			updateLoginStatus('Username and password are required.');
-			return;
-		}
-		setLoginBusy(true);
-		try {
-			const resp = await fetch('/api/site/auth', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({ login: username, password }),
-			});
-			const data = await resp.json().catch(() => ({}));
-			if (!resp.ok || !data.access_token) {
-				throw new Error(data.error || 'Login failed');
-			}
-			setStoredAuth({
-				accessToken: data.access_token,
-				org: data.org || username,
-				isAdmin: Boolean(data.isAdmin),
-				obtainedAt: Date.now(),
-			});
-			updateLoginStatus();
-		} catch (err) {
-			updateLoginStatus(err.message || 'Login failed');
-		} finally {
-			if (passwordField) {
-				passwordField.value = '';
-			}
-			setLoginBusy(false);
-		}
-	});
-	logoutBtn.addEventListener('click', () => {
-		window.localStorage.removeItem(AUTH_STORAGE_KEY);
-		updateLoginStatus('Signed out');
-	});
-}
-
-function setStoredAuth(payload) {
-	try {
-		window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(payload));
-	} catch (err) {
-		console.warn('Unable to store auth token', err);
-	}
-}
-
-function setLoginBusy(isBusy) {
-	const form = document.getElementById('login-form');
-	const logoutBtn = document.getElementById('logout-button');
-	const stored = getStoredAuth();
-	if (form) {
-		const button = form.querySelector('button[type="submit"]');
-		if (button) {
-			button.disabled = isBusy;
-			button.textContent = isBusy ? 'Signing in…' : 'Sign in';
-		}
-		[...form.querySelectorAll('input')].forEach((input) => {
-			input.disabled = isBusy || Boolean(stored?.accessToken);
-		});
-	}
-	if (logoutBtn) {
-		logoutBtn.disabled = isBusy;
-	}
-}
-
-function updateLoginButtons() {
-	const form = document.getElementById('login-form');
-	const logoutBtn = document.getElementById('logout-button');
-	const stored = getStoredAuth();
-	const hasAuth = Boolean(stored?.accessToken);
-	if (form) {
-		form.style.display = hasAuth ? 'none' : 'flex';
-	}
-	if (logoutBtn) {
-		logoutBtn.style.display = hasAuth ? '' : 'none';
-		logoutBtn.disabled = !hasAuth;
-	}
-}
-
-function updateLoginStatus(message) {
-	const statusEl = document.getElementById('login-status');
-	const logoutBtn = document.getElementById('logout-button');
-	const stored = getStoredAuth();
-	if (!statusEl) {
-		return;
-	}
-	if (stored?.accessToken && !message) {
-		const org = stored.org || 'dashboard';
-		statusEl.textContent = `${org} logged in${stored.isAdmin ? ' (admin)' : ''}`;
-	} else {
-		statusEl.textContent = message || 'Not authenticated';
-	}
-	updateLoginButtons();
-}
-
-async function deleteAllLocations() {
-	if (!window.confirm('Delete all locations for the selected company? This cannot be undone.')) {
-		return;
-	}
-	const token = getAuthToken();
-	if (!token) {
-		window.alert('Missing auth token. Please re-authenticate.');
-		return;
-	}
-	const companyId = getSelectedCompanyId();
-	const params = companyId ? `?company_id=${companyId}` : '';
-	const resp = await fetch(`/api/site/locations${params}`, {
-		method: 'DELETE',
-		headers: {
-			Authorization: `Bearer ${token}`,
-		},
-	});
-	if (!resp.ok) {
-		window.alert('Failed to delete locations');
-		return;
-	}
-	const panel = document.getElementById('locations-panel');
-	if (panel) {
-		htmx.trigger(panel, 'refresh');
 	}
 }

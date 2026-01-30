@@ -6,4 +6,5 @@ src/server/database/db/*.db
 build/
 changes.diff
 backup.backup
+*.toml
 src/server/firebase/serviceAccount.json

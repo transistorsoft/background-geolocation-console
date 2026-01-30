@@ -10,8 +10,8 @@ Additional functionality may come from integrated GIS database as well as more c
 
 This binary boots the real `api-service` (found in `../api-service`) so it can be deployed to Heroku without touching the original sources. Configuration now works like this:
 
-- If `API_SERVICE_CONFIG` points to a readable TOML file, that file is used.
-- Otherwise, the app scans the environment and writes a temporary TOML file before booting.
+- If the required environment variables are present, the app synthesizes a temporary TOML file and uses it.
+- Otherwise it falls back to a TOML file, using `API_SERVICE_CONFIG` when set or `server.toml` by default.
 
 At minimum the following variables must be present when running without a TOML file:
 

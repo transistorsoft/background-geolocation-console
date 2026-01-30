@@ -19,16 +19,9 @@ const (
 	tempConfigFilename     = "heroku-api-service.toml"
 )
 
-// EnsureConfigFile returns the configuration path used by the service, creating
-// a temporary TOML file sourced from environment variables when necessary.
+// EnsureConfigFile returns the configuration path used by the service, preferring
+// environment variables and falling back to a TOML file when needed.
 func EnsureConfigFile() (string, error) {
-	if path := strings.TrimSpace(os.Getenv("API_SERVICE_CONFIG")); path != "" {
-		if _, err := os.Stat(path); err != nil {
-			return "", fmt.Errorf("API_SERVICE_CONFIG=%s: %w", path, err)
-		}
-		return path, nil
-	}
-
 	cfg := config.Config{}
 	populateServerConfig(&cfg.Server)
 	populateDatabaseConfig(&cfg.Database)
@@ -38,18 +31,32 @@ func EnsureConfigFile() (string, error) {
 	populateAccessConfig(&cfg.Access)
 	populateDevelopmentConfig(&cfg.Development)
 
-	if err := validateEnvConfig(cfg); err != nil {
-		return "", err
+	envErr := validateEnvConfig(cfg)
+	if envErr == nil {
+		data, err := toml.Marshal(cfg)
+		if err != nil {
+			return "", fmt.Errorf("marshal env config: %w", err)
+		}
+
+		path := filepath.Join(os.TempDir(), tempConfigFilename)
+		if err := os.WriteFile(path, data, 0o600); err != nil {
+			return "", fmt.Errorf("write env config: %w", err)
+		}
+		if err := os.Setenv("API_SERVICE_CONFIG", path); err != nil {
+			return "", fmt.Errorf("set API_SERVICE_CONFIG: %w", err)
+		}
+		return path, nil
 	}
 
-	data, err := toml.Marshal(cfg)
-	if err != nil {
-		return "", fmt.Errorf("marshal env config: %w", err)
+	path := strings.TrimSpace(os.Getenv("API_SERVICE_CONFIG"))
+	if path == "" {
+		path = "server.toml"
 	}
-
-	path := filepath.Join(os.TempDir(), tempConfigFilename)
-	if err := os.WriteFile(path, data, 0o600); err != nil {
-		return "", fmt.Errorf("write env config: %w", err)
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return "", fmt.Errorf("%v; configuration file %s not found (set API_SERVICE_CONFIG or provide env vars)", envErr, path)
+		}
+		return "", fmt.Errorf("API_SERVICE_CONFIG=%s: %w", path, err)
 	}
 	if err := os.Setenv("API_SERVICE_CONFIG", path); err != nil {
 		return "", fmt.Errorf("set API_SERVICE_CONFIG: %w", err)

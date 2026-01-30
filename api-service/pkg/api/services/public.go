@@ -184,17 +184,6 @@ func LatestLocation(filters LocationFilters) (map[string]any, error) {
 	return results[0], nil
 }
 
-// DeleteLocations removes all matching locations for the supplied filters.
-func DeleteLocations(filters LocationFilters) error {
-	db, err := storage.DB()
-	if err != nil {
-		return err
-	}
-	ctx := context.Background()
-	query := buildLocationQuery(ctx, db, filters)
-	return query.Delete(&storage.Location{}).Error
-}
-
 // DeleteDeviceHistory prunes device data or removes the device entirely.
 func DeleteDeviceHistory(opts DeleteDeviceOptions) error {
 	if opts.DeviceID == 0 {

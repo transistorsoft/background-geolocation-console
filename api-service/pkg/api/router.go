@@ -40,7 +40,6 @@ func registerSiteRoutes(r *gin.Engine) {
 	site := r.Group("/api/site")
 	site.GET("/env", handlers.SiteGetEnv)
 	site.POST("/jwt", handlers.SitePostJWT)
-	site.POST("/auth", handlers.SitePostAuth)
 
 	protected := site.Group("/")
 	protected.Use(middleware.CheckAuthRequired())
@@ -50,6 +49,5 @@ func registerSiteRoutes(r *gin.Engine) {
 		protected.DELETE("/devices/:id", handlers.SiteDeleteDevice)
 		protected.GET("/locations", handlers.SiteGetLocations)
 		protected.GET("/locations/latest", handlers.SiteGetLatestLocation)
-		protected.DELETE("/locations", handlers.SiteDeleteLocations)
 	}
 }

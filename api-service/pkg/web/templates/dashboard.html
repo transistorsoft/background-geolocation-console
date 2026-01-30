@@ -48,18 +48,6 @@
 				<input type="checkbox" id="toggle-use-clustering"> Enable clustering
 			</label>
 		</div>
-		<div class="login-panel">
-			<h3>Dashboard Login</h3>
-			<form id="login-form" class="login-form">
-				<label for="login-username">Username</label>
-				<input type="text" id="login-username" autocomplete="username" placeholder="admin">
-				<label for="login-password">Password</label>
-				<input type="password" id="login-password" autocomplete="current-password" placeholder="••••••••">
-				<button type="submit">Sign in</button>
-			</form>
-			<button type="button" id="logout-button" class="logout-button">Sign out</button>
-			<p id="login-status" class="login-status">Not authenticated</p>
-		</div>
 		{{end}}
 	</div>
 
@@ -80,7 +68,6 @@
 					<div class="panel-menu" id="panel-menu">
 						<button type="button" id="menu-refresh">Refresh Now</button>
 						<button type="button" id="reset-zoom">Reset Zoom</button>
-						<button type="button" id="clear-locations" class="danger">Delete Locations</button>
 						<button type="button" id="toggle-theme">Switch to Light Mode</button>
 					</div>
 				</div>
@@ -121,6 +108,15 @@
 				<div>
 					<label for="end_date">To</label>
 					<input type="datetime-local" id="end_date" name="end_date" value="{{.To}}">
+				</div>
+				<div>
+					<label for="date-range-select">Quick range</label>
+					<select id="date-range-select" aria-label="Quick date range">
+						<option value="">Select a date</option>
+						<option value="today">Today</option>
+						<option value="yesterday">Yesterday</option>
+						<option value="last-3-days">Last three days</option>
+					</select>
 				</div>
 				<div class="filter-row">
 					<label class="checkbox">
