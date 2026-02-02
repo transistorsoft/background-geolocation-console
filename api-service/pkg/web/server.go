@@ -68,6 +68,8 @@ func (s *Server) Register(r *gin.Engine) {
 	r.GET("/dashboard", s.handleDashboard)
 	r.GET("/dashboard/:org", s.handleDashboard)
 	r.GET("/dashboard/:org/partials/locations", s.handleLocationsPartial)
+	r.GET("/dashboard/:org/latest", s.handleLatestLocation)
+	r.GET("/dashboard/:org/range", s.handleLocationRange)
 	r.StaticFS("/dashboard/assets", http.FS(s.assetFS))
 	r.NoRoute(s.handleFallback)
 }
@@ -110,6 +112,71 @@ func (s *Server) handleLocationsPartial(c *gin.Context) {
 		_, _ = c.Writer.Write([]byte(err.Error()))
 		return
 	}
+}
+
+func (s *Server) handleLatestLocation(c *gin.Context) {
+	org := strings.TrimSpace(c.Param("org"))
+	if org == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "org required"})
+		return
+	}
+	params := c.Request.URL.Query()
+	companyID := parseID(firstParam(params, "company_id", ""))
+	deviceID := parseID(firstParam(params, "device_id", ""))
+	filters := services.LocationFilters{Org: org}
+	if companyID != 0 {
+		filters.CompanyID = int64Ptr(companyID)
+	}
+	if deviceID != 0 {
+		filters.DeviceID = int64Ptr(deviceID)
+	}
+	latest, err := services.LatestLocation(filters)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		_, _ = c.Writer.Write([]byte(err.Error()))
+		return
+	}
+	if latest == nil {
+		c.JSON(http.StatusOK, gin.H{"recorded_at": ""})
+		return
+	}
+	recorded := stringFromAny(latest["recorded_at"])
+	if recorded == "" {
+		recorded = stringFromAny(latest["timestamp"])
+	}
+	c.JSON(http.StatusOK, gin.H{"recorded_at": recorded})
+}
+
+func (s *Server) handleLocationRange(c *gin.Context) {
+	org := strings.TrimSpace(c.Param("org"))
+	if org == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "org required"})
+		return
+	}
+	params := c.Request.URL.Query()
+	companyID := parseID(firstParam(params, "company_id", ""))
+	deviceID := parseID(firstParam(params, "device_id", ""))
+	filters := services.LocationFilters{Org: org}
+	if companyID != 0 {
+		filters.CompanyID = int64Ptr(companyID)
+	}
+	if deviceID != 0 {
+		filters.DeviceID = int64Ptr(deviceID)
+	}
+	start, end, err := services.LocationRange(filters)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		_, _ = c.Writer.Write([]byte(err.Error()))
+		return
+	}
+	resp := gin.H{"start": "", "end": ""}
+	if start != nil {
+		resp["start"] = start.UTC().Format(time.RFC3339Nano)
+	}
+	if end != nil {
+		resp["end"] = end.UTC().Format(time.RFC3339Nano)
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 func (s *Server) handleFallback(c *gin.Context) {
@@ -445,9 +512,16 @@ func parseTime(value string) *time.Time {
 	if val == "" {
 		return nil
 	}
-	layouts := []string{time.RFC3339Nano, time.RFC3339, "2006-01-02T15:04", "2006-01-02"}
+	layouts := []string{time.RFC3339Nano, time.RFC3339}
 	for _, layout := range layouts {
 		if ts, err := time.Parse(layout, val); err == nil {
+			t := ts.UTC()
+			return &t
+		}
+	}
+	localLayouts := []string{"2006-01-02T15:04", "2006-01-02"}
+	for _, layout := range localLayouts {
+		if ts, err := time.ParseInLocation(layout, val, time.Local); err == nil {
 			t := ts.UTC()
 			return &t
 		}

@@ -517,8 +517,7 @@ body.theme-light .detail-close:hover {
 	display: none;
 }
 
-.panel-main[data-view-mode="map"] #locations-panel,
-.panel-main[data-view-mode="map"] .filters {
+.panel-main[data-view-mode="map"] #locations-panel {
 	display: none;
 }
 

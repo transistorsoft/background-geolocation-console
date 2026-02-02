@@ -171,6 +171,24 @@ func CountLocations(filters LocationFilters) (int64, error) {
 	return count, nil
 }
 
+// LocationRange returns the oldest and newest recorded_at timestamps for matching locations.
+func LocationRange(filters LocationFilters) (*time.Time, *time.Time, error) {
+	db, err := storage.DB()
+	if err != nil {
+		return nil, nil, err
+	}
+	ctx := context.Background()
+	query := buildLocationQuery(ctx, db, filters)
+	var row struct {
+		Start *time.Time `gorm:"column:start"`
+		End   *time.Time `gorm:"column:end"`
+	}
+	if err := query.Select("MIN(recorded_at) as start, MAX(recorded_at) as end").Scan(&row).Error; err != nil {
+		return nil, nil, err
+	}
+	return row.Start, row.End, nil
+}
+
 // LatestLocation returns the newest matching location.
 func LatestLocation(filters LocationFilters) (map[string]any, error) {
 	filters.Limit = 1

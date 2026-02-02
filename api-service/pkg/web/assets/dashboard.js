@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	if (quickRange) {
 		const startInput = document.getElementById('start_date');
 		const endInput = document.getElementById('end_date');
-		quickRange.addEventListener('change', () => {
+		const applyQuickRange = async (shouldRefresh = true) => {
 			if (!startInput || !endInput) {
 				return;
 			}
@@ -170,9 +170,27 @@ document.addEventListener('DOMContentLoaded', () => {
 			const now = new Date();
 			let start = null;
 			let end = null;
+			const resolveMostRecentRange = async () => {
+				const fromLocations = getRecordedRange(mapLocations);
+				if (fromLocations) {
+					return fromLocations;
+				}
+				return fetchRecordedRange();
+			};
 			if (selection === 'today') {
 				start = startOfLocalDay(now);
 				end = now;
+			} else if (selection === 'most-recent') {
+				const range = await resolveMostRecentRange();
+				if (range?.start) {
+					start = range.start;
+				}
+				if (range?.end) {
+					end = range.end;
+				}
+				if (!start && end) {
+					start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+				}
 			} else if (selection === 'yesterday') {
 				const yesterday = new Date(now);
 				yesterday.setDate(yesterday.getDate() - 1);
@@ -185,8 +203,12 @@ document.addEventListener('DOMContentLoaded', () => {
 			}
 			startInput.value = start ? formatDateTimeLocal(start) : '';
 			endInput.value = end ? formatDateTimeLocal(end) : '';
-			triggerRefresh();
-		});
+			if (shouldRefresh) {
+				triggerRefresh();
+			}
+		};
+		quickRange.addEventListener('change', () => applyQuickRange(true));
+		void applyQuickRange(false);
 	}
 
 	const viewToggle = document.getElementById('view-toggle');
@@ -288,6 +310,75 @@ function formatDateTimeLocal(date) {
 	}
 	const pad = (value) => String(value).padStart(2, '0');
 	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function getRecordedRange(locations) {
+	if (!Array.isArray(locations) || locations.length === 0) {
+		return null;
+	}
+	let start = null;
+	let end = null;
+	locations.forEach((loc) => {
+		const raw = loc?.recorded_at || loc?.recordedAt || loc?.timestamp || loc?.location?.recorded_at || loc?.location?.timestamp;
+		if (!raw) {
+			return;
+		}
+		const parsed = new Date(raw);
+		if (Number.isNaN(parsed.getTime())) {
+			return;
+		}
+		if (!start || parsed < start) {
+			start = parsed;
+		}
+		if (!end || parsed > end) {
+			end = parsed;
+		}
+	});
+	if (!start && !end) {
+		return null;
+	}
+	return { start, end };
+}
+
+async function fetchRecordedRange() {
+	const panel = document.querySelector('.panel-main');
+	const org = panel?.dataset?.org;
+	if (!org) {
+		return null;
+	}
+	const params = new URLSearchParams();
+	const companySelect = document.getElementById('company');
+	const deviceSelect = document.getElementById('device');
+	if (companySelect?.value) {
+		params.set('company_id', companySelect.value);
+	}
+	if (deviceSelect?.value) {
+		params.set('device_id', deviceSelect.value);
+	}
+	const suffix = params.toString();
+	const url = `/dashboard/${encodeURIComponent(org)}/range${suffix ? `?${suffix}` : ''}`;
+	try {
+		const response = await fetch(url, { headers: { Accept: 'application/json' } });
+		if (!response.ok) {
+			return null;
+		}
+		const data = await response.json();
+		const startRaw = data?.start || '';
+		const endRaw = data?.end || '';
+		const start = startRaw ? new Date(startRaw) : null;
+		const end = endRaw ? new Date(endRaw) : null;
+		const range = {};
+		if (start && !Number.isNaN(start.getTime())) {
+			range.start = start;
+		}
+		if (end && !Number.isNaN(end.getTime())) {
+			range.end = end;
+		}
+		return Object.keys(range).length ? range : null;
+	} catch (err) {
+		console.warn('range date fetch failed', err);
+		return null;
+	}
 }
 
 function startOfLocalDay(date) {
