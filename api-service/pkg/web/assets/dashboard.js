@@ -381,9 +381,9 @@ function initializeMapToggles() {
 		geofences: document.getElementById('toggle-show-geofences'),
 		clustering: document.getElementById('toggle-use-clustering'),
 	};
-	if (controls.markers) controls.markers.checked = false;
-	if (controls.polyline) controls.polyline.checked = false;
-	if (controls.geofences) controls.geofences.checked = false;
+	if (controls.markers) controls.markers.checked = true;
+	if (controls.polyline) controls.polyline.checked = true;
+	if (controls.geofences) controls.geofences.checked = true;
 	if (controls.clustering) controls.clustering.checked = false;
 	const apply = () => {
 		const assign = () => {

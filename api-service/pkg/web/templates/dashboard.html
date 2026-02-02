@@ -10,8 +10,8 @@
 		<h2>Organization</h2>
 		<form method="get" action="/dashboard" class="form-control">
 			<label for="org">Company token</label>
-			<input type="text" id="org" name="org" value="{{if .Org}}{{.Org}}{{else}}_resistor{{end}}" placeholder="Enter your company token">
-			<p class="hint">Example: <code>_resistor</code>. Required to load devices and locations.</p>
+			<input type="text" id="org" name="org" value="{{if .Org}}{{.Org}}{{else}}_sample_company{{end}}" placeholder="_sample_company">
+			<p class="hint">Example: <code>_sample_company</code>. Required to load devices and locations.</p>
 			<button type="submit">Load</button>
 		</form>
 		{{if .Org}}
@@ -36,13 +36,13 @@
 		<div class="map-toggles" aria-label="Map display options">
 			<h3>Map Options</h3>
 			<label class="checkbox">
-				<input type="checkbox" id="toggle-show-markers"> Show markers
+				<input type="checkbox" id="toggle-show-markers" checked> Show markers
 			</label>
 			<label class="checkbox">
-				<input type="checkbox" id="toggle-show-polyline"> Show polyline
+				<input type="checkbox" id="toggle-show-polyline" checked> Show polyline
 			</label>
 			<label class="checkbox">
-				<input type="checkbox" id="toggle-show-geofences"> Show geofences
+				<input type="checkbox" id="toggle-show-geofences" checked> Show geofences
 			</label>
 			<label class="checkbox">
 				<input type="checkbox" id="toggle-use-clustering"> Enable clustering
