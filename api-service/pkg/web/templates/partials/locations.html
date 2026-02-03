@@ -17,8 +17,12 @@
 		<tbody>
 		{{if .Locations}}
 		{{range .Locations}}
-			<tr data-uuid="{{.UUID}}">
-				<td class="mono uuid-cell" title="{{.UUID}}">{{shortUUID .UUID}}&hellip;</td>
+			<tr data-uuid="{{.UUID}}" data-id="{{.ID}}">
+				<td class="mono uuid-cell" title="{{.UUID}}">
+					<button type="button" class="uuid-link" data-uuid="{{.UUID}}" {{if not .UUID}}disabled{{end}}>
+						{{if .UUID}}{{shortUUID .UUID}}&hellip;{{else}}&mdash;{{end}}
+					</button>
+				</td>
 				<td class="timestamp-cell" data-recorded="{{.RecordedAtISO}}">
 					<div class="meta-date">{{.RecordedDateUTC}}</div>
 					<div class="meta-time">{{.RecordedTimeUTC}}</div>

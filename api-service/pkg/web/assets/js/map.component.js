@@ -359,9 +359,10 @@ export class TransistorSoftMap extends HTMLElement {
       scale *= 2;
     }
 
-    return {
+    const heading = resolveHeading(location);
+
+    const icon = {
       path,
-      rotation: location.heading,
       scale,
       anchor,
       fillColor: options.fillColor || fillColor,
@@ -370,6 +371,10 @@ export class TransistorSoftMap extends HTMLElement {
       strokeWeight: options.strokeWeight || 1,
       strokeOpacity: options.strokeOpacity || 1,
     };
+    if (heading !== null) {
+      icon.rotation = heading;
+    }
+    return icon;
   }
 
 	fitBoundsIfPostponed () {
@@ -841,4 +846,100 @@ export class TransistorSoftMap extends HTMLElement {
   }
 
 }
+
+function resolveHeading(location) {
+  if (!location) {
+    return null;
+  }
+  const coords = normalizeCoords(location.coords);
+  const nestedCoords = normalizeCoords(location.location?.coords);
+  const candidates = [
+    location.heading,
+    location.bearing,
+    location.course,
+    location.direction,
+    coords?.heading,
+    coords?.bearing,
+    coords?.course,
+    coords?.direction,
+    location.location?.heading,
+    location.location?.bearing,
+    location.location?.course,
+    location.location?.direction,
+    nestedCoords?.heading,
+    nestedCoords?.bearing,
+    nestedCoords?.course,
+    nestedCoords?.direction,
+    location.extras?.heading,
+    location.extras?.bearing,
+    location.extras?.course,
+    location.extras?.direction,
+  ];
+  for (const value of candidates) {
+    const heading = toFiniteNumber(value);
+    if (heading !== null) {
+      const normalized = normalizeHeading(maybeConvertRadians(heading));
+      if (normalized >= 0) {
+        return normalized;
+      }
+    }
+  }
+  return null;
+}
+
+function normalizeCoords(coords) {
+  if (!coords) {
+    return null;
+  }
+  if (typeof coords === 'string') {
+    try {
+      const parsed = JSON.parse(coords);
+      return typeof parsed === 'object' && parsed ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+  return coords;
+}
+
+function toFiniteNumber(value) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  let num = null;
+  if (typeof value === 'number') {
+    num = value;
+  } else if (typeof value === 'string') {
+    const trimmed = value.trim();
+    num = trimmed === '' ? NaN : parseFloat(trimmed);
+  } else {
+    num = Number(String(value).trim());
+  }
+  if (!Number.isFinite(num)) {
+    return null;
+  }
+  return num;
+}
+
+function maybeConvertRadians(value) {
+  if (Math.abs(value) <= Math.PI * 2) {
+    return value * (180 / Math.PI);
+  }
+  return value;
+}
+
+function normalizeHeading(value) {
+  if (!Number.isFinite(value)) {
+    return -1;
+  }
+  if (value < 0) {
+    return -1;
+  }
+  let heading = value % 360;
+  if (heading < 0) {
+    return -1;
+  }
+  return heading;
+}
+
 window.customElements.define('transistorsoft-map', TransistorSoftMap);

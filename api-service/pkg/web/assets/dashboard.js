@@ -240,14 +240,17 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	document.addEventListener('click', (evt) => {
-		const row = evt.target.closest('#locations-panel tr[data-uuid]');
+		const uuidButton = evt.target.closest('#locations-panel .uuid-link');
+		const row = evt.target.closest('#locations-panel tr[data-uuid], #locations-panel tr[data-id]');
 		if (!row) {
 			return;
 		}
-		const uuid = row.getAttribute('data-uuid');
-		if (uuid) {
-			handleLocationSelection(uuid, { scroll: false });
-			if (mapElement) {
+		const uuid = (uuidButton?.getAttribute('data-uuid') || row.getAttribute('data-uuid') || '').trim();
+		const id = (uuidButton?.getAttribute('data-id') || row.getAttribute('data-id') || '').trim();
+		const key = uuid || id;
+		if (key) {
+			handleLocationSelection(key, { scroll: false });
+			if (mapElement && uuid) {
 				mapElement.selected = uuid;
 			}
 		}
@@ -401,19 +404,20 @@ function handleLocationSelection(uuid, options = {}) {
 	renderLocationDetails(uuid);
 }
 
-function highlightLocationRow(uuid) {
+function highlightLocationRow(key) {
 	const panel = document.getElementById('locations-panel');
 	if (!panel) {
 		return null;
 	}
 	panel.querySelectorAll('tr.selected').forEach((el) => el.classList.remove('selected'));
-	if (!uuid) {
+	if (!key) {
 		clearPinnedRow(panel);
 		return null;
 	}
-	const rows = panel.querySelectorAll('tr[data-uuid]');
+	const rows = panel.querySelectorAll('tr[data-uuid], tr[data-id]');
 	for (const row of rows) {
-		if (row.getAttribute('data-uuid') === uuid) {
+		const rowKey = row.getAttribute('data-uuid') || row.getAttribute('data-id');
+		if (rowKey === key) {
 			row.classList.add('selected');
 			pinRow(row);
 			return row;
@@ -435,34 +439,109 @@ function scrollRowIntoView(row) {
 	row.scrollIntoView({ block: 'start', behavior: 'smooth' });
 }
 
-function renderLocationDetails(uuid) {
+function renderLocationDetails(key) {
 	const detailPanel = document.getElementById('location-detail-panel');
 	const detailHint = document.getElementById('location-detail-hint');
 	const detailJson = document.getElementById('location-detail-json');
+	const detailMeta = document.getElementById('location-detail-meta');
 	if (!detailPanel || !detailHint || !detailJson) {
 		return;
 	}
-	if (!uuid) {
+	if (!key) {
 		detailHint.textContent = 'Select a location on the map or list to inspect the raw payload.';
 		detailJson.textContent = '{}';
+		if (detailMeta) detailMeta.textContent = '';
 		return;
 	}
 	showDetailPanel();
-	const location = getLocationByUUID(uuid);
+	const location = getLocationByKey(key);
 	if (!location) {
 		detailHint.textContent = 'Details unavailable for the selected location.';
 		detailJson.textContent = '{}';
+		if (detailMeta) detailMeta.textContent = '';
 		return;
 	}
-	detailHint.textContent = `UUID: ${uuid}`;
-	detailJson.textContent = JSON.stringify(location, null, 2);
+	const display = location.uuid || location.id || key;
+	detailHint.textContent = location.uuid ? `UUID: ${display}` : `ID: ${display}`;
+	const heading = extractHeading(location);
+	if (detailMeta) {
+		const headingText = heading === null ? 'n/a' : heading.toFixed(2);
+		detailMeta.innerHTML = `<span><strong>ID</strong>${location.id || 'n/a'}</span><span><strong>UUID</strong>${location.uuid || 'n/a'}</span><span><strong>Heading</strong>${headingText}</span>`;
+	}
+	const detailLocation = { ...location };
+	if (detailLocation.uuid == null) {
+		detailLocation.uuid = location.uuid || null;
+	}
+	if (detailLocation.heading == null && heading !== null) {
+		detailLocation.heading = heading;
+	}
+	detailJson.textContent = JSON.stringify(detailLocation, null, 2);
 }
 
-function getLocationByUUID(uuid) {
-	if (!uuid || !Array.isArray(mapLocations)) {
+function getLocationByKey(key) {
+	if (!key || !Array.isArray(mapLocations)) {
 		return null;
 	}
-	return mapLocations.find((loc) => typeof loc?.uuid === 'string' && loc.uuid === uuid) || null;
+	const trimmed = String(key).trim();
+	if (!trimmed) {
+		return null;
+	}
+	const byUUID = mapLocations.find((loc) => typeof loc?.uuid === 'string' && loc.uuid === trimmed);
+	if (byUUID) {
+		return byUUID;
+	}
+	return mapLocations.find((loc) => String(loc?.id || '').trim() === trimmed) || null;
+}
+
+function extractHeading(location) {
+	if (!location) {
+		return null;
+	}
+	const coords = normalizeCoords(location.coords);
+	const nestedCoords = normalizeCoords(location.location?.coords);
+	const candidates = [
+		location.heading,
+		coords?.heading,
+		location.location?.heading,
+		nestedCoords?.heading,
+	];
+	for (const value of candidates) {
+		const num = toFiniteNumber(value);
+		if (num === null) {
+			continue;
+		}
+		if (num < 0) {
+			continue;
+		}
+		return num;
+	}
+	return null;
+}
+
+function normalizeCoords(coords) {
+	if (!coords) {
+		return null;
+	}
+	if (typeof coords === 'string') {
+		try {
+			const parsed = JSON.parse(coords);
+			return parsed && typeof parsed === 'object' ? parsed : null;
+		} catch {
+			return null;
+		}
+	}
+	return coords;
+}
+
+function toFiniteNumber(value) {
+	if (value === null || value === undefined) {
+		return null;
+	}
+	if (typeof value === 'number') {
+		return Number.isFinite(value) ? value : null;
+	}
+	const num = parseFloat(String(value).trim());
+	return Number.isFinite(num) ? num : null;
 }
 
 function initializeMapToggles() {

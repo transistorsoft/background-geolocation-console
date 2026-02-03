@@ -144,12 +144,7 @@ func ListLocations(filters LocationFilters) ([]map[string]any, error) {
 	}
 	out := make([]map[string]any, 0, len(rows))
 	for _, row := range rows {
-		payload := make(map[string]any)
-		if len(row.Data) > 0 {
-			if err := json.Unmarshal(row.Data, &payload); err != nil {
-				payload = make(map[string]any)
-			}
-		}
+		payload := decodeLocationData(row.Data)
 		enrichLocationPayload(payload, row)
 		out = append(out, payload)
 	}
@@ -343,28 +338,51 @@ func propagateLocationPayload(payload map[string]any) {
 	if payload == nil {
 		return
 	}
-	ensureFromPayload(payload, "latitude", "latitude", "location.latitude", "coords.latitude", "location.coords.latitude")
-	ensureFromPayload(payload, "longitude", "longitude", "location.longitude", "coords.longitude", "location.coords.longitude")
-	ensureFromPayload(payload, "accuracy", "accuracy", "location.coords.accuracy")
-	ensureFromPayload(payload, "altitude", "altitude", "location.coords.altitude")
-	ensureFromPayload(payload, "heading", "heading", "location.coords.heading")
-	ensureFromPayload(payload, "speed", "speed", "location.coords.speed")
-	ensureFromPayload(payload, "speed_accuracy", "speed_accuracy", "location.coords.speed_accuracy")
-	ensureFromPayload(payload, "heading_accuracy", "heading_accuracy", "location.coords.heading_accuracy")
-	ensureFromPayload(payload, "altitude_accuracy", "altitude_accuracy", "location.coords.altitude_accuracy")
-	ensureFromPayload(payload, "is_moving", "is_moving", "location.is_moving")
-	ensureFromPayload(payload, "odometer", "odometer", "location.odometer")
-	ensureFromPayload(payload, "event", "event", "location.event")
-	ensureFromPayload(payload, "extras", "extras", "location.extras")
-	ensureFromPayload(payload, "age", "age", "location.age")
-	ensureFromPayload(payload, "activity_type", "activity_type", "location.activity.type")
-	ensureFromPayload(payload, "activity_confidence", "activity_confidence", "location.activity.confidence")
-	ensureFromPayload(payload, "battery_level", "battery_level", "location.battery.level")
-	ensureFromPayload(payload, "battery_is_charging", "battery_is_charging", "location.battery.is_charging")
+	ensureFromPayload(payload, "latitude", "latitude", "location.latitude", "coords.latitude", "location.coords.latitude", "data.coords.latitude", "data.location.coords.latitude")
+	ensureFromPayload(payload, "longitude", "longitude", "location.longitude", "coords.longitude", "location.coords.longitude", "data.coords.longitude", "data.location.coords.longitude")
+	ensureFromPayload(payload, "coords", "coords", "location.coords", "data.coords", "data.location.coords")
+	ensureFromPayload(payload, "accuracy", "accuracy", "coords.accuracy", "location.coords.accuracy", "data.coords.accuracy", "data.location.coords.accuracy")
+	ensureFromPayload(payload, "altitude", "altitude", "coords.altitude", "location.coords.altitude", "data.coords.altitude", "data.location.coords.altitude")
+	ensureFromPayload(payload, "heading", "heading", "location.heading", "location.coords.heading", "coords.heading", "data.heading", "data.location.heading", "data.location.coords.heading")
+	ensureFromPayload(payload, "speed", "speed", "coords.speed", "location.coords.speed", "data.coords.speed", "data.location.coords.speed")
+	ensureFromPayload(payload, "speed_accuracy", "speed_accuracy", "coords.speed_accuracy", "location.coords.speed_accuracy", "data.coords.speed_accuracy", "data.location.coords.speed_accuracy")
+	ensureFromPayload(payload, "heading_accuracy", "heading_accuracy", "coords.heading_accuracy", "location.coords.heading_accuracy", "data.coords.heading_accuracy", "data.location.coords.heading_accuracy")
+	ensureFromPayload(payload, "altitude_accuracy", "altitude_accuracy", "coords.altitude_accuracy", "location.coords.altitude_accuracy", "data.coords.altitude_accuracy", "data.location.coords.altitude_accuracy")
+	ensureFromPayload(payload, "is_moving", "is_moving", "location.is_moving", "data.is_moving", "location.data.is_moving")
+	ensureFromPayload(payload, "odometer", "odometer", "location.odometer", "data.odometer", "location.data.odometer")
+	ensureFromPayload(payload, "event", "event", "location.event", "data.event", "location.data.event")
+	ensureFromPayload(payload, "extras", "extras", "location.extras", "data.extras", "location.data.extras")
+	ensureFromPayload(payload, "age", "age", "location.age", "data.age", "location.data.age")
+	ensureFromPayload(payload, "activity_type", "activity_type", "activity.type", "location.activity.type", "data.activity.type", "location.data.activity.type")
+	ensureFromPayload(payload, "activity_confidence", "activity_confidence", "activity.confidence", "location.activity.confidence", "data.activity.confidence", "location.data.activity.confidence")
+	ensureFromPayload(payload, "battery_level", "battery_level", "battery.level", "location.battery.level", "data.battery.level", "location.data.battery.level")
+	ensureFromPayload(payload, "battery_is_charging", "battery_is_charging", "battery.is_charging", "location.battery.is_charging", "data.battery.is_charging", "location.data.battery.is_charging")
 	ensureFromPayload(payload, "timestamp", "timestamp", "location.timestamp")
-	ensureFromPayload(payload, "recorded_at", "recorded_at", "location.recorded_at", "location.timestamp")
-	ensureFromPayload(payload, "uuid", "uuid", "location.uuid")
+	ensureFromPayload(payload, "recorded_at", "recorded_at", "location.recorded_at", "location.timestamp", "data.recorded_at", "data.timestamp")
+	ensureFromPayload(payload, "uuid", "uuid", "location.uuid", "data.uuid", "data.location.uuid")
 	ensureFromPayload(payload, "geofence", "geofence", "location.geofence")
+}
+
+func decodeLocationData(raw []byte) map[string]any {
+	payload := make(map[string]any)
+	if len(raw) == 0 {
+		return payload
+	}
+	if err := json.Unmarshal(raw, &payload); err == nil {
+		return payload
+	}
+	var encoded string
+	if err := json.Unmarshal(raw, &encoded); err != nil {
+		return make(map[string]any)
+	}
+	trimmed := strings.TrimSpace(encoded)
+	if trimmed == "" {
+		return make(map[string]any)
+	}
+	if err := json.Unmarshal([]byte(trimmed), &payload); err != nil {
+		return make(map[string]any)
+	}
+	return payload
 }
 
 func ensureFromPayload(payload map[string]any, key string, paths ...string) {

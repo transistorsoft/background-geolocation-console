@@ -343,6 +343,25 @@ body.theme-light {
 	font-size: 0.85rem;
 }
 
+.location-detail-panel .detail-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 1rem;
+	font-size: 0.8rem;
+	color: #cbd5f5;
+}
+
+.location-detail-panel .detail-meta span {
+	display: inline-flex;
+	gap: 0.35rem;
+	align-items: baseline;
+}
+
+.location-detail-panel .detail-meta strong {
+	font-weight: 600;
+	color: #e2e8f0;
+}
+
 .location-detail-panel pre {
 	margin: 0;
 	background: #0d1224;
@@ -616,6 +635,24 @@ body.theme-light .detail-close:hover {
 	cursor: help;
 	text-decoration: underline dotted;
 	color: #9bd8ff;
+}
+
+.uuid-link {
+	appearance: none;
+	border: 0;
+	background: none;
+	padding: 0;
+	margin: 0;
+	font: inherit;
+	color: inherit;
+	cursor: pointer;
+	text-decoration: inherit;
+}
+
+.uuid-link:disabled {
+	cursor: default;
+	opacity: 0.6;
+	text-decoration: none;
 }
 
 .locations-table tbody tr:hover .uuid-cell {
