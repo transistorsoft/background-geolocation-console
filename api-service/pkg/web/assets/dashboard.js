@@ -17,6 +17,7 @@ function updateMapData() {
 	try {
 		const parsed = JSON.parse(script.textContent || '[]');
 		hydrateMap(parsed);
+		seedDateFiltersFromData();
 	} catch (err) {
 		console.warn('map data parse failed', err);
 	}
@@ -159,6 +160,78 @@ document.addEventListener('DOMContentLoaded', () => {
 	if (quickRange) {
 		const startInput = document.getElementById('start_date');
 		const endInput = document.getElementById('end_date');
+		normalizeDateTimeInput(startInput);
+		normalizeDateTimeInput(endInput);
+		const defaultDateForInput = (input) => {
+			if (!input) {
+				return null;
+			}
+			if (input.id === 'start_date') {
+				const endValue = (endInput?.value || '').trim();
+				if (endValue) {
+					const endDate = new Date(endValue);
+					if (!Number.isNaN(endDate.getTime())) {
+						return startOfLocalDay(endDate);
+					}
+				}
+				return startOfLocalDay(new Date());
+			}
+			if (input.id === 'end_date') {
+				const startValue = (startInput?.value || '').trim();
+				if (startValue) {
+					const startDate = new Date(startValue);
+					if (!Number.isNaN(startDate.getTime())) {
+						return startDate;
+					}
+				}
+				return new Date();
+			}
+			return null;
+		};
+		const registerDateInput = (input) => {
+			if (!input) {
+				return;
+			}
+			const normalize = () => normalizeDateTimeInput(input);
+			const normalizeDelayed = () => setTimeout(normalize, 0);
+			const normalizeLater = () => setTimeout(normalize, 50);
+			const startPolling = () => {
+				if (input._datetimePoll) {
+					return;
+				}
+				input._datetimePoll = setInterval(() => {
+					normalizeDateTimeInput(input);
+					if (input.value && /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(input.value)) {
+						clearInterval(input._datetimePoll);
+						input._datetimePoll = null;
+					}
+				}, 150);
+			};
+			const stopPolling = () => {
+				if (input._datetimePoll) {
+					clearInterval(input._datetimePoll);
+					input._datetimePoll = null;
+				}
+			};
+			input.addEventListener('input', normalizeDelayed);
+			input.addEventListener('change', normalizeDelayed);
+			input.addEventListener('blur', normalizeDelayed);
+			input.addEventListener('focus', normalizeDelayed);
+			input.addEventListener('change', normalizeLater);
+			input.addEventListener('blur', normalizeLater);
+			input.addEventListener('focus', () => {
+				if (!(input.value || '').trim()) {
+					const defaultDate = defaultDateForInput(input);
+					if (defaultDate) {
+						input.value = formatDateTimeLocal(defaultDate);
+					}
+				}
+				startPolling();
+			});
+			input.addEventListener('blur', stopPolling);
+		};
+		registerDateInput(startInput);
+		registerDateInput(endInput);
 		const applyQuickRange = async (shouldRefresh = true) => {
 			if (!startInput || !endInput) {
 				return;
@@ -313,6 +386,54 @@ function formatDateTimeLocal(date) {
 	}
 	const pad = (value) => String(value).padStart(2, '0');
 	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function normalizeDateTimeInput(input) {
+	if (!input) {
+		return;
+	}
+	const raw = (input.value || '').trim();
+	if (!raw) {
+		if (input.valueAsDate instanceof Date && !Number.isNaN(input.valueAsDate.getTime())) {
+			input.value = formatDateTimeLocal(input.valueAsDate);
+		}
+		return;
+	}
+	if (raw.includes('--')) {
+		const datePart = raw.split('T')[0];
+		if (datePart) {
+			input.value = `${datePart}T00:00`;
+		}
+		return;
+	}
+	if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+		input.value = `${raw}T00:00`;
+		return;
+	}
+	if (/^\d{4}-\d{2}-\d{2}T\d{2}$/.test(raw)) {
+		input.value = `${raw}:00`;
+		return;
+	}
+	if (/^\d{4}-\d{2}-\d{2}T$/.test(raw)) {
+		input.value = `${raw}00:00`;
+	}
+}
+
+function seedDateFiltersFromData() {
+	const endInput = document.getElementById('end_date');
+	if (!endInput || (endInput.value || '').trim()) {
+		return;
+	}
+	const range = getRecordedRange(mapLocations);
+	if (range?.end) {
+		endInput.value = formatDateTimeLocal(range.end);
+		normalizeDateTimeInput(endInput);
+	}
+	const startInput = document.getElementById('start_date');
+	if (startInput && !(startInput.value || '').trim() && range?.end) {
+		startInput.value = formatDateTimeLocal(startOfLocalDay(range.end));
+		normalizeDateTimeInput(startInput);
+	}
 }
 
 function getRecordedRange(locations) {
