@@ -281,6 +281,15 @@ func (s *Server) buildDashboardData(org string, params map[string][]string) (*Da
 	if deviceID != 0 {
 		devicePtr = int64Ptr(deviceID)
 	}
+	if !data.WatchMode {
+		now := time.Now().UTC()
+		if strings.TrimSpace(data.From) == "" {
+			data.From = formatDateTimeInputUTC(startOfUTCDay(now))
+		}
+		if strings.TrimSpace(data.To) == "" {
+			data.To = formatDateTimeInputUTC(now)
+		}
+	}
 	filters := services.LocationFilters{
 		Org:       org,
 		CompanyID: companyPtr,
@@ -569,6 +578,14 @@ func parseTime(value string) *time.Time {
 		}
 	}
 	return nil
+}
+
+func formatDateTimeInputUTC(ts time.Time) string {
+	return ts.UTC().Format("2006-01-02T15:04")
+}
+
+func startOfUTCDay(ts time.Time) time.Time {
+	return time.Date(ts.UTC().Year(), ts.UTC().Month(), ts.UTC().Day(), 0, 0, 0, 0, time.UTC)
 }
 
 func firstParam(values map[string][]string, key, fallback string) string {
