@@ -28,7 +28,7 @@
 				<option value="">All devices</option>
 				{{range .Devices}}
 				<option value="{{.ID}}" {{if eq $.SelectedDeviceID .ID}}selected{{end}}>
-					{{.DeviceID}} {{if .Framework}}({{.Framework}}){{end}}
+					{{.DisplayName}}
 				</option>
 				{{end}}
 			</select>

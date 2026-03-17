@@ -39,6 +39,29 @@ type DeviceDetails struct {
 	UpdatedAt    *time.Time `json:"updated_at"`
 }
 
+// DisplayName returns the dashboard-friendly device label.
+func (d DeviceDetails) DisplayName() string {
+	model := strings.TrimSpace(d.DeviceModel)
+	deviceID := strings.TrimSpace(d.DeviceID)
+	framework := strings.TrimSpace(d.Framework)
+
+	label := deviceID
+	if model != "" {
+		if username := deriveUsername(deviceID, model); username != "" {
+			label = model + "-" + username
+		} else if label == "" {
+			label = model
+		}
+	}
+	if label == "" {
+		label = "device"
+	}
+	if framework == "" {
+		return label
+	}
+	return fmt.Sprintf("%s (%s)", label, framework)
+}
+
 // LocationFilters controls ListLocations queries.
 type LocationFilters struct {
 	Org       string
@@ -266,6 +289,19 @@ func dashboardRegisterRequest(org string) types.RegisterRequest {
 		UUID:         token,
 		Version:      "1.0.0",
 	}
+}
+
+func deriveUsername(deviceID, model string) string {
+	deviceID = strings.TrimSpace(deviceID)
+	model = strings.TrimSpace(model)
+	if deviceID == "" || model == "" {
+		return ""
+	}
+	prefix := model + "-"
+	if strings.HasPrefix(deviceID, prefix) {
+		return strings.TrimSpace(strings.TrimPrefix(deviceID, prefix))
+	}
+	return ""
 }
 
 func enrichLocationPayload(payload map[string]any, row storage.Location) {
