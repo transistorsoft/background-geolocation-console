@@ -42,7 +42,16 @@
 			{{end}}
 		{{else}}
 			<tr>
-				<td colspan="9" class="empty-row">No locations recorded for this selection yet.</td>
+				<td colspan="9" class="empty-row">
+					{{if or .HasActiveFilters .WatchMode}}
+						No locations recorded for this selection yet.
+					{{else}}
+						<div class="empty-row-content">
+							<strong>No date range selected.</strong>
+							<span>Choose a quick range, enter dates, or use Load Last Session.</span>
+						</div>
+					{{end}}
+				</td>
 			</tr>
 		{{end}}
 		</tbody>

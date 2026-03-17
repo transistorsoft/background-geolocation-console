@@ -17,7 +17,6 @@ function updateMapData() {
 	try {
 		const parsed = JSON.parse(script.textContent || '[]');
 		hydrateMap(parsed);
-		seedDateFiltersFromData();
 	} catch (err) {
 		console.warn('map data parse failed', err);
 	}
@@ -160,6 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	if (quickRange) {
 		const startInput = document.getElementById('start_date');
 		const endInput = document.getElementById('end_date');
+		const loadLastSessionButton = document.getElementById('load-last-session');
 		normalizeDateTimeInput(startInput);
 		normalizeDateTimeInput(endInput);
 		const defaultDateForInput = (input) => {
@@ -181,10 +181,10 @@ document.addEventListener('DOMContentLoaded', () => {
 				if (startValue) {
 					const startDate = new Date(startValue);
 					if (!Number.isNaN(startDate.getTime())) {
-						return startDate;
+						return endOfLocalDay(startDate);
 					}
 				}
-				return new Date();
+				return endOfLocalDay(new Date());
 			}
 			return null;
 		};
@@ -282,6 +282,26 @@ document.addEventListener('DOMContentLoaded', () => {
 		};
 		quickRange.addEventListener('change', () => applyQuickRange(true));
 		void applyQuickRange(false);
+		if (loadLastSessionButton) {
+			loadLastSessionButton.addEventListener('click', async () => {
+				loadLastSessionButton.disabled = true;
+				loadLastSessionButton.textContent = 'Loading...';
+				try {
+					const session = await fetchLatestSessionRange();
+					startInput.value = session?.start ? formatDateTimeLocal(session.start) : '';
+					endInput.value = session?.end ? formatDateTimeLocal(session.end) : '';
+					normalizeDateTimeInput(startInput);
+					normalizeDateTimeInput(endInput);
+					quickRange.value = '';
+					triggerRefresh();
+				} catch (err) {
+					console.warn('latest session fetch failed', err);
+				} finally {
+					loadLastSessionButton.disabled = false;
+					loadLastSessionButton.textContent = 'Load Last Session';
+				}
+			});
+		}
 	}
 
 	const viewToggle = document.getElementById('view-toggle');
@@ -388,6 +408,17 @@ function formatDateTimeLocal(date) {
 	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+function normalizeDateBoundary(input, datePart) {
+	if (!input || !datePart) {
+		return;
+	}
+	if (input.id === 'end_date') {
+		input.value = `${datePart}T23:59`;
+		return;
+	}
+	input.value = `${datePart}T00:00`;
+}
+
 function normalizeDateTimeInput(input) {
 	if (!input) {
 		return;
@@ -402,37 +433,28 @@ function normalizeDateTimeInput(input) {
 	if (raw.includes('--')) {
 		const datePart = raw.split('T')[0];
 		if (datePart) {
-			input.value = `${datePart}T00:00`;
+			normalizeDateBoundary(input, datePart);
 		}
 		return;
 	}
 	if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-		input.value = `${raw}T00:00`;
+		normalizeDateBoundary(input, raw);
 		return;
 	}
 	if (/^\d{4}-\d{2}-\d{2}T\d{2}$/.test(raw)) {
+		if (input.id === 'end_date') {
+			input.value = `${raw}:59`;
+			return;
+		}
 		input.value = `${raw}:00`;
 		return;
 	}
 	if (/^\d{4}-\d{2}-\d{2}T$/.test(raw)) {
+		if (input.id === 'end_date') {
+			input.value = `${raw}23:59`;
+			return;
+		}
 		input.value = `${raw}00:00`;
-	}
-}
-
-function seedDateFiltersFromData() {
-	const endInput = document.getElementById('end_date');
-	if (!endInput || (endInput.value || '').trim()) {
-		return;
-	}
-	const range = getRecordedRange(mapLocations);
-	if (range?.end) {
-		endInput.value = formatDateTimeLocal(range.end);
-		normalizeDateTimeInput(endInput);
-	}
-	const startInput = document.getElementById('start_date');
-	if (startInput && !(startInput.value || '').trim() && range?.end) {
-		startInput.value = formatDateTimeLocal(startOfLocalDay(range.end));
-		normalizeDateTimeInput(startInput);
 	}
 }
 
@@ -462,6 +484,36 @@ function getRecordedRange(locations) {
 		return null;
 	}
 	return { start, end };
+}
+
+async function fetchLatestSessionRange() {
+	const panel = document.querySelector('.panel-main');
+	const org = panel?.dataset?.org;
+	if (!org) {
+		return null;
+	}
+	const params = new URLSearchParams();
+	const companySelect = document.getElementById('company');
+	const deviceSelect = document.getElementById('device');
+	if (companySelect?.value) {
+		params.set('company_id', companySelect.value);
+	}
+	if (deviceSelect?.value) {
+		params.set('device_id', deviceSelect.value);
+	}
+	const suffix = params.toString();
+	const url = `/dashboard/${encodeURIComponent(org)}/session/latest${suffix ? `?${suffix}` : ''}`;
+	const response = await fetch(url, { headers: { Accept: 'application/json' } });
+	if (!response.ok) {
+		throw new Error(`session request failed: ${response.status}`);
+	}
+	const data = await response.json();
+	const start = data?.start ? new Date(data.start) : null;
+	const end = data?.end ? new Date(data.end) : null;
+	if (!start || Number.isNaN(start.getTime()) || !end || Number.isNaN(end.getTime())) {
+		return null;
+	}
+	return { start, end, count: data?.count || 0 };
 }
 
 async function fetchRecordedRange() {

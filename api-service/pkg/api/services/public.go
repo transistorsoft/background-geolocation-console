@@ -72,6 +72,13 @@ type LocationFilters struct {
 	End       *time.Time
 }
 
+// SessionRange describes a contiguous recorded session window.
+type SessionRange struct {
+	Start *time.Time
+	End   *time.Time
+	Count int
+}
+
 // DeleteDeviceOptions scopes deletion of device or historical data.
 type DeleteDeviceOptions struct {
 	DeviceID  int64
@@ -218,6 +225,55 @@ func LatestLocation(filters LocationFilters) (map[string]any, error) {
 		return nil, nil
 	}
 	return results[0], nil
+}
+
+// LatestSessionRange returns the newest contiguous session for the filters.
+func LatestSessionRange(filters LocationFilters, maxGap time.Duration) (*SessionRange, error) {
+	if maxGap <= 0 {
+		maxGap = 30 * time.Minute
+	}
+	db, err := storage.DB()
+	if err != nil {
+		return nil, err
+	}
+	ctx := context.Background()
+	sessionFilters := filters
+	sessionFilters.Start = nil
+	sessionFilters.End = nil
+	query := buildLocationQuery(ctx, db, sessionFilters)
+
+	var rows []storage.Location
+	if err := query.Order("recorded_at DESC, id DESC").Limit(2000).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return nil, nil
+	}
+
+	latest := rows[0].RecordedAt
+	if latest == nil {
+		return nil, nil
+	}
+	session := &SessionRange{
+		Start: latest,
+		End:   latest,
+		Count: 1,
+	}
+	prev := latest.UTC()
+	for _, row := range rows[1:] {
+		if row.RecordedAt == nil {
+			break
+		}
+		current := row.RecordedAt.UTC()
+		if prev.Sub(current) > maxGap {
+			break
+		}
+		ts := current
+		session.Start = &ts
+		session.Count++
+		prev = current
+	}
+	return session, nil
 }
 
 // DeleteDeviceHistory prunes device data or removes the device entirely.

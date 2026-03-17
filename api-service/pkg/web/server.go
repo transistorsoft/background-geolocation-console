@@ -69,6 +69,7 @@ func (s *Server) Register(r *gin.Engine) {
 	r.GET("/dashboard/:org", s.handleDashboard)
 	r.GET("/dashboard/:org/partials/locations", s.handleLocationsPartial)
 	r.GET("/dashboard/:org/latest", s.handleLatestLocation)
+	r.GET("/dashboard/:org/session/latest", s.handleLatestSessionRange)
 	r.GET("/dashboard/:org/range", s.handleLocationRange)
 	r.StaticFS("/dashboard/assets", http.FS(s.assetFS))
 	r.NoRoute(s.handleFallback)
@@ -179,6 +180,41 @@ func (s *Server) handleLocationRange(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+func (s *Server) handleLatestSessionRange(c *gin.Context) {
+	org := strings.TrimSpace(c.Param("org"))
+	if org == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "org required"})
+		return
+	}
+	params := c.Request.URL.Query()
+	companyID := parseID(firstParam(params, "company_id", ""))
+	deviceID := parseID(firstParam(params, "device_id", ""))
+	filters := services.LocationFilters{Org: org}
+	if companyID != 0 {
+		filters.CompanyID = int64Ptr(companyID)
+	}
+	if deviceID != 0 {
+		filters.DeviceID = int64Ptr(deviceID)
+	}
+	session, err := services.LatestSessionRange(filters, 30*time.Minute)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		_, _ = c.Writer.Write([]byte(err.Error()))
+		return
+	}
+	resp := gin.H{"start": "", "end": "", "count": 0}
+	if session != nil {
+		if session.Start != nil {
+			resp["start"] = session.Start.UTC().Format(time.RFC3339Nano)
+		}
+		if session.End != nil {
+			resp["end"] = session.End.UTC().Format(time.RFC3339Nano)
+		}
+		resp["count"] = session.Count
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
 func (s *Server) handleFallback(c *gin.Context) {
 	if c.Request.Method != http.MethodGet && c.Request.Method != http.MethodHead {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
@@ -257,6 +293,7 @@ func (s *Server) buildDashboardData(org string, params map[string][]string) (*Da
 	if to := parseTime(data.To); to != nil {
 		filters.End = to
 	}
+	data.HasActiveFilters = filters.Start != nil || filters.End != nil
 	if data.WatchMode {
 		filters.Limit = 1
 		latest, err := services.LatestLocation(filters)
@@ -269,7 +306,7 @@ func (s *Server) buildDashboardData(org string, params map[string][]string) (*Da
 				data.MapLocationsJSON = template.JS(payload)
 			}
 		}
-	} else {
+	} else if data.HasActiveFilters {
 		records, err := services.ListLocations(filters)
 		if err != nil {
 			return nil, err
@@ -281,10 +318,14 @@ func (s *Server) buildDashboardData(org string, params map[string][]string) (*Da
 			data.MapLocationsJSON = template.JS("[]")
 		}
 	}
-	if count, err := services.CountLocations(filters); err == nil {
-		data.TotalLocations = count
+	if data.HasActiveFilters || data.WatchMode {
+		if count, err := services.CountLocations(filters); err == nil {
+			data.TotalLocations = count
+		} else {
+			data.TotalLocations = int64(len(data.Locations))
+		}
 	} else {
-		data.TotalLocations = int64(len(data.Locations))
+		data.TotalLocations = 0
 	}
 	return data, nil
 }
@@ -320,6 +361,7 @@ type DashboardPage struct {
 	From                string
 	To                  string
 	WatchMode           bool
+	HasActiveFilters    bool
 	MapLocationsJSON    template.JS
 	GoogleMapsKey       string
 	HasMap              bool
