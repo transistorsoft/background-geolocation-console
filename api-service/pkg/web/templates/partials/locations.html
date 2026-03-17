@@ -42,7 +42,13 @@
 			{{end}}
 		{{else}}
 			<tr>
-				<td colspan="9" class="empty-row">No locations recorded for this selection yet.</td>
+				<td colspan="9" class="empty-row">
+					{{if .HasSelectedDevice}}
+						No locations recorded for this selection yet.
+					{{else}}
+						Select a device to render locations.
+					{{end}}
+				</td>
 			</tr>
 		{{end}}
 		</tbody>

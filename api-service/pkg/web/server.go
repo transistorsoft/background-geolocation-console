@@ -195,6 +195,9 @@ func (s *Server) handleLatestSessionRange(c *gin.Context) {
 	}
 	if deviceID != 0 {
 		filters.DeviceID = int64Ptr(deviceID)
+	} else {
+		c.JSON(http.StatusOK, gin.H{"start": "", "end": "", "count": 0})
+		return
 	}
 	session, err := services.LatestSessionRange(filters, 30*time.Minute)
 	if err != nil {
@@ -276,12 +279,13 @@ func (s *Server) buildDashboardData(org string, params map[string][]string) (*Da
 	data.Devices = devices
 	deviceID := chooseDeviceID(firstParam(params, "device_id", ""), devices)
 	data.SelectedDeviceID = deviceID
+	data.HasSelectedDevice = deviceID != 0
 
 	var devicePtr *int64
 	if deviceID != 0 {
 		devicePtr = int64Ptr(deviceID)
 	}
-	if !data.WatchMode {
+	if data.HasSelectedDevice && !data.WatchMode {
 		now := time.Now().UTC()
 		if strings.TrimSpace(data.From) == "" {
 			data.From = formatDateTimeInputUTC(startOfUTCDay(now))
@@ -302,8 +306,8 @@ func (s *Server) buildDashboardData(org string, params map[string][]string) (*Da
 	if to := parseTime(data.To); to != nil {
 		filters.End = to
 	}
-	data.HasActiveFilters = filters.Start != nil || filters.End != nil
-	if data.WatchMode {
+	data.HasActiveFilters = data.HasSelectedDevice && (filters.Start != nil || filters.End != nil)
+	if data.WatchMode && data.HasSelectedDevice {
 		filters.Limit = 1
 		latest, err := services.LatestLocation(filters)
 		if err != nil {
@@ -327,7 +331,7 @@ func (s *Server) buildDashboardData(org string, params map[string][]string) (*Da
 			data.MapLocationsJSON = template.JS("[]")
 		}
 	}
-	if data.HasActiveFilters || data.WatchMode {
+	if data.HasSelectedDevice && (data.HasActiveFilters || data.WatchMode) {
 		if count, err := services.CountLocations(filters); err == nil {
 			data.TotalLocations = count
 		} else {
@@ -364,6 +368,7 @@ type DashboardPage struct {
 	Devices             []services.DeviceDetails
 	SelectedCompanyID   int64
 	SelectedDeviceID    int64
+	HasSelectedDevice   bool
 	Locations           []LocationView
 	PollEvery           time.Duration
 	PartialLocationsURL string
