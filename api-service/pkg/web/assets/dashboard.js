@@ -160,6 +160,8 @@ document.addEventListener('DOMContentLoaded', () => {
 		const startInput = document.getElementById('start_date');
 		const endInput = document.getElementById('end_date');
 		const loadLastSessionButton = document.getElementById('load-last-session');
+		localizeUTCInputValue(startInput);
+		localizeUTCInputValue(endInput);
 		normalizeDateTimeInput(startInput);
 		normalizeDateTimeInput(endInput);
 		const defaultDateForInput = (input) => {
@@ -266,11 +268,11 @@ document.addEventListener('DOMContentLoaded', () => {
 				}
 			} else if (selection === 'yesterday') {
 				const yesterday = new Date(now);
-				yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+				yesterday.setDate(yesterday.getDate() - 1);
 				start = startOfLocalDay(yesterday);
 				end = endOfLocalDay(yesterday);
 			} else if (selection === 'last-3-days') {
-				const startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 2, 0, 0, 0, 0));
+				const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2, 0, 0, 0, 0);
 				start = startOfLocalDay(startDate);
 				end = now;
 			}
@@ -303,6 +305,27 @@ document.addEventListener('DOMContentLoaded', () => {
 			});
 		}
 	}
+
+	document.addEventListener('htmx:configRequest', (event) => {
+		const params = event.detail?.parameters;
+		if (!params) {
+			return;
+		}
+		const startRaw = typeof params.start_date === 'string' ? params.start_date.trim() : '';
+		if (startRaw) {
+			const parsed = new Date(startRaw);
+			if (!Number.isNaN(parsed.getTime())) {
+				params.start_date = formatDateTimeUTCInput(parsed);
+			}
+		}
+		const endRaw = typeof params.end_date === 'string' ? params.end_date.trim() : '';
+		if (endRaw) {
+			const parsed = new Date(endRaw);
+			if (!Number.isNaN(parsed.getTime())) {
+				params.end_date = formatDateTimeUTCInput(parsed);
+			}
+		}
+	});
 
 	const viewToggle = document.getElementById('view-toggle');
 	if (viewToggle) {
@@ -405,7 +428,47 @@ function formatDateTimeLocal(date) {
 		return '';
 	}
 	const pad = (value) => String(value).padStart(2, '0');
+	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function formatDateTimeUTCInput(date) {
+	if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+		return '';
+	}
+	const pad = (value) => String(value).padStart(2, '0');
 	return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}T${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
+}
+
+function parseUTCInputValue(value) {
+	const raw = (value || '').trim();
+	if (!raw) {
+		return null;
+	}
+	const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+	if (!match) {
+		return null;
+	}
+	const [, year, month, day, hour, minute] = match;
+	return new Date(Date.UTC(
+		Number(year),
+		Number(month) - 1,
+		Number(day),
+		Number(hour),
+		Number(minute),
+		0,
+		0,
+	));
+}
+
+function localizeUTCInputValue(input) {
+	if (!input) {
+		return;
+	}
+	const parsed = parseUTCInputValue(input.value);
+	if (!parsed) {
+		return;
+	}
+	input.value = formatDateTimeLocal(parsed);
 }
 
 function normalizeDateBoundary(input, datePart) {
@@ -558,11 +621,11 @@ async function fetchRecordedRange() {
 }
 
 function startOfLocalDay(date) {
-	return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0));
+	return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
 }
 
 function endOfLocalDay(date) {
-	return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 0, 0));
+	return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 0, 0);
 }
 
 function handleLocationSelection(uuid, options = {}) {
