@@ -266,11 +266,11 @@ document.addEventListener('DOMContentLoaded', () => {
 				}
 			} else if (selection === 'yesterday') {
 				const yesterday = new Date(now);
-				yesterday.setDate(yesterday.getDate() - 1);
+				yesterday.setUTCDate(yesterday.getUTCDate() - 1);
 				start = startOfLocalDay(yesterday);
 				end = endOfLocalDay(yesterday);
 			} else if (selection === 'last-3-days') {
-				const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2);
+				const startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 2, 0, 0, 0, 0));
 				start = startOfLocalDay(startDate);
 				end = now;
 			}
@@ -405,7 +405,7 @@ function formatDateTimeLocal(date) {
 		return '';
 	}
 	const pad = (value) => String(value).padStart(2, '0');
-	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+	return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}T${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
 }
 
 function normalizeDateBoundary(input, datePart) {
@@ -558,11 +558,11 @@ async function fetchRecordedRange() {
 }
 
 function startOfLocalDay(date) {
-	return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+	return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0));
 }
 
 function endOfLocalDay(date) {
-	return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 0, 0);
+	return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 0, 0));
 }
 
 function handleLocationSelection(uuid, options = {}) {

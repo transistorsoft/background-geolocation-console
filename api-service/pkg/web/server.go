@@ -563,7 +563,7 @@ func parseTime(value string) *time.Time {
 	}
 	localLayouts := []string{"2006-01-02T15:04", "2006-01-02"}
 	for _, layout := range localLayouts {
-		if ts, err := time.ParseInLocation(layout, val, time.Local); err == nil {
+		if ts, err := time.ParseInLocation(layout, val, time.UTC); err == nil {
 			t := ts.UTC()
 			return &t
 		}
