@@ -37,6 +37,7 @@ func FindOrCreateDevice(org string, req types.RegisterRequest) (companyID, devic
 	}
 	ctx := context.Background()
 	err = db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		org = strings.TrimSpace(org)
 		company, err := ensureCompany(ctx, tx, org)
 		if err != nil {
 			return err
@@ -45,19 +46,29 @@ func FindOrCreateDevice(org string, req types.RegisterRequest) (companyID, devic
 
 		var record storage.Device
 		now := time.Now().UTC()
+		deviceIDToken := strings.TrimSpace(req.DeviceID)
 		model := firstNonEmpty(req.DeviceModel, req.Model)
+		framework := strings.TrimSpace(req.Framework)
+		version := strings.TrimSpace(req.Version)
 		err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("company_token = ? AND device_id = ?", org, req.DeviceID).
+			Where(
+				"company_token = ? AND device_id = ? AND device_model = ? AND framework = ? AND version = ?",
+				org,
+				deviceIDToken,
+				model,
+				framework,
+				version,
+			).
 			First(&record).Error
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				record = storage.Device{
 					CompanyID:    &company.ID,
 					CompanyToken: org,
-					DeviceID:     req.DeviceID,
+					DeviceID:     deviceIDToken,
 					DeviceModel:  model,
-					Framework:    req.Framework,
-					Version:      req.Version,
+					Framework:    framework,
+					Version:      version,
 					CreatedAt:    timestampPtr(now),
 					UpdatedAt:    timestampPtr(now),
 				}
@@ -70,11 +81,6 @@ func FindOrCreateDevice(org string, req types.RegisterRequest) (companyID, devic
 		} else {
 			update := map[string]any{
 				"updated_at": now,
-				"framework":  req.Framework,
-				"version":    req.Version,
-			}
-			if model != "" {
-				update["device_model"] = model
 			}
 			if record.CompanyID == nil || *record.CompanyID == 0 {
 				update["company_id"] = company.ID

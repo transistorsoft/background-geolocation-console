@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS public.locations (
 CREATE INDEX IF NOT EXISTS devices_company_id ON public.devices (company_id);
 CREATE INDEX IF NOT EXISTS devices_company_token ON public.devices (company_token);
 CREATE INDEX IF NOT EXISTS devices_device_id ON public.devices (device_id);
+CREATE UNIQUE INDEX IF NOT EXISTS devices_company_fingerprint ON public.devices (company_token, device_id, device_model, framework, version);
 CREATE INDEX IF NOT EXISTS locations_company_id_device_id_recorded_at ON public.locations (company_id, device_id, recorded_at);
 CREATE INDEX IF NOT EXISTS locations_device_id ON public.locations (device_id);
 CREATE INDEX IF NOT EXISTS locations_recorded_at ON public.locations (recorded_at);
