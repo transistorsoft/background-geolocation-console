@@ -538,6 +538,9 @@ func formatMetric(val any, suffix string) string {
 
 func formatBattery(val any) string {
 	if f, ok := floatFromAny(val); ok {
+		if f < 0 {
+			return "unknown"
+		}
 		if f > 1 {
 			f = f / 100
 		}

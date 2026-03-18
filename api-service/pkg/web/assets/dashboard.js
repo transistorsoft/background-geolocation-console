@@ -160,10 +160,21 @@ document.addEventListener('DOMContentLoaded', () => {
 		const startInput = document.getElementById('start_date');
 		const endInput = document.getElementById('end_date');
 		const loadLastSessionButton = document.getElementById('load-last-session');
+		const deviceSelect = document.getElementById('device');
 		localizeUTCInputValue(startInput);
 		localizeUTCInputValue(endInput);
 		normalizeDateTimeInput(startInput);
 		normalizeDateTimeInput(endInput);
+		const searchParams = new URLSearchParams(window.location.search);
+		const hasExplicitDateFilters = searchParams.has('start_date') || searchParams.has('end_date');
+		const hasSelectedDevice = !!(deviceSelect && (deviceSelect.value || '').trim());
+		if (!hasExplicitDateFilters && hasSelectedDevice && startInput && endInput) {
+			startInput.value = formatDateTimeLocal(startOfLocalDay(new Date()));
+			endInput.value = formatDateTimeLocal(new Date());
+			normalizeDateTimeInput(startInput);
+			normalizeDateTimeInput(endInput);
+			setTimeout(() => triggerRefresh(), 0);
+		}
 		const defaultDateForInput = (input) => {
 			if (!input) {
 				return null;
