@@ -286,6 +286,10 @@ document.addEventListener('DOMContentLoaded', () => {
 		void applyQuickRange(false);
 		if (loadLastSessionButton) {
 			loadLastSessionButton.addEventListener('click', async () => {
+				const panel = document.getElementById('locations-panel');
+				if (panel) {
+					htmx.trigger(panel, 'htmx:abort');
+				}
 				loadLastSessionButton.disabled = true;
 				loadLastSessionButton.textContent = 'Loading...';
 				try {
@@ -910,6 +914,7 @@ function restoreUTCTimes(rows) {
 function triggerRefresh() {
 	const panel = document.getElementById('locations-panel');
 	if (panel) {
+		htmx.trigger(panel, 'htmx:abort');
 		htmx.trigger(panel, 'refresh');
 	}
 }

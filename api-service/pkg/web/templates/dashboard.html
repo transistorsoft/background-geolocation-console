@@ -138,6 +138,7 @@
 			class="locations-panel"
 			hx-get="{{.PartialLocationsURL}}"
 			hx-trigger="load, every {{printf "%.0f" .PollEvery.Seconds}}s, refresh"
+			hx-sync="this:replace"
 			hx-target="#locations-panel"
 			hx-swap="innerHTML"
 			hx-include="#filters-form">
