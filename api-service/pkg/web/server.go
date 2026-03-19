@@ -68,6 +68,7 @@ func (s *Server) Register(r *gin.Engine) {
 	r.GET("/dashboard", s.handleDashboard)
 	r.GET("/dashboard/:org", s.handleDashboard)
 	r.GET("/dashboard/:org/partials/locations", s.handleLocationsPartial)
+	r.GET("/dashboard/:org/timeline", s.handleTimeline)
 	r.GET("/dashboard/:org/latest", s.handleLatestLocation)
 	r.GET("/dashboard/:org/session/latest", s.handleLatestSessionRange)
 	r.GET("/dashboard/:org/range", s.handleLocationRange)
@@ -113,6 +114,78 @@ func (s *Server) handleLocationsPartial(c *gin.Context) {
 		_, _ = c.Writer.Write([]byte(err.Error()))
 		return
 	}
+}
+
+func (s *Server) handleTimeline(c *gin.Context) {
+	org := strings.TrimSpace(c.Param("org"))
+	if org == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "org required"})
+		return
+	}
+	params := c.Request.URL.Query()
+	companyID := parseID(firstParam(params, "company_id", ""))
+	deviceID := parseID(firstParam(params, "device_id", ""))
+	filters := services.LocationFilters{Org: org}
+	if companyID != 0 {
+		filters.CompanyID = int64Ptr(companyID)
+	}
+	if deviceID != 0 {
+		filters.DeviceID = int64Ptr(deviceID)
+	}
+	if from := parseTime(firstParam(params, "start_date", "")); from != nil {
+		filters.Start = from
+	}
+	if to := parseTime(firstParam(params, "end_date", "")); to != nil {
+		filters.End = to
+	}
+
+	timeline, err := services.BuildLocationTimeline(filters, 30*time.Minute)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		_, _ = c.Writer.Write([]byte(err.Error()))
+		return
+	}
+
+	type timelineSessionResponse struct {
+		Start          string `json:"start"`
+		End            string `json:"end"`
+		Count          int    `json:"count"`
+		DurationMinute int64  `json:"duration_minutes"`
+	}
+	resp := gin.H{
+		"start":         "",
+		"end":           "",
+		"total_points":  0,
+		"session_count": 0,
+		"sessions":      []timelineSessionResponse{},
+	}
+	if timeline == nil {
+		c.JSON(http.StatusOK, resp)
+		return
+	}
+	resp["total_points"] = timeline.TotalCount
+	resp["session_count"] = len(timeline.Sessions)
+	if timeline.Start != nil {
+		resp["start"] = timeline.Start.UTC().Format(time.RFC3339Nano)
+	}
+	if timeline.End != nil {
+		resp["end"] = timeline.End.UTC().Format(time.RFC3339Nano)
+	}
+	sessions := make([]timelineSessionResponse, 0, len(timeline.Sessions))
+	for _, session := range timeline.Sessions {
+		duration := session.End.Sub(session.Start)
+		if duration < 0 {
+			duration = 0
+		}
+		sessions = append(sessions, timelineSessionResponse{
+			Start:          session.Start.UTC().Format(time.RFC3339Nano),
+			End:            session.End.UTC().Format(time.RFC3339Nano),
+			Count:          session.Count,
+			DurationMinute: int64(duration / time.Minute),
+		})
+	}
+	resp["sessions"] = sessions
+	c.JSON(http.StatusOK, resp)
 }
 
 func (s *Server) handleLatestLocation(c *gin.Context) {
@@ -285,15 +358,6 @@ func (s *Server) buildDashboardData(org string, params map[string][]string) (*Da
 	if deviceID != 0 {
 		devicePtr = int64Ptr(deviceID)
 	}
-	if data.HasSelectedDevice && !data.WatchMode {
-		now := time.Now().UTC()
-		if strings.TrimSpace(data.From) == "" {
-			data.From = formatDateTimeInputUTC(startOfUTCDay(now))
-		}
-		if strings.TrimSpace(data.To) == "" {
-			data.To = formatDateTimeInputUTC(now)
-		}
-	}
 	filters := services.LocationFilters{
 		Org:       org,
 		CompanyID: companyPtr,
@@ -340,6 +404,10 @@ func (s *Server) buildDashboardData(org string, params map[string][]string) (*Da
 	} else {
 		data.TotalLocations = 0
 	}
+	if len(data.Locations) > 0 {
+		data.VisibleRangeEnd = formatDateOnly(data.Locations[0].RecordedAtISO)
+		data.VisibleRangeStart = formatDateOnly(data.Locations[len(data.Locations)-1].RecordedAtISO)
+	}
 	return data, nil
 }
 
@@ -380,6 +448,8 @@ type DashboardPage struct {
 	GoogleMapsKey       string
 	HasMap              bool
 	TotalLocations      int64
+	VisibleRangeStart   string
+	VisibleRangeEnd     string
 }
 
 // LocationView is a template-friendly representation of a location row.
@@ -400,6 +470,7 @@ type LocationView struct {
 	ActivityDetails string
 	Battery         string
 	BatteryCharging bool
+	RawJSON         string
 }
 
 func buildLocationViews(records []map[string]any) []LocationView {
@@ -409,7 +480,7 @@ func buildLocationViews(records []map[string]any) []LocationView {
 		lng, lngOK := floatFromAny(rec["longitude"])
 		coord := ""
 		if latOK && lngOK {
-			coord = fmt.Sprintf("%.6f, %.6f", lat, lng)
+			coord = fmt.Sprintf("%.2f, %.2f", lat, lng)
 		}
 		acc := formatMetric(rec["accuracy"], "m")
 		speed := formatMetric(rec["speed"], "m/s")
@@ -421,6 +492,10 @@ func buildLocationViews(records []map[string]any) []LocationView {
 		battery := formatBattery(rec["battery_level"])
 		recordedISO := stringFromAny(rec["recorded_at"])
 		recordedDate, recordedTime := formatUTCParts(recordedISO)
+		rawJSON := "{}"
+		if payload, err := json.MarshalIndent(rec, "", "  "); err == nil {
+			rawJSON = string(payload)
+		}
 		view := LocationView{
 			ID:              stringFromAny(rec["id"]),
 			UUID:            stringFromAny(rec["uuid"]),
@@ -438,6 +513,7 @@ func buildLocationViews(records []map[string]any) []LocationView {
 			ActivityDetails: activityDetails,
 			Battery:         battery,
 			BatteryCharging: boolFromAny(rec["battery_is_charging"]),
+			RawJSON:         rawJSON,
 		}
 		out = append(out, view)
 	}
@@ -555,6 +631,16 @@ func formatTime(value string) string {
 	}
 	if ts, err := time.Parse(time.RFC3339Nano, value); err == nil {
 		return ts.UTC().Format(time.RFC1123)
+	}
+	return value
+}
+
+func formatDateOnly(value string) string {
+	if strings.TrimSpace(value) == "" {
+		return ""
+	}
+	if ts, err := time.Parse(time.RFC3339Nano, value); err == nil {
+		return ts.UTC().Format("2006-01-02")
 	}
 	return value
 }

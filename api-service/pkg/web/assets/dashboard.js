@@ -8,6 +8,8 @@ let mapLocations = [];
 let mapElement = null;
 let selectedLocationUUID = null;
 let currentTheme = 'dark';
+let timelineHasExplicitDateFilters = false;
+let timelineQueryParams = null;
 
 function updateMapData() {
 	const script = document.getElementById('map-data');
@@ -57,7 +59,7 @@ function pushMapData() {
 
 document.addEventListener('htmx:afterSwap', (event) => {
 	if (event.target && event.target.id === 'locations-panel') {
-		const rows = Array.from(event.target.querySelectorAll('tbody tr'));
+		const rows = Array.from(event.target.querySelectorAll('tbody tr.location-row'));
 		if (!initializedRows) {
 			rows.forEach((row) => {
 				const id = row.getAttribute('data-uuid') || row.getAttribute('data-id');
@@ -97,7 +99,10 @@ document.addEventListener('htmx:afterSwap', (event) => {
 		}
 
 		if (selectedLocationUUID) {
-			highlightLocationRow(selectedLocationUUID);
+			const selectedRow = highlightLocationRow(selectedLocationUUID);
+			if (!selectedRow) {
+				clearSelectionState();
+			}
 		}
 	}
 });
@@ -106,13 +111,14 @@ document.addEventListener('htmx:afterSettle', (event) => {
 	if (event.target && event.target.id === 'locations-panel') {
 		updateMapData();
 		if (selectedLocationUUID) {
-			renderLocationDetails(selectedLocationUUID);
+			expandLocationRow(selectedLocationUUID, { scroll: false });
 		}
 	}
 });
 
 document.addEventListener('DOMContentLoaded', () => {
 	updateMapData();
+	resetTimelinePanel();
 
 	const menuToggle = document.getElementById('panel-menu-toggle');
 	const panelMenu = document.getElementById('panel-menu');
@@ -146,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	if (toggle) {
 		toggle.addEventListener('change', (e) => {
 			useLocalTime = e.target.checked;
-			const rows = Array.from(document.querySelectorAll('#locations-panel tbody tr'));
+			const rows = Array.from(document.querySelectorAll('#locations-panel tbody tr.location-row'));
 			if (useLocalTime) {
 				applyLocalTime(rows);
 			} else {
@@ -167,6 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		normalizeDateTimeInput(endInput);
 		const searchParams = new URLSearchParams(window.location.search);
 		const hasExplicitDateFilters = searchParams.has('start_date') || searchParams.has('end_date');
+		timelineHasExplicitDateFilters = hasExplicitDateFilters;
 		const hasSelectedDevice = !!(deviceSelect && (deviceSelect.value || '').trim());
 		if (!hasExplicitDateFilters && hasSelectedDevice && startInput && endInput) {
 			startInput.value = formatDateTimeLocal(startOfLocalDay(new Date()));
@@ -231,6 +238,9 @@ document.addEventListener('DOMContentLoaded', () => {
 			input.addEventListener('blur', normalizeDelayed);
 			input.addEventListener('focus', normalizeDelayed);
 			input.addEventListener('change', normalizeLater);
+			input.addEventListener('change', () => {
+				timelineHasExplicitDateFilters = !!((startInput?.value || '').trim() || (endInput?.value || '').trim());
+			});
 			input.addEventListener('blur', normalizeLater);
 			input.addEventListener('focus', () => {
 				if (!(input.value || '').trim()) {
@@ -293,7 +303,10 @@ document.addEventListener('DOMContentLoaded', () => {
 				triggerRefresh();
 			}
 		};
-		quickRange.addEventListener('change', () => applyQuickRange(true));
+		quickRange.addEventListener('change', () => {
+			timelineHasExplicitDateFilters = !!quickRange.value;
+			applyQuickRange(true);
+		});
 		void applyQuickRange(false);
 		if (loadLastSessionButton) {
 			loadLastSessionButton.addEventListener('click', async () => {
@@ -307,6 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
 					const session = await fetchLatestSessionRange();
 					startInput.value = session?.start ? formatDateTimeLocal(session.start) : '';
 					endInput.value = session?.end ? formatDateTimeLocal(session.end) : '';
+					timelineHasExplicitDateFilters = !!(startInput.value || endInput.value);
 					normalizeDateTimeInput(startInput);
 					normalizeDateTimeInput(endInput);
 					quickRange.value = '';
@@ -370,9 +384,66 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 
+	const timelineButton = document.getElementById('generate-timeline');
+	if (timelineButton) {
+		timelineButton.addEventListener('click', async () => {
+			timelineButton.disabled = true;
+			setTimelineStatus('Generating timeline...');
+			try {
+				timelineQueryParams = new URLSearchParams(buildDashboardQueryParams());
+				const data = await fetchTimelineData();
+				renderTimelinePanel(data);
+			} catch (err) {
+				console.warn('timeline fetch failed', err);
+				setTimelineStatus('Unable to generate the timeline for the current selection.');
+			} finally {
+				timelineButton.disabled = false;
+			}
+		});
+	}
+
+	const timelineClose = document.getElementById('timeline-close');
+	if (timelineClose) {
+		timelineClose.addEventListener('click', () => {
+			resetTimelinePanel();
+		});
+	}
+
+	const timelineChart = document.getElementById('timeline-chart-wrap');
+	if (timelineChart) {
+		timelineChart.addEventListener('click', (event) => {
+			const bar = event.target.closest('.timeline-bar[data-start][data-end]');
+			if (!bar) {
+				return;
+			}
+			applyTimelineSessionSelection(bar.dataset.start, bar.dataset.end);
+		});
+		timelineChart.addEventListener('keydown', (event) => {
+			if (event.key !== 'Enter' && event.key !== ' ') {
+				return;
+			}
+			const bar = event.target.closest('.timeline-bar[data-start][data-end]');
+			if (!bar) {
+				return;
+			}
+			event.preventDefault();
+			applyTimelineSessionSelection(bar.dataset.start, bar.dataset.end);
+		});
+	}
+
 	document.addEventListener('click', (evt) => {
+		const closeButton = evt.target.closest('#locations-panel .inline-detail-close');
+		if (closeButton) {
+			const detailRow = closeButton.closest('.location-detail-row');
+			if (!detailRow) {
+				return;
+			}
+			collapseLocationRow(detailRow.getAttribute('data-detail-for'));
+			clearSelectionState();
+			return;
+		}
 		const uuidButton = evt.target.closest('#locations-panel .uuid-link');
-		const row = evt.target.closest('#locations-panel tr[data-uuid], #locations-panel tr[data-id]');
+		const row = evt.target.closest('#locations-panel tr.location-row[data-uuid], #locations-panel tr.location-row[data-id]');
 		if (!row) {
 			return;
 		}
@@ -381,20 +452,11 @@ document.addEventListener('DOMContentLoaded', () => {
 		const key = uuid || id;
 		if (key) {
 			handleLocationSelection(key, { scroll: false });
-			if (mapElement && uuid) {
-				mapElement.selected = uuid;
+			if (mapElement) {
+				mapElement.selected = key;
 			}
 		}
 	});
-
-	const detailClose = document.getElementById('location-detail-close');
-	if (detailClose) {
-		detailClose.addEventListener('click', () => {
-			hideDetailPanel();
-			renderLocationDetails(null);
-			clearSelectionState({ removePinned: true });
-		});
-	}
 });
 
 function setViewMode(mode) {
@@ -594,6 +656,126 @@ async function fetchLatestSessionRange() {
 	return { start, end, count: data?.count || 0 };
 }
 
+async function fetchTimelineData() {
+	const panel = document.querySelector('.panel-main');
+	const org = panel?.dataset?.org;
+	if (!org) {
+		return null;
+	}
+	const params = timelineQueryParams ? new URLSearchParams(timelineQueryParams) : buildDashboardQueryParams();
+	const suffix = params.toString();
+	const url = `/dashboard/${encodeURIComponent(org)}/timeline${suffix ? `?${suffix}` : ''}`;
+	const response = await fetch(url, { headers: { Accept: 'application/json' } });
+	if (!response.ok) {
+		throw new Error(`timeline request failed: ${response.status}`);
+	}
+	return response.json();
+}
+
+function buildDashboardQueryParams() {
+	const params = new URLSearchParams();
+	const companySelect = document.getElementById('company');
+	const deviceSelect = document.getElementById('device');
+	const startInput = document.getElementById('start_date');
+	const endInput = document.getElementById('end_date');
+	if (companySelect?.value) {
+		params.set('company_id', companySelect.value);
+	}
+	if (deviceSelect?.value) {
+		params.set('device_id', deviceSelect.value);
+	}
+	if (!timelineHasExplicitDateFilters) {
+		return params;
+	}
+	const startRaw = (startInput?.value || '').trim();
+	if (startRaw) {
+		const parsed = new Date(startRaw);
+		if (!Number.isNaN(parsed.getTime())) {
+			params.set('start_date', formatDateTimeUTCInput(parsed));
+		}
+	}
+	const endRaw = (endInput?.value || '').trim();
+	if (endRaw) {
+		const parsed = new Date(endRaw);
+		if (!Number.isNaN(parsed.getTime())) {
+			params.set('end_date', formatDateTimeUTCInput(parsed));
+		}
+	}
+	return params;
+}
+
+function buildLocationsRequestParams(overrides = {}) {
+	const params = new URLSearchParams();
+	const companySelect = document.getElementById('company');
+	const deviceSelect = document.getElementById('device');
+	const startInput = document.getElementById('start_date');
+	const endInput = document.getElementById('end_date');
+	const watchModeInput = document.querySelector('#filters-form input[name="watch_mode"]');
+	if (companySelect?.value) {
+		params.set('company_id', companySelect.value);
+	}
+	if (deviceSelect?.value) {
+		params.set('device_id', deviceSelect.value);
+	}
+	const startRaw = (startInput?.value || '').trim();
+	if (startRaw) {
+		const parsed = new Date(startRaw);
+		if (!Number.isNaN(parsed.getTime())) {
+			params.set('start_date', formatDateTimeUTCInput(parsed));
+		}
+	}
+	const endRaw = (endInput?.value || '').trim();
+	if (endRaw) {
+		const parsed = new Date(endRaw);
+		if (!Number.isNaN(parsed.getTime())) {
+			params.set('end_date', formatDateTimeUTCInput(parsed));
+		}
+	}
+	if (watchModeInput?.checked) {
+		params.set('watch_mode', 'true');
+	}
+	Object.entries(overrides).forEach(([key, value]) => {
+		if (value === null || value === undefined || value === '') {
+			params.delete(key);
+			return;
+		}
+		params.set(key, value);
+	});
+	return params;
+}
+
+function refreshLocationsPanel(overrides = {}, options = {}) {
+	const panel = document.getElementById('locations-panel');
+	if (!panel) {
+		return;
+	}
+	if (options.resetTimeline !== false) {
+		resetTimelinePanel();
+	}
+	const baseURL = (panel.getAttribute('hx-get') || '').split('?')[0];
+	const params = buildLocationsRequestParams(overrides);
+	const query = params.toString();
+	const url = query ? `${baseURL}?${query}` : baseURL;
+	htmx.ajax('GET', url, { target: '#locations-panel', swap: 'innerHTML' });
+}
+
+function setTimelineFormRange(start, end) {
+	const startInput = document.getElementById('start_date');
+	const endInput = document.getElementById('end_date');
+	const quickRange = document.getElementById('date-range-select');
+	if (!startInput || !endInput) {
+		return false;
+	}
+	startInput.value = start ? formatDateTimeLocal(start) : '';
+	endInput.value = end ? formatDateTimeLocal(end) : '';
+	normalizeDateTimeInput(startInput);
+	normalizeDateTimeInput(endInput);
+	if (quickRange) {
+		quickRange.value = '';
+	}
+	return true;
+}
+
 async function fetchRecordedRange() {
 	const panel = document.querySelector('.panel-main');
 	const org = panel?.dataset?.org;
@@ -652,7 +834,7 @@ function handleLocationSelection(uuid, options = {}) {
 	if (row && options.scroll !== false) {
 		scrollRowIntoView(row);
 	}
-	renderLocationDetails(uuid);
+	expandLocationRow(uuid, options);
 }
 
 function highlightLocationRow(key) {
@@ -660,21 +842,18 @@ function highlightLocationRow(key) {
 	if (!panel) {
 		return null;
 	}
-	panel.querySelectorAll('tr.selected').forEach((el) => el.classList.remove('selected'));
+	panel.querySelectorAll('tr.location-row.selected').forEach((el) => el.classList.remove('selected'));
 	if (!key) {
-		clearPinnedRow(panel);
 		return null;
 	}
-	const rows = panel.querySelectorAll('tr[data-uuid], tr[data-id]');
+	const rows = panel.querySelectorAll('tr.location-row[data-uuid], tr.location-row[data-id]');
 	for (const row of rows) {
 		const rowKey = row.getAttribute('data-uuid') || row.getAttribute('data-id');
 		if (rowKey === key) {
 			row.classList.add('selected');
-			pinRow(row);
 			return row;
 		}
 	}
-	clearPinnedRow(panel);
 	return null;
 }
 
@@ -682,117 +861,42 @@ function scrollRowIntoView(row) {
 	if (!row) {
 		return;
 	}
-	const scroll = document.querySelector('#locations-panel .locations-scroll');
-	if (scroll) {
-		scroll.scrollTo({ top: 0, behavior: 'smooth' });
-		return;
-	}
 	row.scrollIntoView({ block: 'start', behavior: 'smooth' });
 }
 
-function renderLocationDetails(key) {
-	const detailPanel = document.getElementById('location-detail-panel');
-	const detailHint = document.getElementById('location-detail-hint');
-	const detailJson = document.getElementById('location-detail-json');
-	const detailMeta = document.getElementById('location-detail-meta');
-	if (!detailPanel || !detailHint || !detailJson) {
-		return;
+function expandLocationRow(key, options = {}) {
+	const panel = document.getElementById('locations-panel');
+	if (!panel) {
+		return null;
 	}
+	const detailRows = panel.querySelectorAll('.location-detail-row');
+	let target = null;
+	detailRows.forEach((row) => {
+		const isTarget = row.getAttribute('data-detail-for') === key;
+		row.classList.toggle('hidden', !isTarget);
+		if (isTarget) {
+			target = row;
+		}
+	});
 	if (!key) {
-		detailHint.textContent = 'Select a location on the map or list to inspect the raw payload.';
-		detailJson.textContent = '{}';
-		if (detailMeta) detailMeta.textContent = '';
+		return null;
+	}
+	if (target && options.scroll !== false) {
+		target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+	}
+	return target;
+}
+
+function collapseLocationRow(key) {
+	if (!key) {
 		return;
 	}
-	showDetailPanel();
-	const location = getLocationByKey(key);
-	if (!location) {
-		detailHint.textContent = 'Details unavailable for the selected location.';
-		detailJson.textContent = '{}';
-		if (detailMeta) detailMeta.textContent = '';
-		return;
-	}
-	const display = location.uuid || location.id || key;
-	detailHint.textContent = location.uuid ? `UUID: ${display}` : `ID: ${display}`;
-	const heading = extractHeading(location);
-	if (detailMeta) {
-		const headingText = heading === null ? 'n/a' : heading.toFixed(2);
-		detailMeta.innerHTML = `<span><strong>ID</strong>${location.id || 'n/a'}</span><span><strong>UUID</strong>${location.uuid || 'n/a'}</span><span><strong>Heading</strong>${headingText}</span>`;
-	}
-	const detailLocation = { ...location };
-	if (detailLocation.uuid == null) {
-		detailLocation.uuid = location.uuid || null;
-	}
-	if (detailLocation.heading == null && heading !== null) {
-		detailLocation.heading = heading;
-	}
-	detailJson.textContent = JSON.stringify(detailLocation, null, 2);
-}
-
-function getLocationByKey(key) {
-	if (!key || !Array.isArray(mapLocations)) {
-		return null;
-	}
-	const trimmed = String(key).trim();
-	if (!trimmed) {
-		return null;
-	}
-	const byUUID = mapLocations.find((loc) => typeof loc?.uuid === 'string' && loc.uuid === trimmed);
-	if (byUUID) {
-		return byUUID;
-	}
-	return mapLocations.find((loc) => String(loc?.id || '').trim() === trimmed) || null;
-}
-
-function extractHeading(location) {
-	if (!location) {
-		return null;
-	}
-	const coords = normalizeCoords(location.coords);
-	const nestedCoords = normalizeCoords(location.location?.coords);
-	const candidates = [
-		location.heading,
-		coords?.heading,
-		location.location?.heading,
-		nestedCoords?.heading,
-	];
-	for (const value of candidates) {
-		const num = toFiniteNumber(value);
-		if (num === null) {
-			continue;
+	const panel = document.getElementById('locations-panel');
+	panel?.querySelectorAll('.location-detail-row').forEach((row) => {
+		if (row.getAttribute('data-detail-for') === key) {
+			row.classList.add('hidden');
 		}
-		if (num < 0) {
-			continue;
-		}
-		return num;
-	}
-	return null;
-}
-
-function normalizeCoords(coords) {
-	if (!coords) {
-		return null;
-	}
-	if (typeof coords === 'string') {
-		try {
-			const parsed = JSON.parse(coords);
-			return parsed && typeof parsed === 'object' ? parsed : null;
-		} catch {
-			return null;
-		}
-	}
-	return coords;
-}
-
-function toFiniteNumber(value) {
-	if (value === null || value === undefined) {
-		return null;
-	}
-	if (typeof value === 'number') {
-		return Number.isFinite(value) ? value : null;
-	}
-	const num = parseFloat(String(value).trim());
-	return Number.isFinite(num) ? num : null;
+	});
 }
 
 function initializeMapToggles() {
@@ -834,70 +938,197 @@ function initializeMapToggles() {
 	apply();
 }
 
-function pinRow(row) {
-	if (!row) {
+function resetTimelinePanel() {
+	const panel = document.getElementById('timeline-panel');
+	const content = document.getElementById('timeline-content');
+	const close = document.getElementById('timeline-close');
+	const summary = document.getElementById('timeline-summary');
+	const chart = document.getElementById('timeline-chart-wrap');
+	if (!panel || !content || !close || !summary || !chart) {
 		return;
 	}
-	const tbody = row.closest('tbody');
-	if (!tbody) {
-		return;
-	}
-	const currentPinned = tbody.querySelector('tr.pinned');
-	if (currentPinned && currentPinned !== row) {
-		currentPinned.classList.remove('pinned');
-	}
-	row.classList.add('pinned');
-	const firstRow = tbody.querySelector('tr');
-	if (firstRow && firstRow !== row) {
-		tbody.insertBefore(row, firstRow);
-	}
+	panel.classList.add('is-collapsed');
+	content.classList.add('hidden');
+	close.classList.add('hidden');
+	summary.textContent = 'Generate a timeline to inspect grouped sessions across the current selection.';
+	chart.innerHTML = '';
 }
 
-function clearPinnedRow(panel) {
-	if (!panel) {
-		panel = document.getElementById('locations-panel');
-	}
-	if (!panel) {
+function setTimelineStatus(message) {
+	const panel = document.getElementById('timeline-panel');
+	const content = document.getElementById('timeline-content');
+	const close = document.getElementById('timeline-close');
+	const chart = document.getElementById('timeline-chart-wrap');
+	if (!panel || !content || !close || !chart) {
 		return;
 	}
-	const pinned = panel.querySelector('tr.pinned');
-	if (pinned) {
-		pinned.classList.remove('pinned');
-		if (panel.dataset.removePinned === 'true') {
-			pinned.remove();
-		}
-	}
-	panel.removeAttribute('data-remove-pinned');
+	panel.classList.remove('is-collapsed');
+	content.classList.remove('hidden');
+	close.classList.remove('hidden');
+	chart.innerHTML = `<div class="timeline-status">${message}</div>`;
 }
 
-function clearSelectionState(options = {}) {
+function renderTimelinePanel(data) {
+	const panel = document.getElementById('timeline-panel');
+	const content = document.getElementById('timeline-content');
+	const close = document.getElementById('timeline-close');
+	const summary = document.getElementById('timeline-summary');
+	const chart = document.getElementById('timeline-chart-wrap');
+	if (!panel || !content || !close || !summary || !chart) {
+		return;
+	}
+	panel.classList.remove('is-collapsed');
+	content.classList.remove('hidden');
+	close.classList.remove('hidden');
+	const sessions = Array.isArray(data?.sessions) ? data.sessions : [];
+	const totalPoints = Number(data?.total_points || 0);
+	const sessionCount = Number(data?.session_count || sessions.length || 0);
+	const start = parseTimelineDate(data?.start);
+	const end = parseTimelineDate(data?.end);
+	if (!sessions.length) {
+		summary.textContent = totalPoints > 0
+			? `No grouped sessions could be identified across ${totalPoints} selected points.`
+			: 'No location data matches the current selection.';
+		chart.innerHTML = '<div class="timeline-empty-state">No timeline data is available for the current company, device, and date range.</div>';
+		return;
+	}
+	summary.textContent = `${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'} across ${totalPoints} points from ${formatTimelineDate(start)} to ${formatTimelineDate(end)}.`;
+	chart.innerHTML = buildTimelineChartMarkup(sessions, start, end);
+}
+
+function applyTimelineSessionSelection(startValue, endValue) {
+	const start = parseTimelineDate(startValue);
+	const end = parseTimelineDate(endValue);
+	if (!start || !end) {
+		return;
+	}
+	if (!timelineQueryParams) {
+		timelineQueryParams = new URLSearchParams(buildDashboardQueryParams());
+	}
+	if (!setTimelineFormRange(start, end)) {
+		return;
+	}
+	refreshLocationsPanel({}, { resetTimeline: false });
+}
+
+function buildTimelineChartMarkup(sessions, start, end) {
+	const parsedSessions = sessions.map((session) => {
+		const sessionStart = parseTimelineDate(session.start);
+		const sessionEnd = parseTimelineDate(session.end);
+		const count = Number(session.count || 0);
+		return {
+			start: sessionStart,
+			end: sessionEnd,
+			count,
+			durationMinutes: Number(session.duration_minutes || 0),
+		};
+	}).filter((session) => session.start && session.end && session.count >= 0);
+	if (!parsedSessions.length) {
+		return '<div class="timeline-empty-state">No session groups were produced for this selection.</div>';
+	}
+	const chartWidth = 960;
+	const chartHeight = 280;
+	const margin = { top: 20, right: 24, bottom: 54, left: 56 };
+	const plotWidth = chartWidth - margin.left - margin.right;
+	const plotHeight = chartHeight - margin.top - margin.bottom;
+	const maxCount = Math.max(...parsedSessions.map((session) => session.count), 1);
+	const minTime = start?.getTime() ?? parsedSessions[0].start.getTime();
+	const maxTime = end?.getTime() ?? parsedSessions[parsedSessions.length - 1].end.getTime();
+	const span = Math.max(maxTime - minTime, 60 * 60 * 1000);
+	const barWidth = Math.max(12, Math.min(36, plotWidth / Math.max(parsedSessions.length, 1) * 0.55));
+	const yTicks = 4;
+	const xTicks = 5;
+	const lines = [];
+	const labels = [];
+	const bars = [];
+
+	for (let i = 0; i <= yTicks; i++) {
+		const value = Math.round((maxCount / yTicks) * i);
+		const y = margin.top + plotHeight - (plotHeight * i / yTicks);
+		lines.push(`<line class="timeline-grid" x1="${margin.left}" y1="${y}" x2="${chartWidth - margin.right}" y2="${y}"></line>`);
+		labels.push(`<text class="timeline-value-label" x="${margin.left - 10}" y="${y + 4}" text-anchor="end">${value}</text>`);
+	}
+
+	for (let i = 0; i <= xTicks; i++) {
+		const ratio = i / xTicks;
+		const x = margin.left + plotWidth * ratio;
+		const tickTime = new Date(minTime + span * ratio);
+		labels.push(`<text class="timeline-axis-label" x="${x}" y="${chartHeight - 18}" text-anchor="middle">${formatTimelineTick(tickTime, span)}</text>`);
+	}
+
+	parsedSessions.forEach((session) => {
+		const ratio = span === 0 ? 0.5 : (session.start.getTime() - minTime) / span;
+		const x = margin.left + plotWidth * ratio - barWidth / 2;
+		const height = maxCount === 0 ? 0 : (session.count / maxCount) * plotHeight;
+		const y = margin.top + plotHeight - height;
+		const title = `${formatTimelineDate(session.start)} - ${formatTimelineDate(session.end)} | ${session.count} points | ${session.durationMinutes} min`;
+		bars.push(
+			`<rect class="timeline-bar" x="${clampNumber(x, margin.left, chartWidth - margin.right - barWidth)}" y="${y}" width="${barWidth}" height="${Math.max(height, 2)}" rx="4" ry="4" tabindex="0" role="button" data-start="${session.start.toISOString()}" data-end="${session.end.toISOString()}" data-count="${session.count}" aria-label="Load ${session.count} points from ${formatTimelineDate(session.start)} to ${formatTimelineDate(session.end)}"><title>${title}</title></rect>`,
+		);
+	});
+
+	return `
+		<svg class="timeline-svg" viewBox="0 0 ${chartWidth} ${chartHeight}" role="img" aria-label="Session timeline chart">
+			${lines.join('')}
+			<line class="timeline-axis" x1="${margin.left}" y1="${margin.top + plotHeight}" x2="${chartWidth - margin.right}" y2="${margin.top + plotHeight}"></line>
+			<line class="timeline-axis" x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${margin.top + plotHeight}"></line>
+			${bars.join('')}
+			${labels.join('')}
+		</svg>
+		<p class="timeline-caption">Each bar represents one grouped session. Click a bar to load that session into the current map and list view. Sessions are split when the gap between consecutive points exceeds 30 minutes.</p>
+	`;
+}
+
+function parseTimelineDate(value) {
+	if (!value) {
+		return null;
+	}
+	const parsed = new Date(value);
+	return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatTimelineDate(value) {
+	if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+		return 'n/a';
+	}
+	return value.toLocaleString(undefined, {
+		year: 'numeric',
+		month: 'short',
+		day: 'numeric',
+		hour: '2-digit',
+		minute: '2-digit',
+	});
+}
+
+function formatTimelineTick(value, span) {
+	if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+		return '';
+	}
+	if (span <= 2 * 24 * 60 * 60 * 1000) {
+		return value.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+	}
+	if (span <= 45 * 24 * 60 * 60 * 1000) {
+		return value.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+	}
+	return value.toLocaleDateString(undefined, { year: 'numeric', month: 'short' });
+}
+
+function clampNumber(value, min, max) {
+	if (!Number.isFinite(value)) {
+		return min;
+	}
+	return Math.min(Math.max(value, min), max);
+}
+
+function clearSelectionState() {
 	const panel = document.getElementById('locations-panel');
 	if (panel) {
-		panel.querySelectorAll('tr.selected').forEach((el) => el.classList.remove('selected'));
-		if (options.removePinned) {
-			panel.setAttribute('data-remove-pinned', 'true');
-			clearPinnedRow(panel);
-		} else {
-			clearPinnedRow(panel);
-		}
+		panel.querySelectorAll('tr.location-row.selected').forEach((el) => el.classList.remove('selected'));
+		panel.querySelectorAll('.location-detail-row').forEach((el) => el.classList.add('hidden'));
 	}
 	selectedLocationUUID = null;
 	if (mapElement) {
 		mapElement.selected = null;
-	}
-}
-
-function hideDetailPanel() {
-	const detailPanel = document.getElementById('location-detail-panel');
-	if (detailPanel) {
-		detailPanel.classList.add('hidden');
-	}
-}
-
-function showDetailPanel() {
-	const detailPanel = document.getElementById('location-detail-panel');
-	if (detailPanel) {
-		detailPanel.classList.remove('hidden');
 	}
 }
 
@@ -923,11 +1154,8 @@ function restoreUTCTimes(rows) {
 }
 
 function triggerRefresh() {
-	const panel = document.getElementById('locations-panel');
-	if (panel) {
-		htmx.trigger(panel, 'htmx:abort');
-		htmx.trigger(panel, 'refresh');
-	}
+	timelineQueryParams = null;
+	refreshLocationsPanel();
 }
 
 function resetMapView() {

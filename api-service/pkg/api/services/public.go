@@ -79,6 +79,21 @@ type SessionRange struct {
 	Count int
 }
 
+// TimelineSession describes a contiguous cluster of collected location points.
+type TimelineSession struct {
+	Start time.Time
+	End   time.Time
+	Count int
+}
+
+// LocationTimeline summarizes grouped sessions for a filtered location set.
+type LocationTimeline struct {
+	Start      *time.Time
+	End        *time.Time
+	TotalCount int
+	Sessions   []TimelineSession
+}
+
 // DeleteDeviceOptions scopes deletion of device or historical data.
 type DeleteDeviceOptions struct {
 	DeviceID  int64
@@ -274,6 +289,69 @@ func LatestSessionRange(filters LocationFilters, maxGap time.Duration) (*Session
 		prev = current
 	}
 	return session, nil
+}
+
+// BuildLocationTimeline groups matching locations into contiguous sessions.
+func BuildLocationTimeline(filters LocationFilters, maxGap time.Duration) (*LocationTimeline, error) {
+	if maxGap <= 0 {
+		maxGap = 30 * time.Minute
+	}
+	db, err := storage.DB()
+	if err != nil {
+		return nil, err
+	}
+	ctx := context.Background()
+	query := buildLocationQuery(ctx, db, filters)
+
+	var rows []struct {
+		RecordedAt *time.Time `gorm:"column:recorded_at"`
+	}
+	if err := query.Select("recorded_at").Order("recorded_at ASC, id ASC").Find(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	timeline := &LocationTimeline{
+		Sessions: make([]TimelineSession, 0),
+	}
+	var current *TimelineSession
+	for _, row := range rows {
+		if row.RecordedAt == nil {
+			continue
+		}
+		ts := row.RecordedAt.UTC()
+		timeline.TotalCount++
+		if timeline.Start == nil {
+			start := ts
+			timeline.Start = &start
+		}
+		end := ts
+		timeline.End = &end
+
+		if current == nil {
+			timeline.Sessions = append(timeline.Sessions, TimelineSession{
+				Start: ts,
+				End:   ts,
+				Count: 1,
+			})
+			current = &timeline.Sessions[len(timeline.Sessions)-1]
+			continue
+		}
+
+		if ts.Sub(current.End) > maxGap {
+			timeline.Sessions = append(timeline.Sessions, TimelineSession{
+				Start: ts,
+				End:   ts,
+				Count: 1,
+			})
+			current = &timeline.Sessions[len(timeline.Sessions)-1]
+			continue
+		}
+
+		current.End = ts
+		current.Count++
+	}
+
+	return timeline, nil
 }
 
 // DeleteDeviceHistory prunes device data or removes the device entirely.

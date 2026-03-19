@@ -435,7 +435,7 @@ export class TransistorSoftMap extends HTMLElement {
   // previous marker is set to default icon, new marker or nothing is set to
   // selected icon
   updateSelectedLocation () {
-    const selected = this.locations.filter( (x) => x.uuid === this.selected)[0];
+    const selected = this.getSelectedLocation();
     if (this.selectedMarker) {
       this.selectedMarker.setIcon(this.buildLocationIcon(this.selectedMarker.location));
       this.selectedMarker.setZIndex(1);
@@ -453,7 +453,6 @@ export class TransistorSoftMap extends HTMLElement {
 
     if (marker) {
       this.selectedMarker = marker;
-      // marker.setFillColor('#000000');
       marker.setZIndex(100);
       marker.setIcon(
         this.buildLocationIcon(selected, {
@@ -462,7 +461,29 @@ export class TransistorSoftMap extends HTMLElement {
           selected: true,
         }),
       );
+      this.centerOnLocation(selected);
     }
+  }
+
+  getSelectedLocation () {
+    const selected = String(this.selected || '').trim();
+    if (!selected) {
+      return null;
+    }
+    return this.locations.find((location) => {
+      const uuid = String(location?.uuid || '').trim();
+      const id = String(location?.id || '').trim();
+      return uuid === selected || id === selected;
+    }) || null;
+  }
+
+  centerOnLocation (location) {
+    if (!this.gmap || !location) {
+      return;
+    }
+    const latLng = new google.maps.LatLng(location.latitude, location.longitude);
+    this.startProgrammaticViewChange();
+    this.gmap.panTo(latLng);
   }
 
   buildMotionChangePolyline (stationaryPosition, movingPosition) {

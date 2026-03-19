@@ -17,7 +17,7 @@
 		<tbody>
 		{{if .Locations}}
 		{{range .Locations}}
-			<tr data-uuid="{{.UUID}}" data-id="{{.ID}}">
+			<tr class="location-row" data-uuid="{{.UUID}}" data-id="{{.ID}}">
 				<td class="mono uuid-cell" title="{{.UUID}}">
 					<button type="button" class="uuid-link" data-uuid="{{.UUID}}" {{if not .UUID}}disabled{{end}}>
 						{{if .UUID}}{{shortUUID .UUID}}&hellip;{{else}}&mdash;{{end}}
@@ -37,6 +37,24 @@
 					<span class="battery {{if .BatteryCharging}}charging{{end}}">
 						{{.Battery}}
 					</span>
+				</td>
+			</tr>
+			<tr class="location-detail-row hidden" data-detail-for="{{if .UUID}}{{.UUID}}{{else}}{{.ID}}{{end}}">
+				<td colspan="9" class="location-detail-cell">
+					<div class="location-inline-detail">
+						<div class="detail-header">
+							<div class="detail-title">
+								<h3>Location Details</h3>
+								<p class="detail-hint">
+									{{if .UUID}}UUID: {{.UUID}}{{else}}ID: {{.ID}}{{end}}
+								</p>
+							</div>
+							<button type="button" class="detail-close inline-detail-close" aria-label="Minimize location details">
+								&times;
+							</button>
+						</div>
+						<pre>{{.RawJSON}}</pre>
+					</div>
 				</td>
 			</tr>
 			{{end}}

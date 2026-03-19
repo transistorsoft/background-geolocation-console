@@ -107,6 +107,29 @@
 			</form>
 		</div>
 
+		{{if .HasSelectedDevice}}
+		<div class="timeline-panel is-collapsed" id="timeline-panel">
+			<div class="timeline-toolbar">
+				<div class="timeline-toolbar-copy">
+					<button type="button" class="timeline-trigger" id="generate-timeline">Generate Timeline</button>
+					<p class="timeline-helper">Group the selected location data into sessions using time gaps between points.</p>
+				</div>
+				<button type="button" class="timeline-close hidden" id="timeline-close" aria-label="Minimize timeline">
+					&times;
+				</button>
+			</div>
+			<div class="timeline-content hidden" id="timeline-content">
+				<div class="timeline-header">
+					<div>
+						<h3>Session Timeline</h3>
+						<p class="timeline-summary" id="timeline-summary">Generate a timeline to inspect grouped sessions across the current selection.</p>
+					</div>
+				</div>
+				<div class="timeline-chart-wrap" id="timeline-chart-wrap"></div>
+			</div>
+		</div>
+		{{end}}
+
 		<div class="view-and-stats">
 			<div class="view-toggle" id="view-toggle">
 				<button type="button" data-view="map">Map</button>
@@ -118,31 +141,18 @@
 			</div>
 		</div>
 
-		{{template "partials/map" .}}
-
-			<div class="location-detail-panel hidden" id="location-detail-panel">
-				<div class="detail-header">
-					<div class="detail-title">
-						<h3>Location Details</h3>
-						<p class="detail-hint" id="location-detail-hint">Select a location on the map or list to inspect the raw payload.</p>
-						<div class="detail-meta" id="location-detail-meta"></div>
-					</div>
-					<button type="button" class="detail-close" id="location-detail-close" aria-label="Clear selected location">
-						&times;
-					</button>
-				</div>
-				<pre id="location-detail-json">{}</pre>
+		<div class="content-split">
+			{{template "partials/map" .}}
+			<div id="locations-panel"
+				class="locations-panel"
+				hx-get="{{.PartialLocationsURL}}"
+				hx-trigger="load, every {{printf "%.0f" .PollEvery.Seconds}}s, refresh"
+				hx-sync="this:replace"
+				hx-target="#locations-panel"
+				hx-swap="innerHTML"
+				hx-include="#filters-form">
+				{{template "partials/locations" .}}
 			</div>
-
-		<div id="locations-panel"
-			class="locations-panel"
-			hx-get="{{.PartialLocationsURL}}"
-			hx-trigger="load, every {{printf "%.0f" .PollEvery.Seconds}}s, refresh"
-			hx-sync="this:replace"
-			hx-target="#locations-panel"
-			hx-swap="innerHTML"
-			hx-include="#filters-form">
-			{{template "partials/locations" .}}
 		</div>
 		{{end}}
 	</div>

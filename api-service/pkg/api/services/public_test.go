@@ -54,15 +54,15 @@ func TestDeviceDetailsDisplayName(t *testing.T) {
 	}
 }
 
-func TestLatestSessionRangeReturnsNewestContiguousWindow(t *testing.T) {
-	dbPath := filepath.Join(t.TempDir(), "latest-session.db")
+func initServicesTestDB(t *testing.T) {
+	t.Helper()
+	dbPath := filepath.Join("/tmp", "api-service-services-tests.db")
 	if _, err := storage.Init(context.Background(), config.DatabaseConfig{
 		SQLitePath:  dbPath,
 		AutoMigrate: true,
 	}); err != nil {
 		t.Fatalf("init storage: %v", err)
 	}
-
 	db, err := storage.DB()
 	if err != nil {
 		t.Fatalf("get storage db: %v", err)
@@ -75,6 +75,15 @@ func TestLatestSessionRangeReturnsNewestContiguousWindow(t *testing.T) {
 	}
 	if err := db.Exec("DELETE FROM companies").Error; err != nil {
 		t.Fatalf("clear companies: %v", err)
+	}
+}
+
+func TestLatestSessionRangeReturnsNewestContiguousWindow(t *testing.T) {
+	initServicesTestDB(t)
+
+	db, err := storage.DB()
+	if err != nil {
+		t.Fatalf("get storage db: %v", err)
 	}
 
 	now := time.Date(2026, time.March, 17, 12, 0, 0, 0, time.UTC)
@@ -138,5 +147,90 @@ func TestLatestSessionRangeReturnsNewestContiguousWindow(t *testing.T) {
 	}
 	if session.End == nil || !session.End.Equal(now) {
 		t.Fatalf("expected end %s, got %v", now.Format(time.RFC3339), session.End)
+	}
+}
+
+func TestBuildLocationTimelineGroupsDistinctSessions(t *testing.T) {
+	initServicesTestDB(t)
+
+	db, err := storage.DB()
+	if err != nil {
+		t.Fatalf("get storage db: %v", err)
+	}
+
+	base := time.Date(2026, time.March, 16, 9, 0, 0, 0, time.UTC)
+	company := storage.Company{CompanyToken: "acme"}
+	if err := db.Create(&company).Error; err != nil {
+		t.Fatalf("create company: %v", err)
+	}
+	device := storage.Device{
+		CompanyID:    &company.ID,
+		CompanyToken: "acme",
+		DeviceID:     "device-1",
+		DeviceModel:  "Pixel",
+		Framework:    "expo",
+	}
+	if err := db.Create(&device).Error; err != nil {
+		t.Fatalf("create device: %v", err)
+	}
+
+	recordedTimes := []time.Time{
+		base,
+		base.Add(10 * time.Minute),
+		base.Add(24 * time.Hour),
+		base.Add(24*time.Hour + 12*time.Minute),
+		base.Add(48 * time.Hour),
+	}
+	for i, ts := range recordedTimes {
+		payload, err := json.Marshal(map[string]any{
+			"uuid":        "timeline-point",
+			"recorded_at": ts.Format(time.RFC3339Nano),
+		})
+		if err != nil {
+			t.Fatalf("marshal payload: %v", err)
+		}
+		recordedAt := ts
+		location := storage.Location{
+			CompanyID:  &company.ID,
+			DeviceID:   &device.ID,
+			RecordedAt: &recordedAt,
+			Data:       payload,
+			UUID:       "timeline-point",
+		}
+		if err := db.Create(&location).Error; err != nil {
+			t.Fatalf("create location %d: %v", i, err)
+		}
+	}
+
+	timeline, err := BuildLocationTimeline(LocationFilters{
+		Org:      "acme",
+		DeviceID: &device.ID,
+	}, 30*time.Minute)
+	if err != nil {
+		t.Fatalf("BuildLocationTimeline error: %v", err)
+	}
+	if timeline == nil {
+		t.Fatalf("expected timeline")
+	}
+	if timeline.TotalCount != len(recordedTimes) {
+		t.Fatalf("expected total count %d, got %d", len(recordedTimes), timeline.TotalCount)
+	}
+	if len(timeline.Sessions) != 3 {
+		t.Fatalf("expected 3 sessions, got %d", len(timeline.Sessions))
+	}
+	if timeline.Start == nil || !timeline.Start.Equal(base) {
+		t.Fatalf("expected start %s, got %v", base.Format(time.RFC3339), timeline.Start)
+	}
+	if timeline.End == nil || !timeline.End.Equal(base.Add(48*time.Hour)) {
+		t.Fatalf("expected end %s, got %v", base.Add(48*time.Hour).Format(time.RFC3339), timeline.End)
+	}
+	if got := timeline.Sessions[0].Count; got != 2 {
+		t.Fatalf("expected first session count 2, got %d", got)
+	}
+	if got := timeline.Sessions[1].Count; got != 2 {
+		t.Fatalf("expected second session count 2, got %d", got)
+	}
+	if got := timeline.Sessions[2].Count; got != 1 {
+		t.Fatalf("expected third session count 1, got %d", got)
 	}
 }

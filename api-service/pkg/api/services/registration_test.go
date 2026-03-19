@@ -1,36 +1,18 @@
 package services
 
 import (
-	"context"
-	"path/filepath"
 	"testing"
 
-	"github.com/resistorsoftware/api-service/pkg/api/config"
 	"github.com/resistorsoftware/api-service/pkg/api/types"
 	"github.com/resistorsoftware/api-service/pkg/storage"
 )
 
 func TestFindOrCreateDeviceCreatesNewRowForNewFingerprint(t *testing.T) {
-	dbPath := filepath.Join(t.TempDir(), "registration-test.db")
-	if _, err := storage.Init(context.Background(), config.DatabaseConfig{
-		SQLitePath:  dbPath,
-		AutoMigrate: true,
-	}); err != nil {
-		t.Fatalf("init storage: %v", err)
-	}
+	initServicesTestDB(t)
 
 	db, err := storage.DB()
 	if err != nil {
 		t.Fatalf("get storage db: %v", err)
-	}
-	if err := db.Exec("DELETE FROM locations").Error; err != nil {
-		t.Fatalf("clear locations: %v", err)
-	}
-	if err := db.Exec("DELETE FROM devices").Error; err != nil {
-		t.Fatalf("clear devices: %v", err)
-	}
-	if err := db.Exec("DELETE FROM companies").Error; err != nil {
-		t.Fatalf("clear companies: %v", err)
 	}
 
 	first := types.RegisterRequest{
