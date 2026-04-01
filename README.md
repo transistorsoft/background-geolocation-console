@@ -116,7 +116,7 @@ Public Heroku app:
 Admin Heroku app:
 
 ```sh
-heroku config:set GOFLAGS="-tags=admin" -a your-admin-app
+heroku config:set GOFLAGS="-tags=heroku_admin" -a your-admin-app
 heroku config:set ADMIN_SURFACE_ENABLED=true -a your-admin-app
 heroku config:set ADMIN_BOOTSTRAP_USERNAME=admin -a your-admin-app
 heroku config:set ADMIN_BOOTSTRAP_PASSWORD='super-secret' -a your-admin-app
@@ -131,7 +131,7 @@ git push heroku your-branch:main
 Recommended setup:
 
 - public Heroku app: no `GOFLAGS`, no admin config
-- admin Heroku app: `GOFLAGS="-tags=admin"` plus admin runtime config
+- admin Heroku app: `GOFLAGS="-tags=heroku_admin"` plus admin runtime config
 
 This gives you:
 
