@@ -1,4 +1,4 @@
-//go:build !admin && !heroku_admin
+//go:build !admin && !heroku && !heroku_admin
 
 package config
 
