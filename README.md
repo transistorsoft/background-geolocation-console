@@ -39,6 +39,13 @@ surface_enabled = true
 
 This means public distributions should be built without the `admin` tag, while internal deployments that need `/admin` should be built with `-tags admin` and then explicitly enabled in config.
 
+Heroku note:
+
+- this repository does not treat the `heroku` tag by itself as admin-capable
+- for Cloud Native Buildpacks, build-time Go tags should be set in `project.toml`
+- this branch includes a root `project.toml` that sets `GOFLAGS=-tags=admin`
+- on Heroku, `/admin` is still controlled at runtime by `ADMIN_SURFACE_ENABLED`
+
 ## API service entrypoint
 
 This binary boots the real `api-service` (found in `../api-service`) so it can be deployed to Heroku without touching the original sources. Configuration now works like this:
@@ -116,7 +123,6 @@ Public Heroku app:
 Admin Heroku app:
 
 ```sh
-heroku config:set GOFLAGS="-tags=heroku_admin" -a your-admin-app
 heroku config:set ADMIN_SURFACE_ENABLED=true -a your-admin-app
 heroku config:set ADMIN_BOOTSTRAP_USERNAME=admin -a your-admin-app
 heroku config:set ADMIN_BOOTSTRAP_PASSWORD='super-secret' -a your-admin-app
@@ -130,12 +136,14 @@ git push heroku your-branch:main
 
 Recommended setup:
 
-- public Heroku app: no `GOFLAGS`, no admin config
-- admin Heroku app: `GOFLAGS="-tags=heroku_admin"` plus admin runtime config
+- admin Heroku branch: keep the root `project.toml` with `GOFLAGS=-tags=admin`
+- public Heroku branch: omit that `project.toml` build env or change it so no admin tag is used
+- admin Heroku app: set `ADMIN_SURFACE_ENABLED=true` plus admin runtime config
+- public Heroku app: leave `ADMIN_SURFACE_ENABLED` unset or `false`
 
 This gives you:
 
-- a public deployment with no `/admin` code in the binary
-- an admin deployment with `/admin` compiled in and enabled explicitly by config
+- an admin Heroku deployment that compiles the admin surface at build time
+- `/admin` only becomes reachable when enabled explicitly by config
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
