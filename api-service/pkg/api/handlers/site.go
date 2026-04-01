@@ -31,7 +31,6 @@ func SiteGetEnv(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	firebaseCfg, _ := config.Firebase()
 
 	c.JSON(http.StatusOK, gin.H{
 		"GOOGLE_ANALYTICS_ID":   frontend.GoogleAnalyticsID,
@@ -39,7 +38,6 @@ func SiteGetEnv(c *gin.Context) {
 		"GOOGLE_TAG_ID":         frontend.GoogleTagID,
 		"GOOGLE_TAG_MANAGER_ID": frontend.GoogleTagManagerID,
 		"PURE_CHAT_ID":          frontend.PureChatID,
-		"FIREBASE":              firebaseCfg != nil && strings.TrimSpace(firebaseCfg.FirebaseURL) != "",
 		"SHARED_DASHBOARD":      frontend.SharedDashboard,
 	})
 }

@@ -1,8 +1,10 @@
+//go:build admin
+
 package config
 
 import _ "embed"
 
-//go:embed server_sample.toml
+//go:embed server_sample_admin.toml
 var sampleConfig []byte
 
 // SampleConfig returns a copy of the starter server configuration template.

@@ -38,12 +38,16 @@ type AuthConfig struct {
 	EncryptionPassword string `toml:"encryption_password"`
 }
 
-// FirebaseConfig describes Firebase integration settings.
-type FirebaseConfig struct {
-	FirebaseURL         string `toml:"firebase_url"`
-	FirebaseProjectID   string `toml:"firebase_project_id"`
-	FirebaseClientEmail string `toml:"firebase_client_email"`
-	FirebasePrivateKey  string `toml:"firebase_private_key"`
+// AdminConfig holds the optional admin surface configuration.
+type AdminConfig struct {
+	SurfaceEnabled    bool   `toml:"surface_enabled"`
+	LoginMode         string `toml:"login_mode"`
+	BootstrapUsername string `toml:"bootstrap_username"`
+	BootstrapPassword string `toml:"bootstrap_password"`
+	CookieName        string `toml:"cookie_name"`
+	CookieSecure      bool   `toml:"cookie_secure"`
+	SessionTTLMinutes int    `toml:"session_ttl_minutes"`
+	SessionMaxHours   int    `toml:"session_max_hours"`
 }
 
 // FrontendConfig holds keys that are safe to expose to the frontend.
@@ -73,7 +77,7 @@ type Config struct {
 	Server      ServerConfig      `toml:"server"`
 	Database    DatabaseConfig    `toml:"database"`
 	Auth        AuthConfig        `toml:"auth"`
-	Firebase    FirebaseConfig    `toml:"firebase"`
+	Admin       AdminConfig       `toml:"admin"`
 	Frontend    FrontendConfig    `toml:"frontend"`
 	Access      AccessConfig      `toml:"access"`
 	Development DevelopmentConfig `toml:"development"`
@@ -146,13 +150,32 @@ func Auth() (*AuthConfig, error) {
 	return &cfg.Auth, nil
 }
 
-// Firebase returns the Firebase configuration values.
-func Firebase() (*FirebaseConfig, error) {
+// Admin returns the admin surface configuration values.
+func Admin() (*AdminConfig, error) {
 	cfg, err := Load()
 	if err != nil {
 		return nil, err
 	}
-	return &cfg.Firebase, nil
+	admin := cfg.Admin
+	if strings.TrimSpace(admin.LoginMode) == "" {
+		admin.LoginMode = "password"
+	}
+	if strings.TrimSpace(admin.CookieName) == "" {
+		admin.CookieName = "bgc_admin"
+	}
+	if admin.SessionTTLMinutes <= 0 {
+		admin.SessionTTLMinutes = 30
+	}
+	if admin.SessionMaxHours <= 0 {
+		admin.SessionMaxHours = 8
+	}
+	if strings.TrimSpace(admin.BootstrapUsername) == "" {
+		admin.BootstrapUsername = strings.TrimSpace(cfg.Auth.AdminUsername)
+	}
+	if strings.TrimSpace(admin.BootstrapPassword) == "" {
+		admin.BootstrapPassword = strings.TrimSpace(cfg.Auth.Password)
+	}
+	return &admin, nil
 }
 
 // Frontend returns values intended for frontend consumption.
@@ -204,4 +227,11 @@ func JWTPublicKey() ([]byte, error) {
 		return nil, ErrMissingJWTPubKey
 	}
 	return []byte(cfg.Auth.JWTPublicKey), nil
+}
+
+// ResetForTests clears cached config state so tests can load fresh config values.
+func ResetForTests() {
+	cfg = Config{}
+	loadErr = nil
+	once = sync.Once{}
 }

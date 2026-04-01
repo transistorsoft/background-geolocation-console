@@ -11,6 +11,12 @@ let currentTheme = 'dark';
 let timelineHasExplicitDateFilters = false;
 let timelineQueryParams = null;
 
+function dashboardRouteBase() {
+	const panel = document.querySelector('.panel-main');
+	const base = panel?.dataset?.routeBase;
+	return base && base.trim() ? base.trim() : '/dashboard';
+}
+
 function updateMapData() {
 	const script = document.getElementById('map-data');
 	if (!script) {
@@ -642,7 +648,7 @@ async function fetchLatestSessionRange() {
 		params.set('device_id', deviceSelect.value);
 	}
 	const suffix = params.toString();
-	const url = `/dashboard/${encodeURIComponent(org)}/session/latest${suffix ? `?${suffix}` : ''}`;
+	const url = `${dashboardRouteBase()}/${encodeURIComponent(org)}/session/latest${suffix ? `?${suffix}` : ''}`;
 	const response = await fetch(url, { headers: { Accept: 'application/json' } });
 	if (!response.ok) {
 		throw new Error(`session request failed: ${response.status}`);
@@ -664,7 +670,7 @@ async function fetchTimelineData() {
 	}
 	const params = timelineQueryParams ? new URLSearchParams(timelineQueryParams) : buildDashboardQueryParams();
 	const suffix = params.toString();
-	const url = `/dashboard/${encodeURIComponent(org)}/timeline${suffix ? `?${suffix}` : ''}`;
+	const url = `${dashboardRouteBase()}/${encodeURIComponent(org)}/timeline${suffix ? `?${suffix}` : ''}`;
 	const response = await fetch(url, { headers: { Accept: 'application/json' } });
 	if (!response.ok) {
 		throw new Error(`timeline request failed: ${response.status}`);
@@ -792,7 +798,7 @@ async function fetchRecordedRange() {
 		params.set('device_id', deviceSelect.value);
 	}
 	const suffix = params.toString();
-	const url = `/dashboard/${encodeURIComponent(org)}/range${suffix ? `?${suffix}` : ''}`;
+	const url = `${dashboardRouteBase()}/${encodeURIComponent(org)}/range${suffix ? `?${suffix}` : ''}`;
 	try {
 		const response = await fetch(url, { headers: { Accept: 'application/json' } });
 		if (!response.ok) {

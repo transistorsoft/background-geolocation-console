@@ -1,0 +1,24 @@
+{{define "partials/admin_controls"}}
+<div class="admin-tools">
+	<h2>Admin Search</h2>
+	<form method="get" action="{{.RouteBase}}" class="form-control stacked">
+		<label for="company_query">Company token search</label>
+		<input
+			type="text"
+			id="company_query"
+			name="company_query"
+			value="{{.AdminSearchQuery}}"
+			placeholder="search company tokens"
+			hx-get="/admin/partials/company-search"
+			hx-trigger="input changed delay:200ms, search"
+			hx-target="#admin-company-search-results"
+			hx-swap="innerHTML"
+			hx-include="closest form">
+		{{if .Org}}<input type="hidden" name="org" value="{{.Org}}">{{end}}
+		<button type="submit">Search</button>
+	</form>
+	<div id="admin-company-search-results">
+		{{template "partials/admin_search_results" .}}
+	</div>
+</div>
+{{end}}

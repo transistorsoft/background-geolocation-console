@@ -25,7 +25,7 @@
 			<span>Background Geolocation Console</span>
 		</div>
 		<nav>
-			<a href="/dashboard">Dashboard</a>
+			<a href="{{if .RouteBase}}{{.RouteBase}}{{else}}/dashboard{{end}}">Dashboard</a>
 			<a href="/healthz" target="_blank" rel="noreferrer">Health</a>
 		</nav>
 	</header>

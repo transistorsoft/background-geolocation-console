@@ -26,7 +26,7 @@ func EnsureConfigFile() (string, error) {
 	populateServerConfig(&cfg.Server)
 	populateDatabaseConfig(&cfg.Database)
 	populateAuthConfig(&cfg.Auth)
-	populateFirebaseConfig(&cfg.Firebase)
+	populateAdminConfig(&cfg.Admin)
 	populateFrontendConfig(&cfg.Frontend)
 	populateAccessConfig(&cfg.Access)
 	populateDevelopmentConfig(&cfg.Development)
@@ -101,11 +101,15 @@ func populateAuthConfig(cfg *config.AuthConfig) {
 	cfg.EncryptionPassword = strings.TrimSpace(os.Getenv("ENCRYPTION_PASSWORD"))
 }
 
-func populateFirebaseConfig(cfg *config.FirebaseConfig) {
-	cfg.FirebaseURL = strings.TrimSpace(os.Getenv("FIREBASE_URL"))
-	cfg.FirebaseProjectID = strings.TrimSpace(os.Getenv("FIREBASE_PROJECT_ID"))
-	cfg.FirebaseClientEmail = strings.TrimSpace(os.Getenv("FIREBASE_CLIENT_EMAIL"))
-	cfg.FirebasePrivateKey = strings.TrimSpace(os.Getenv("FIREBASE_PRIVATE_KEY"))
+func populateAdminConfig(cfg *config.AdminConfig) {
+	cfg.SurfaceEnabled = boolFromEnv("ADMIN_SURFACE_ENABLED", false)
+	cfg.LoginMode = stringOrDefault("ADMIN_LOGIN_MODE", "password")
+	cfg.BootstrapUsername = strings.TrimSpace(os.Getenv("ADMIN_BOOTSTRAP_USERNAME"))
+	cfg.BootstrapPassword = strings.TrimSpace(os.Getenv("ADMIN_BOOTSTRAP_PASSWORD"))
+	cfg.CookieName = stringOrDefault("ADMIN_COOKIE_NAME", "bgc_admin")
+	cfg.CookieSecure = boolFromEnv("ADMIN_COOKIE_SECURE", false)
+	cfg.SessionTTLMinutes = intFromEnv("ADMIN_SESSION_TTL_MINUTES")
+	cfg.SessionMaxHours = intFromEnv("ADMIN_SESSION_MAX_HOURS")
 }
 
 func populateFrontendConfig(cfg *config.FrontendConfig) {

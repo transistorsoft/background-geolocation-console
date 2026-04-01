@@ -31,6 +31,7 @@ func New() http.Handler {
 	if err != nil {
 		log.Fatalf("web ui: %v", err)
 	}
+	registerAdminRoutes(r, dashboard)
 	dashboard.Register(r)
 
 	return r

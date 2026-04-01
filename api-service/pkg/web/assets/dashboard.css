@@ -85,6 +85,28 @@ body.theme-light {
 	color: #e2e8f0;
 }
 
+.admin-tools {
+	margin-bottom: 1.5rem;
+	padding: 0.9rem;
+	border: 1px solid #2b3550;
+	border-radius: 10px;
+	background: #101828;
+}
+
+.admin-tools h2,
+.admin-search-results h3 {
+	margin-top: 0;
+}
+
+.admin-search-results ul {
+	margin: 0;
+	padding-left: 1rem;
+}
+
+.admin-search-results li + li {
+	margin-top: 0.35rem;
+}
+
 
 .panel-main {
 	display: flex;

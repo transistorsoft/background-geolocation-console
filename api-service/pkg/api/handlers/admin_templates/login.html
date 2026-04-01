@@ -1,0 +1,43 @@
+{{define "admin-login"}}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Login</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { font-family: Inter, system-ui, sans-serif; margin: 0; min-height: 100vh; display: grid; place-items: center; background: radial-gradient(circle at top, #182033 0%, #0f1117 52%, #090b10 100%); color: #e2e8f0; }
+    .login-shell { width: min(30rem, calc(100vw - 2rem)); background: rgba(17, 22, 41, 0.92); border: 1px solid #262b3d; border-radius: 18px; padding: 1.5rem; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35); }
+    .eyebrow { color: #38bdf8; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.78rem; margin: 0 0 0.5rem; }
+    h1 { margin: 0 0 0.5rem; font-size: 1.6rem; }
+    p.hint { margin: 0 0 1.25rem; color: #94a3b8; }
+    p.error { color: #fca5a5; margin: 0 0 1rem; }
+    label, input { display: block; width: 100%; }
+    label { margin-bottom: 0.35rem; font-size: 0.92rem; color: #cbd5e1; }
+    input { margin: 0 0 1rem; padding: 0.75rem 0.85rem; box-sizing: border-box; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: inherit; }
+    button { width: 100%; padding: 0.8rem 1rem; border-radius: 10px; border: 1px solid #0f766e; background: linear-gradient(135deg, #0f766e, #155e75); color: #f8fafc; font-weight: 600; cursor: pointer; }
+    .footnote { margin-top: 1rem; color: #64748b; font-size: 0.84rem; }
+  </style>
+</head>
+<body>
+  <section class="login-shell">
+    <p class="eyebrow">Private Access</p>
+    <h1>Admin Login</h1>
+    <p class="hint">Use the configured admin credential for this server. This surface is not available in public builds.</p>
+    {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+    <form method="post" action="/admin/login">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <label for="username">Username</label>
+      <input id="username" name="username" type="text" value="{{.Username}}" autocomplete="username" required>
+
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+
+      <button type="submit">Sign in</button>
+    </form>
+    <p class="footnote">Admin routes require an admin build and <code>[admin].surface_enabled = true</code>.</p>
+  </section>
+</body>
+</html>
+{{end}}

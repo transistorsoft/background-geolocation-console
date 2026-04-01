@@ -66,6 +66,18 @@ func Close() error {
 	return sqlDB.Close()
 }
 
+// ResetForTests clears global storage state so tests can initialize a fresh database.
+func ResetForTests() {
+	if globalDB != nil {
+		if sqlDB, err := globalDB.DB(); err == nil {
+			_ = sqlDB.Close()
+		}
+	}
+	globalDB = nil
+	globalErr = nil
+	initOnce = sync.Once{}
+}
+
 func openDatabase(ctx context.Context, cfg config.DatabaseConfig) (*gorm.DB, error) {
 	if cfg.DatabaseURL != "" {
 		return openPostgres(ctx, cfg)

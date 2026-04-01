@@ -130,6 +130,37 @@ func ListCompanies(org string) ([]CompanySummary, error) {
 	return out, nil
 }
 
+// SearchCompanies returns companies whose token loosely matches the supplied query.
+func SearchCompanies(query string, limit int) ([]CompanySummary, error) {
+	trimmed := strings.TrimSpace(query)
+	if trimmed == "" {
+		return nil, nil
+	}
+	if limit <= 0 {
+		limit = 25
+	}
+	db, err := storage.DB()
+	if err != nil {
+		return nil, err
+	}
+	ctx := context.Background()
+	like := "%" + strings.ToLower(trimmed) + "%"
+	var rows []storage.Company
+	if err := db.WithContext(ctx).
+		Model(&storage.Company{}).
+		Where("LOWER(company_token) LIKE ?", like).
+		Order("company_token ASC").
+		Limit(limit).
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]CompanySummary, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, CompanySummary{ID: row.ID, CompanyToken: row.CompanyToken})
+	}
+	return out, nil
+}
+
 // ListDevices enumerates devices for the provided org/company scope.
 func ListDevices(org string, companyID *int64, admin bool) ([]DeviceDetails, error) {
 	db, err := storage.DB()

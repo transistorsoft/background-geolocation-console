@@ -7,15 +7,18 @@
 {{define "content"}}
 <section class="dashboard-shell">
 	<div class="panel panel-controls">
+		{{if .IsAdmin}}
+		{{template "partials/admin_controls" .}}
+		{{end}}
 		<h2>Organization</h2>
-		<form method="get" action="/dashboard" class="form-control">
+		<form method="get" action="{{.RouteBase}}" class="form-control">
 			<label for="org">Company token</label>
 			<input type="text" id="org" name="org" value="{{if .Org}}{{.Org}}{{else}}_sample_company{{end}}" placeholder="_sample_company">
 			<p class="hint">Example: <code>_sample_company</code>. Required to load devices and locations.</p>
 			<button type="submit">Load</button>
 		</form>
 		{{if .Org}}
-		<form method="get" action="/dashboard/{{.Org}}" class="form-control stacked">
+		<form method="get" action="{{.RouteBase}}/{{.Org}}" class="form-control stacked">
 			<input type="hidden" name="org" value="{{.Org}}">
 			<label for="company">Company</label>
 			<select id="company" name="company_id" onchange="this.form.submit()">
@@ -51,7 +54,7 @@
 		{{end}}
 	</div>
 
-	<div class="panel panel-main" data-view-mode="both" data-company-id="{{.SelectedCompanyID}}" data-org="{{.Org}}">
+	<div class="panel panel-main" data-view-mode="both" data-company-id="{{.SelectedCompanyID}}" data-org="{{.Org}}" data-route-base="{{.RouteBase}}">
 		{{if not .Org}}
 		<div class="empty-state">
 			<h2>Select an organization token</h2>

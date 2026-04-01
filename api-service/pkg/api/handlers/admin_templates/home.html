@@ -1,0 +1,151 @@
+{{define "admin-home"}}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { font-family: sans-serif; margin: 0; background: #0f1117; color: #e2e8f0; }
+    a { color: #7dd3fc; }
+    code, input { font-family: monospace; }
+    .shell { display: grid; grid-template-columns: 18rem 1fr; min-height: 100vh; }
+    .sidebar { padding: 1.5rem; border-right: 1px solid #262b3d; background: #151923; }
+    .content { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+    .card { background: #181c29; border: 1px solid #262b3d; border-radius: 12px; padding: 1rem; }
+    .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 0.75rem; }
+    .status-grid h2, .card h2, .card h3 { margin-top: 0; }
+    .org-list { list-style: none; padding: 0; margin: 0.75rem 0 0; display: flex; flex-direction: column; gap: 0.4rem; max-height: calc(100vh - 10rem); overflow: auto; }
+    .org-list a { display: block; padding: 0.55rem 0.7rem; border-radius: 8px; text-decoration: none; color: #cbd5e1; background: #111629; }
+    .org-list a.active { background: #0f766e; color: #f8fafc; }
+    .toolbar { display: flex; gap: 0.75rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+    .stack { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .message { color: #86efac; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 0.65rem 0.5rem; border-bottom: 1px solid #262b3d; vertical-align: top; }
+    .device-actions { display: flex; flex-direction: column; gap: 0.45rem; }
+    form.inline { display: inline; margin: 0; }
+    input, button { padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #111629; color: inherit; }
+    button { cursor: pointer; }
+    .danger { border-color: #7f1d1d; background: #3f1015; }
+    .muted { color: #94a3b8; }
+    .empty { padding: 1rem; border: 1px dashed #334155; border-radius: 10px; color: #94a3b8; }
+    @media (max-width: 960px) { .shell { grid-template-columns: 1fr; } .sidebar { border-right: 0; border-bottom: 1px solid #262b3d; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <h1>Admin</h1>
+      <p>Signed in as <code>{{.Username}}</code>.</p>
+      <p class="muted">Session expires at <code>{{.ExpiresAt}}</code>.</p>
+      <div class="stack">
+        <a href="/admin/api/session">Session JSON</a>
+        <a href="/admin/api/companies">Companies JSON</a>
+      </div>
+      <h2>Organizations</h2>
+      <ul class="org-list">
+        {{if .Organizations}}
+          {{range .Organizations}}
+            <li><a href="{{.URL}}" class="{{if .Active}}active{{end}}">{{.CompanyToken}}</a></li>
+          {{end}}
+        {{else}}
+          <li class="empty">No organizations found.</li>
+        {{end}}
+      </ul>
+    </aside>
+    <main class="content">
+      <section class="card">
+        <div class="toolbar">
+          <div>
+            <h2>Admin Console</h2>
+            <p class="muted">Browse organizations, inspect devices, and perform admin-only actions.</p>
+          </div>
+          <form method="post" action="/admin/logout" class="inline">
+            <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+            <button type="submit">Logout</button>
+          </form>
+        </div>
+        {{if .Message}}<p class="message">{{.Message}}</p>{{end}}
+      </section>
+
+      <section class="status-grid">
+        <div class="card"><h3>Organizations</h3><p><strong>{{.CompanyCount}}</strong></p></div>
+        <div class="card"><h3>Selected Org</h3><p><strong>{{.SelectedOrg}}</strong></p></div>
+        <div class="card"><h3>Devices In Scope</h3><p><strong>{{.DeviceCount}}</strong></p></div>
+        <div class="card"><h3>Selected Device Points</h3><p><strong>{{.SelectedDevicePoints}}</strong></p></div>
+      </section>
+
+      <section class="card">
+        <div class="toolbar">
+          <div>
+            <h2>Devices</h2>
+            <p class="muted">Select an organization from the sidebar to load its devices.</p>
+          </div>
+          <div class="stack">
+            {{range .DataLinks}}
+              <a href="{{.URL}}">{{.Label}}</a>
+            {{end}}
+          </div>
+        </div>
+        {{if .ShowEmptyOrgMessage}}
+          <div class="empty">Select an organization from the sidebar to inspect devices.</div>
+        {{else if not .Devices}}
+          <div class="empty">No devices found for this organization.</div>
+        {{else}}
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Device</th><th>Model</th><th>Framework</th><th>Updated</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              {{range .Devices}}
+                <tr{{if .Selected}} style="background:#111629;"{{end}}>
+                  <td><code>{{.ID}}</code></td>
+                  <td>{{.DisplayName}}<br><span class="muted">{{.DeviceID}}</span></td>
+                  <td>{{.Model}}</td>
+                  <td>{{.Framework}}</td>
+                  <td>{{.UpdatedAt}}</td>
+                  <td>
+                    <div class="device-actions">
+                      <a href="{{.InspectURL}}">Inspect</a>
+                      <a href="{{.DashboardURL}}">Open dashboard</a>
+                      <form method="post" action="{{.DeleteURL}}" class="inline">
+                        <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                        <input type="hidden" name="org" value="{{$.SelectedOrgRaw}}">
+                        <input type="text" name="confirm" value="" placeholder="type delete">
+                        <button type="submit" class="danger">Delete</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {{end}}
+            </tbody>
+          </table>
+        {{end}}
+      </section>
+
+      <section class="card">
+        <h2>Selected Device</h2>
+        {{if .SelectedDevice}}
+          <p><strong>{{.SelectedDevice.DisplayName}}</strong></p>
+          <p class="muted">Device ID <code>{{.SelectedDevice.DeviceID}}</code></p>
+          {{if .SelectedDevice.LatestRecordedAt}}
+            <p><strong>Latest:</strong> {{.SelectedDevice.LatestRecordedAt}}</p>
+            <p><strong>Coordinates:</strong> {{.SelectedDevice.LatestCoordinates}}</p>
+          {{else}}
+            <p class="muted">No recorded locations for this device.</p>
+          {{end}}
+          <p>
+            <a href="{{.SelectedDevice.LatestURL}}">Latest location JSON</a> |
+            <a href="{{.SelectedDevice.HistoryURL}}">Location history JSON</a>
+          </p>
+        {{else}}
+          <div class="empty">Select a device from the devices table to inspect its latest location and raw JSON endpoints.</div>
+        {{end}}
+      </section>
+    </main>
+  </div>
+</body>
+</html>
+{{end}}

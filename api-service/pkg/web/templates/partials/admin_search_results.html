@@ -1,0 +1,16 @@
+{{define "partials/admin_search_results"}}
+	{{if .AdminSearchQuery}}
+	<div class="admin-search-results">
+		<h3>Matches</h3>
+		{{if .AdminSearchResults}}
+		<ul>
+			{{range .AdminSearchResults}}
+			<li><a href="{{.URL}}">{{.CompanyToken}}</a></li>
+			{{end}}
+		</ul>
+		{{else}}
+		<p class="hint">No company tokens matched <code>{{.AdminSearchQuery}}</code>.</p>
+		{{end}}
+	</div>
+	{{end}}
+{{end}}

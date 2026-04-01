@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"io/fs"
 	"net/http"
+	"net/url"
 	"path"
 	"strconv"
 	"strings"
@@ -31,6 +32,10 @@ type Server struct {
 	htmxPoll  time.Duration
 	pageLimit int
 	mapsKey   string
+}
+
+func urlQueryEscape(value string) string {
+	return url.QueryEscape(value)
 }
 
 // NewServer parses embedded templates/assets and returns a Server.
@@ -76,20 +81,43 @@ func (s *Server) Register(r *gin.Engine) {
 	r.NoRoute(s.handleFallback)
 }
 
+// RegisterAdmin wires the authenticated admin dashboard routes onto the supplied group.
+func (s *Server) RegisterAdmin(r *gin.RouterGroup) {
+	r.GET("", s.handleAdminDashboard)
+	r.GET("/", s.handleAdminDashboard)
+	r.GET("/partials/company-search", s.handleAdminCompanySearchPartial)
+	r.GET("/:org", s.handleAdminDashboard)
+	r.GET("/:org/partials/locations", s.handleAdminLocationsPartial)
+	r.GET("/:org/timeline", s.handleTimeline)
+	r.GET("/:org/latest", s.handleLatestLocation)
+	r.GET("/:org/session/latest", s.handleLatestSessionRange)
+	r.GET("/:org/range", s.handleLocationRange)
+}
+
 func (s *Server) handleDashboard(c *gin.Context) {
+	s.renderDashboard(c, false, "/dashboard")
+}
+
+func (s *Server) handleAdminDashboard(c *gin.Context) {
+	s.renderDashboard(c, true, "/admin")
+}
+
+func (s *Server) renderDashboard(c *gin.Context, admin bool, basePath string) {
 	org := strings.TrimSpace(c.Param("org"))
 	if org == "" {
 		org = strings.TrimSpace(c.Query("org"))
 	}
 	q := c.Request.URL.Query()
-	data, err := s.buildDashboardData(org, q)
+	data, err := s.buildDashboardData(org, q, admin, basePath)
 	if err != nil {
 		c.Status(http.StatusInternalServerError)
 		_, _ = c.Writer.Write([]byte(err.Error()))
 		return
 	}
+	data.RouteBase = basePath
+	data.IsAdmin = admin
 	data.PollEvery = s.htmxPoll
-	data.PartialLocationsURL = s.locationsURL(org, data.SelectedCompanyID, data.SelectedDeviceID, data.From, data.To, data.WatchMode)
+	data.PartialLocationsURL = s.locationsURL(basePath, org, data.SelectedCompanyID, data.SelectedDeviceID, data.From, data.To, data.WatchMode)
 	if err := s.tmpl.ExecuteTemplate(c.Writer, "dashboard", data); err != nil {
 		c.Status(http.StatusInternalServerError)
 		_, _ = c.Writer.Write([]byte(err.Error()))
@@ -98,17 +126,41 @@ func (s *Server) handleDashboard(c *gin.Context) {
 }
 
 func (s *Server) handleLocationsPartial(c *gin.Context) {
-	org := strings.TrimSpace(c.Param("org"))
-	if org == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "org required"})
-		return
-	}
-	data, err := s.buildDashboardData(org, c.Request.URL.Query())
+	s.renderLocationsPartial(c, false, "/dashboard")
+}
+
+func (s *Server) handleAdminLocationsPartial(c *gin.Context) {
+	s.renderLocationsPartial(c, true, "/admin")
+}
+
+func (s *Server) handleAdminCompanySearchPartial(c *gin.Context) {
+	data, err := s.buildDashboardData("", c.Request.URL.Query(), true, "/admin")
 	if err != nil {
 		c.Status(http.StatusInternalServerError)
 		_, _ = c.Writer.Write([]byte(err.Error()))
 		return
 	}
+	if err := s.tmpl.ExecuteTemplate(c.Writer, "partials/admin_search_results", data); err != nil {
+		c.Status(http.StatusInternalServerError)
+		_, _ = c.Writer.Write([]byte(err.Error()))
+		return
+	}
+}
+
+func (s *Server) renderLocationsPartial(c *gin.Context, admin bool, basePath string) {
+	org := strings.TrimSpace(c.Param("org"))
+	if org == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "org required"})
+		return
+	}
+	data, err := s.buildDashboardData(org, c.Request.URL.Query(), admin, basePath)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		_, _ = c.Writer.Write([]byte(err.Error()))
+		return
+	}
+	data.RouteBase = basePath
+	data.IsAdmin = admin
 	if err := s.tmpl.ExecuteTemplate(c.Writer, "partials/locations", data); err != nil {
 		c.Status(http.StatusInternalServerError)
 		_, _ = c.Writer.Write([]byte(err.Error()))
@@ -319,7 +371,7 @@ func (s *Server) handleFallback(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 }
 
-func (s *Server) buildDashboardData(org string, params map[string][]string) (*DashboardPage, error) {
+func (s *Server) buildDashboardData(org string, params map[string][]string, admin bool, basePath string) (*DashboardPage, error) {
 	data := &DashboardPage{
 		Org:              org,
 		From:             firstParam(params, "start_date", ""),
@@ -327,9 +379,21 @@ func (s *Server) buildDashboardData(org string, params map[string][]string) (*Da
 		WatchMode:        strings.ToLower(firstParam(params, "watch_mode", "")) == "true",
 		MapLocationsJSON: template.JS("[]"),
 		PollEvery:        s.htmxPoll,
+		RouteBase:        basePath,
+		IsAdmin:          admin,
+		AdminSearchQuery: strings.TrimSpace(firstParam(params, "company_query", "")),
 	}
 	data.GoogleMapsKey = s.mapsKey
 	data.HasMap = strings.TrimSpace(s.mapsKey) != ""
+	if admin && data.AdminSearchQuery != "" {
+		results, err := services.SearchCompanies(data.AdminSearchQuery, 25)
+		if err != nil {
+			return nil, err
+		}
+		for _, result := range results {
+			data.AdminSearchResults = append(data.AdminSearchResults, SearchResult{CompanyToken: result.CompanyToken, URL: basePath + "?org=" + urlQueryEscape(result.CompanyToken)})
+		}
+	}
 	if strings.TrimSpace(org) == "" {
 		return data, nil
 	}
@@ -345,7 +409,7 @@ func (s *Server) buildDashboardData(org string, params map[string][]string) (*Da
 	if companyID != 0 {
 		companyPtr = int64Ptr(companyID)
 	}
-	devices, err := services.ListDevices(org, companyPtr, true)
+	devices, err := services.ListDevices(org, companyPtr, admin)
 	if err != nil {
 		return nil, err
 	}
@@ -411,9 +475,9 @@ func (s *Server) buildDashboardData(org string, params map[string][]string) (*Da
 	return data, nil
 }
 
-func (s *Server) locationsURL(org string, companyID, deviceID int64, from, to string, watch bool) string {
+func (s *Server) locationsURL(basePath, org string, companyID, deviceID int64, from, to string, watch bool) string {
 	if strings.TrimSpace(org) == "" {
-		return "/dashboard"
+		return basePath
 	}
 	var params []string
 	if companyID != 0 {
@@ -426,11 +490,15 @@ func (s *Server) locationsURL(org string, companyID, deviceID int64, from, to st
 	if len(params) > 0 {
 		query = "?" + strings.Join(params, "&")
 	}
-	return path.Clean(fmt.Sprintf("/dashboard/%s/partials/locations%s", org, query))
+	return path.Clean(fmt.Sprintf("%s/%s/partials/locations%s", basePath, org, query))
 }
 
 // DashboardPage holds all data needed to render the dashboard template.
 type DashboardPage struct {
+	RouteBase           string
+	IsAdmin             bool
+	AdminSearchQuery    string
+	AdminSearchResults  []SearchResult
 	Org                 string
 	Companies           []services.CompanySummary
 	Devices             []services.DeviceDetails
@@ -450,6 +518,12 @@ type DashboardPage struct {
 	TotalLocations      int64
 	VisibleRangeStart   string
 	VisibleRangeEnd     string
+}
+
+// SearchResult is a template-friendly admin company-token search result.
+type SearchResult struct {
+	CompanyToken string
+	URL          string
 }
 
 // LocationView is a template-friendly representation of a location row.
