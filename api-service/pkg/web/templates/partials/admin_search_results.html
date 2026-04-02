@@ -3,9 +3,11 @@
 	<div class="admin-search-results">
 		<h3>Matches</h3>
 		{{if .AdminSearchResults}}
-		<ul>
+		<ul class="admin-search-list">
 			{{range .AdminSearchResults}}
-			<li><a href="{{.URL}}">{{.CompanyToken}}</a></li>
+			<li>
+				<a href="{{.URL}}" class="admin-search-link{{if .Active}} is-active{{end}}">{{.CompanyToken}}</a>
+			</li>
 			{{end}}
 		</ul>
 		{{else}}

@@ -391,7 +391,11 @@ func (s *Server) buildDashboardData(org string, params map[string][]string, admi
 			return nil, err
 		}
 		for _, result := range results {
-			data.AdminSearchResults = append(data.AdminSearchResults, SearchResult{CompanyToken: result.CompanyToken, URL: basePath + "?org=" + urlQueryEscape(result.CompanyToken)})
+			data.AdminSearchResults = append(data.AdminSearchResults, SearchResult{
+				CompanyToken: result.CompanyToken,
+				URL:          basePath + "?org=" + urlQueryEscape(result.CompanyToken),
+				Active:       strings.EqualFold(result.CompanyToken, org),
+			})
 		}
 	}
 	if strings.TrimSpace(org) == "" {
@@ -524,6 +528,7 @@ type DashboardPage struct {
 type SearchResult struct {
 	CompanyToken string
 	URL          string
+	Active       bool
 }
 
 // LocationView is a template-friendly representation of a location row.

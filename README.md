@@ -41,10 +41,10 @@ This means public distributions should be built without the `admin` tag, while i
 
 Heroku note:
 
-- this repository does not treat the `heroku` tag by itself as admin-capable
-- for Cloud Native Buildpacks, build-time Go tags should be set in `project.toml`
-- this branch includes a root `project.toml` that sets `GOFLAGS=-tags=admin`
+- the Heroku Go buildpack already builds with the `heroku` tag
+- this repository treats `heroku` as an admin-capable compile target
 - on Heroku, `/admin` is still controlled at runtime by `ADMIN_SURFACE_ENABLED`
+- public binary distribution should still use a non-Heroku build without admin tags if you need the admin code fully absent
 
 ## API service entrypoint
 
@@ -136,14 +136,12 @@ git push heroku your-branch:main
 
 Recommended setup:
 
-- admin Heroku branch: keep the root `project.toml` with `GOFLAGS=-tags=admin`
-- public Heroku branch: omit that `project.toml` build env or change it so no admin tag is used
+- public Heroku app: no admin runtime config, especially leave `ADMIN_SURFACE_ENABLED` unset or `false`
 - admin Heroku app: set `ADMIN_SURFACE_ENABLED=true` plus admin runtime config
-- public Heroku app: leave `ADMIN_SURFACE_ENABLED` unset or `false`
 
 This gives you:
 
-- an admin Heroku deployment that compiles the admin surface at build time
+- a Heroku deployment where admin capability is compiled in by the buildpack tag
 - `/admin` only becomes reachable when enabled explicitly by config
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

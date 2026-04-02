@@ -1,6 +1,0 @@
-[_]
-schema-version = "0.2"
-
-[[io.buildpacks.build.env]]
-name = "GOFLAGS"
-value = "-tags=admin"
