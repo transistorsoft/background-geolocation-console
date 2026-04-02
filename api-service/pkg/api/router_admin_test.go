@@ -43,6 +43,17 @@ func TestAdminLoginAndProtectedRoutes(t *testing.T) {
 			t.Fatalf("expected redirect to /admin/login, got %q", got)
 		}
 
+		htmxReq := httptest.NewRequest(http.MethodGet, "/admin/acme/partials/locations", nil)
+		htmxReq.Header.Set("HX-Request", "true")
+		htmxResp := httptest.NewRecorder()
+		r.ServeHTTP(htmxResp, htmxReq)
+		if htmxResp.Code != http.StatusUnauthorized {
+			t.Fatalf("expected htmx partial 401 without cookie, got %d", htmxResp.Code)
+		}
+		if got := htmxResp.Header().Get("HX-Redirect"); got != "/admin/login" {
+			t.Fatalf("expected HX-Redirect to /admin/login, got %q", got)
+		}
+
 		apiReq := httptest.NewRequest(http.MethodGet, "/admin/api/session", nil)
 		apiReq.Header.Set("Authorization", "Bearer public-token")
 		apiResp := httptest.NewRecorder()

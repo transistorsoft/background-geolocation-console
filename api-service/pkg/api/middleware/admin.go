@@ -189,6 +189,11 @@ func CheckAdminRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claims, err := AdminSessionFromRequest(c)
 		if err != nil {
+			if isHTMXRequest(c) {
+				c.Header("HX-Redirect", "/admin/login")
+				c.AbortWithStatus(http.StatusUnauthorized)
+				return
+			}
 			c.Redirect(http.StatusFound, "/admin/login")
 			c.Abort()
 			return
@@ -196,6 +201,10 @@ func CheckAdminRequired() gin.HandlerFunc {
 		c.Set(ctxAdminClaims, claims)
 		c.Next()
 	}
+}
+
+func isHTMXRequest(c *gin.Context) bool {
+	return strings.EqualFold(strings.TrimSpace(c.GetHeader("HX-Request")), "true")
 }
 
 // CheckAdminAPIRequired enforces an admin cookie for JSON routes.
