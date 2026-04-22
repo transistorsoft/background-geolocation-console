@@ -155,6 +155,11 @@ body.theme-light {
 	color: #f8fafc;
 }
 
+.admin-search-link:focus-visible {
+	outline: 2px solid #3b82f6;
+	outline-offset: -2px;
+}
+
 .admin-search-link.is-active {
 	background: linear-gradient(135deg, #0f766e 0%, #155e75 100%);
 	border-color: #2dd4bf;

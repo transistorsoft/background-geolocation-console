@@ -122,9 +122,49 @@ document.addEventListener('htmx:afterSettle', (event) => {
 	}
 });
 
+function initAdminKeyNav() {
+	const input = document.getElementById('company_query');
+	const resultsContainer = document.getElementById('admin-company-search-results');
+	if (!input || !resultsContainer) return;
+
+	const getLinks = () =>
+		Array.from(resultsContainer.querySelectorAll('.admin-search-link'));
+
+	input.addEventListener('keydown', (e) => {
+		if (e.key === 'ArrowDown') {
+			e.preventDefault();
+			const links = getLinks();
+			if (links.length) links[0].focus();
+		} else if (e.key === 'Escape') {
+			input.value = '';
+			resultsContainer.innerHTML = '';
+		}
+	});
+
+	resultsContainer.addEventListener('keydown', (e) => {
+		const link = e.target.closest('.admin-search-link');
+		if (!link) return;
+
+		const links = getLinks();
+		const idx = links.indexOf(link);
+
+		if (e.key === 'ArrowDown') {
+			e.preventDefault();
+			if (idx < links.length - 1) links[idx + 1].focus();
+		} else if (e.key === 'ArrowUp') {
+			e.preventDefault();
+			if (idx > 0) links[idx - 1].focus();
+			else input.focus();
+		} else if (e.key === 'Escape') {
+			input.focus();
+		}
+	});
+}
+
 document.addEventListener('DOMContentLoaded', () => {
 	updateMapData();
 	resetTimelinePanel();
+	initAdminKeyNav();
 
 	const menuToggle = document.getElementById('panel-menu-toggle');
 	const panelMenu = document.getElementById('panel-menu');
