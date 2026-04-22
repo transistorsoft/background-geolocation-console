@@ -15,7 +15,6 @@
 			hx-swap="innerHTML"
 			hx-include="closest form">
 		{{if .Org}}<input type="hidden" name="org" value="{{.Org}}">{{end}}
-		<button type="submit">Search</button>
 	</form>
 	<div id="admin-company-search-results">
 		{{template "partials/admin_search_results" .}}
