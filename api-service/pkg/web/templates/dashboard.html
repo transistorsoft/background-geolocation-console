@@ -10,6 +10,7 @@
 		{{if .IsAdmin}}
 		{{template "partials/admin_controls" .}}
 		{{end}}
+		{{if not .IsAdmin}}
 		<h2>Organization</h2>
 		<form method="get" action="{{.RouteBase}}" class="form-control">
 			<label for="org">Company token</label>
@@ -17,6 +18,7 @@
 			<p class="hint">Example: <code>_sample_company</code>. Required to load devices and locations.</p>
 			<button type="submit">Load</button>
 		</form>
+		{{end}}
 		{{if .Org}}
 		<form method="get" action="{{.RouteBase}}/{{.Org}}" class="form-control stacked">
 			<input type="hidden" name="org" value="{{.Org}}">
