@@ -258,6 +258,20 @@ document.addEventListener('DOMContentLoaded', () => {
 				startPolling();
 			});
 			input.addEventListener('blur', stopPolling);
+
+			let _refreshTimer = null;
+			const scheduleRefresh = () => {
+				clearTimeout(_refreshTimer);
+				_refreshTimer = setTimeout(triggerRefresh, 600);
+			};
+			input.addEventListener('change', scheduleRefresh);
+			input.addEventListener('blur', () => {
+				if (_refreshTimer !== null) {
+					clearTimeout(_refreshTimer);
+					_refreshTimer = null;
+					triggerRefresh();
+				}
+			});
 		};
 		registerDateInput(startInput);
 		registerDateInput(endInput);

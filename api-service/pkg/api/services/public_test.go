@@ -27,6 +27,25 @@ func TestDeviceDetailsDisplayName(t *testing.T) {
 			want: "arm64-dlazar (flutter)",
 		},
 		{
+			name: "framework and version both present",
+			device: DeviceDetails{
+				DeviceID:    "arm64",
+				DeviceModel: "arm64",
+				Framework:   "Swift",
+				Version:     "4.14.0",
+			},
+			want: "arm64 (Swift 4.14.0)",
+		},
+		{
+			name: "version only no framework",
+			device: DeviceDetails{
+				DeviceID:    "arm64",
+				DeviceModel: "arm64",
+				Version:     "4.14.0",
+			},
+			want: "arm64 (v4.14.0)",
+		},
+		{
 			name: "falls back to raw device id when no username pattern",
 			device: DeviceDetails{
 				DeviceID:    "custom-device",

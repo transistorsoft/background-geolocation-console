@@ -44,6 +44,7 @@ func (d DeviceDetails) DisplayName() string {
 	model := strings.TrimSpace(d.DeviceModel)
 	deviceID := strings.TrimSpace(d.DeviceID)
 	framework := strings.TrimSpace(d.Framework)
+	version := strings.TrimSpace(d.Version)
 
 	label := deviceID
 	if model != "" {
@@ -56,10 +57,16 @@ func (d DeviceDetails) DisplayName() string {
 	if label == "" {
 		label = "device"
 	}
-	if framework == "" {
+	if framework == "" && version == "" {
 		return label
 	}
-	return fmt.Sprintf("%s (%s)", label, framework)
+	if framework == "" {
+		return fmt.Sprintf("%s (v%s)", label, version)
+	}
+	if version == "" {
+		return fmt.Sprintf("%s (%s)", label, framework)
+	}
+	return fmt.Sprintf("%s (%s %s)", label, framework, version)
 }
 
 // LocationFilters controls ListLocations queries.

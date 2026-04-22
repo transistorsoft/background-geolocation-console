@@ -461,6 +461,21 @@ body.theme-light {
 	border: 1px solid #2d364b;
 	background: #0f1323;
 	color: #e2e8f0;
+	font-size: 0.9rem;
+	font-family: inherit;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.filters-form input[type="datetime-local"]:focus {
+	outline: none;
+	border-color: #3b82f6;
+	box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+.filters-form input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+	filter: invert(0.65) brightness(1.2);
+	cursor: pointer;
+	border-radius: 3px;
 }
 
 .filters-form select {
@@ -470,6 +485,15 @@ body.theme-light {
 	border: 1px solid #2d364b;
 	background: #0f1323;
 	color: #e2e8f0;
+	font-size: 0.9rem;
+	font-family: inherit;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.filters-form select:focus {
+	outline: none;
+	border-color: #3b82f6;
+	box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
 }
 
 .filter-actions {
@@ -719,6 +743,17 @@ body.theme-light .form-control select {
 	background: #ffffff;
 	border-color: #d9e2ec;
 	color: #0f172a;
+}
+
+body.theme-light .filters-form input[type="datetime-local"]:focus,
+body.theme-light .filters-form select:focus {
+	border-color: #2563eb;
+	box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+body.theme-light .filters-form input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+	filter: none;
+	opacity: 0.6;
 }
 
 body.theme-light .filter-actions button {
