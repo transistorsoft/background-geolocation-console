@@ -1,11 +1,5 @@
 {{define "partials/stats"}}
 <div class="panel-heading" id="location-stats">
-	<p>
-		{{.TotalLocations}} recent locations
-		{{if and .VisibleRangeStart .VisibleRangeEnd}}
-			· showing {{.VisibleRangeStart}} to {{.VisibleRangeEnd}}
-		{{end}}
-		· updates every {{printf "%.0f" .PollEvery.Seconds}}s
-	</p>
+	<p>{{.TotalLocations}} location data points</p>
 </div>
 {{end}}
