@@ -141,6 +141,7 @@
 				<button type="button" data-view="both" class="active">Map + List</button>
 				<button type="button" data-view="list">List</button>
 			</div>
+			<span class="watch-mode-badge" id="watch-mode-badge" hidden>Updates every {{printf "%.0f" .PollEvery.Seconds}}s</span>
 			<div class="stats-pill">
 				{{template "partials/stats" .}}
 			</div>
@@ -151,7 +152,7 @@
 			<div id="locations-panel"
 				class="locations-panel"
 				hx-get="{{.PartialLocationsURL}}"
-				hx-trigger="load, every {{printf "%.0f" .PollEvery.Seconds}}s, refresh"
+				hx-trigger="load, every {{printf "%.0f" .PollEvery.Seconds}}s [isWatchMode()], refresh"
 				hx-sync="this:replace"
 				hx-target="#locations-panel"
 				hx-swap="innerHTML"

@@ -11,6 +11,11 @@ let currentTheme = 'dark';
 let timelineHasExplicitDateFilters = false;
 let timelineQueryParams = null;
 
+// Called by the HTMX poll condition in hx-trigger="every Xs [isWatchMode()]".
+// Returning false suppresses the automatic poll so the list and map are never
+// cleared while the user is reviewing a static selection.
+window.isWatchMode = () => !!document.querySelector('#filters-form input[name="watch_mode"]')?.checked;
+
 function dashboardRouteBase() {
 	const panel = document.querySelector('.panel-main');
 	const base = panel?.dataset?.routeBase;
@@ -411,7 +416,9 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (endRaw) {
 			const parsed = new Date(endRaw);
 			if (!Number.isNaN(parsed.getTime())) {
-				params.end_date = formatDateTimeUTCInput(parsed);
+				// Mirror the :59Z suffix used in buildLocationsRequestParams so HTMX-native
+				// requests (hx-include form, watch-mode poll) also include the full last minute.
+				params.end_date = `${formatDateTimeUTCInput(parsed)}:59Z`;
 			}
 		}
 	});
@@ -433,6 +440,17 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 	initializeMapToggles();
+
+	// Show/hide the watch-mode badge whenever the checkbox changes.
+	const watchModeBadge = document.getElementById('watch-mode-badge');
+	const watchModeCheckbox = document.querySelector('#filters-form input[name="watch_mode"]');
+	if (watchModeBadge && watchModeCheckbox) {
+		const syncBadge = () => {
+			watchModeBadge.style.display = watchModeCheckbox.checked ? 'inline-flex' : 'none';
+		};
+		syncBadge();
+		watchModeCheckbox.addEventListener('change', syncBadge);
+	}
 
 	const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
 	applyTheme(savedTheme);
@@ -472,22 +490,22 @@ document.addEventListener('DOMContentLoaded', () => {
 	const timelineChart = document.getElementById('timeline-chart-wrap');
 	if (timelineChart) {
 		timelineChart.addEventListener('click', (event) => {
-			const bar = event.target.closest('.timeline-bar[data-start][data-end]');
-			if (!bar) {
+			const session = event.target.closest('.timeline-session[data-start][data-end]');
+			if (!session) {
 				return;
 			}
-			applyTimelineSessionSelection(bar.dataset.start, bar.dataset.end);
+			applyTimelineSessionSelection(session.dataset.start, session.dataset.end);
 		});
 		timelineChart.addEventListener('keydown', (event) => {
 			if (event.key !== 'Enter' && event.key !== ' ') {
 				return;
 			}
-			const bar = event.target.closest('.timeline-bar[data-start][data-end]');
-			if (!bar) {
+			const session = event.target.closest('.timeline-session[data-start][data-end]');
+			if (!session) {
 				return;
 			}
 			event.preventDefault();
-			applyTimelineSessionSelection(bar.dataset.start, bar.dataset.end);
+			applyTimelineSessionSelection(session.dataset.start, session.dataset.end);
 		});
 	}
 
@@ -788,7 +806,10 @@ function buildLocationsRequestParams(overrides = {}) {
 	if (endRaw) {
 		const parsed = new Date(endRaw);
 		if (!Number.isNaN(parsed.getTime())) {
-			params.set('end_date', formatDateTimeUTCInput(parsed));
+			// Append :59Z so the server receives a full RFC3339 timestamp capped at the
+			// end of the chosen minute. Without this, the server parses "HH:MM" as HH:MM:00
+			// exactly, which excludes any location recorded at HH:MM:01–HH:MM:59.
+			params.set('end_date', `${formatDateTimeUTCInput(parsed)}:59Z`);
 		}
 	}
 	if (watchModeInput?.checked) {
@@ -1053,7 +1074,7 @@ function renderTimelinePanel(data) {
 		return;
 	}
 	summary.textContent = `${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'} across ${totalPoints} points from ${formatTimelineDate(start)} to ${formatTimelineDate(end)}.`;
-	chart.innerHTML = buildTimelineChartMarkup(sessions, start, end);
+	chart.innerHTML = buildTimelineChartMarkup(sessions);
 }
 
 function applyTimelineSessionSelection(startValue, endValue) {
@@ -1071,7 +1092,7 @@ function applyTimelineSessionSelection(startValue, endValue) {
 	refreshLocationsPanel({}, { resetTimeline: false });
 }
 
-function buildTimelineChartMarkup(sessions, start, end) {
+function buildTimelineChartMarkup(sessions) {
 	const parsedSessions = sessions.map((session) => {
 		const sessionStart = parseTimelineDate(session.start);
 		const sessionEnd = parseTimelineDate(session.end);
@@ -1083,59 +1104,141 @@ function buildTimelineChartMarkup(sessions, start, end) {
 			durationMinutes: Number(session.duration_minutes || 0),
 		};
 	}).filter((session) => session.start && session.end && session.count >= 0);
+
 	if (!parsedSessions.length) {
 		return '<div class="timeline-empty-state">No session groups were produced for this selection.</div>';
 	}
+
+	// Layout constants
 	const chartWidth = 960;
-	const chartHeight = 280;
-	const margin = { top: 20, right: 24, bottom: 54, left: 56 };
+	const chartHeight = 380;
+	const margin = { top: 28, right: 28, bottom: 48, left: 64 };
 	const plotWidth = chartWidth - margin.left - margin.right;
 	const plotHeight = chartHeight - margin.top - margin.bottom;
-	const maxCount = Math.max(...parsedSessions.map((session) => session.count), 1);
-	const minTime = start?.getTime() ?? parsedSessions[0].start.getTime();
-	const maxTime = end?.getTime() ?? parsedSessions[parsedSessions.length - 1].end.getTime();
-	const span = Math.max(maxTime - minTime, 60 * 60 * 1000);
-	const barWidth = Math.max(12, Math.min(36, plotWidth / Math.max(parsedSessions.length, 1) * 0.55));
-	const yTicks = 4;
-	const xTicks = 5;
-	const lines = [];
-	const labels = [];
+	const minBarH = 8;
+
+	// Group sessions by calendar date (local time) using session start
+	const dateKey = (d) =>
+		`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+	const dateLabel = (d) =>
+		d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+	const dateMap = new Map();
+	parsedSessions.forEach((s) => {
+		const key = dateKey(s.start);
+		if (!dateMap.has(key)) dateMap.set(key, s.start);
+	});
+	const sortedDates = Array.from(dateMap.entries()).sort(([a], [b]) => a.localeCompare(b));
+	const colCount = sortedDates.length;
+	const colIndexMap = new Map(sortedDates.map(([key], i) => [key, i]));
+	const colWidth = plotWidth / Math.max(colCount, 1);
+
+	// Assign each session a lane within its column so sessions on the same day fan out horizontally
+	const colLaneMap = new Map(); // dateKey → sessions sorted by start time
+	parsedSessions.forEach((s) => {
+		const key = dateKey(s.start);
+		if (!colLaneMap.has(key)) colLaneMap.set(key, []);
+		colLaneMap.get(key).push(s);
+	});
+	// Sort each column's sessions by start time and stamp laneIdx / laneCount
+	colLaneMap.forEach((group) => {
+		group.sort((a, b) => a.start - b.start);
+		group.forEach((s, i) => {
+			s.laneIdx = i;
+			s.laneCount = group.length;
+		});
+	});
+
+	// Y-axis: time of day — 00:00 at top, 24:00 at bottom
+	const minuteOfDay = (d) => d.getHours() * 60 + d.getMinutes();
+	const yForMinute = (min) => margin.top + (min / 1440) * plotHeight;
+
+	// Abbreviate large counts
+	const pillH = 18;
+	const countLabel = (n) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
+
+	const gridLines = [];
+	const yLabels = [];
+	const xLabels = [];
 	const bars = [];
 
-	for (let i = 0; i <= yTicks; i++) {
-		const value = Math.round((maxCount / yTicks) * i);
-		const y = margin.top + plotHeight - (plotHeight * i / yTicks);
-		lines.push(`<line class="timeline-grid" x1="${margin.left}" y1="${y}" x2="${chartWidth - margin.right}" y2="${y}"></line>`);
-		labels.push(`<text class="timeline-value-label" x="${margin.left - 10}" y="${y + 4}" text-anchor="end">${value}</text>`);
+	// Y-axis grid lines and labels every 4 hours
+	for (let h = 0; h <= 24; h += 4) {
+		const y = yForMinute(h * 60);
+		gridLines.push(
+			`<line class="timeline-grid" x1="${margin.left}" y1="${y}" x2="${chartWidth - margin.right}" y2="${y}"></line>`,
+		);
+		const label = h === 24 ? '00:00' : `${String(h).padStart(2, '0')}:00`;
+		yLabels.push(
+			`<text class="timeline-value-label" x="${margin.left - 10}" y="${y + 4}" text-anchor="end">${label}</text>`,
+		);
 	}
 
-	for (let i = 0; i <= xTicks; i++) {
-		const ratio = i / xTicks;
-		const x = margin.left + plotWidth * ratio;
-		const tickTime = new Date(minTime + span * ratio);
-		labels.push(`<text class="timeline-axis-label" x="${x}" y="${chartHeight - 18}" text-anchor="middle">${formatTimelineTick(tickTime, span)}</text>`);
-	}
+	// X-axis: one column per unique calendar date
+	sortedDates.forEach(([, date], i) => {
+		const x = margin.left + (i + 0.5) * colWidth;
+		xLabels.push(
+			`<text class="timeline-axis-label" x="${x}" y="${chartHeight - 12}" text-anchor="middle">${dateLabel(date)}</text>`,
+		);
+		if (i > 0) {
+			const xSep = margin.left + i * colWidth;
+			gridLines.push(
+				`<line class="timeline-col-separator" x1="${xSep}" y1="${margin.top}" x2="${xSep}" y2="${margin.top + plotHeight}"></line>`,
+			);
+		}
+	});
 
+	// Vertical bar spanning session start → end time on the Y-axis.
+	// Each session is placed in its own lane within the day column so no two sessions share the same x.
 	parsedSessions.forEach((session) => {
-		const ratio = span === 0 ? 0.5 : (session.start.getTime() - minTime) / span;
-		const x = margin.left + plotWidth * ratio - barWidth / 2;
-		const height = maxCount === 0 ? 0 : (session.count / maxCount) * plotHeight;
-		const y = margin.top + plotHeight - height;
-		const title = `${formatTimelineDate(session.start)} - ${formatTimelineDate(session.end)} | ${session.count} points | ${session.durationMinutes} min`;
+		const colIdx = colIndexMap.get(dateKey(session.start));
+		if (colIdx === undefined) return;
+
+		const laneCount = session.laneCount || 1;
+		const laneIdx = session.laneIdx || 0;
+		// Each lane is an equal slice of the column width
+		const laneWidth = colWidth / laneCount;
+		// Centre of this lane
+		const cx = margin.left + colIdx * colWidth + (laneIdx + 0.5) * laneWidth;
+
+		// Element widths scaled to lane width, with sensible min/max
+		const barW = Math.max(4, Math.min(10, laneWidth * 0.25));
+		const hitW = Math.max(20, Math.min(48, laneWidth * 0.85));
+		const pillW = Math.max(28, Math.min(52, laneWidth * 0.70));
+
+		const yTop = clampNumber(yForMinute(minuteOfDay(session.start)), margin.top, margin.top + plotHeight - minBarH);
+		const yRaw = yForMinute(minuteOfDay(session.end));
+		const barH = Math.max(minBarH, yRaw - yTop);
+		const midY = yTop + barH / 2;
+
+		// Hit rect must always cover the pill (pillH + 8px padding) even when the bar is tiny
+		const hitH = Math.max(barH, pillH + 8);
+		const hitY = clampNumber(midY - hitH / 2, margin.top, margin.top + plotHeight - hitH);
+
+		const label = countLabel(session.count);
+		const title = `${formatTimelineDate(session.start)} – ${formatTimelineDate(session.end)} | ${session.count} points | ${session.durationMinutes} min`;
+
 		bars.push(
-			`<rect class="timeline-bar" x="${clampNumber(x, margin.left, chartWidth - margin.right - barWidth)}" y="${y}" width="${barWidth}" height="${Math.max(height, 2)}" rx="4" ry="4" tabindex="0" role="button" data-start="${session.start.toISOString()}" data-end="${session.end.toISOString()}" data-count="${session.count}" aria-label="Load ${session.count} points from ${formatTimelineDate(session.start)} to ${formatTimelineDate(session.end)}"><title>${title}</title></rect>`,
+			`<g class="timeline-session" tabindex="0" role="button" data-start="${session.start.toISOString()}" data-end="${session.end.toISOString()}" data-count="${session.count}" aria-label="Load ${session.count} points from ${formatTimelineDate(session.start)} to ${formatTimelineDate(session.end)}">
+				<title>${title}</title>
+				<rect class="timeline-session-hit" x="${cx - hitW / 2}" y="${hitY}" width="${hitW}" height="${hitH}"></rect>
+				<rect class="timeline-session-bar" x="${cx - barW / 2}" y="${yTop}" width="${barW}" height="${barH}" rx="3" ry="3"></rect>
+				<rect class="timeline-session-pill" x="${cx - pillW / 2}" y="${midY - pillH / 2}" width="${pillW}" height="${pillH}" rx="${pillH / 2}" ry="${pillH / 2}"></rect>
+				<text class="timeline-session-count" x="${cx}" y="${midY + 4}" text-anchor="middle">${label}</text>
+			</g>`,
 		);
 	});
 
 	return `
 		<svg class="timeline-svg" viewBox="0 0 ${chartWidth} ${chartHeight}" role="img" aria-label="Session timeline chart">
-			${lines.join('')}
-			<line class="timeline-axis" x1="${margin.left}" y1="${margin.top + plotHeight}" x2="${chartWidth - margin.right}" y2="${margin.top + plotHeight}"></line>
+			${gridLines.join('')}
 			<line class="timeline-axis" x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${margin.top + plotHeight}"></line>
+			<line class="timeline-axis" x1="${margin.left}" y1="${margin.top + plotHeight}" x2="${chartWidth - margin.right}" y2="${margin.top + plotHeight}"></line>
 			${bars.join('')}
-			${labels.join('')}
+			${yLabels.join('')}
+			${xLabels.join('')}
 		</svg>
-		<p class="timeline-caption">Each bar represents one grouped session. Click a bar to load that session into the current map and list view. Sessions are split when the gap between consecutive points exceeds 30 minutes.</p>
+		<p class="timeline-caption">Each bar spans the start to end of a session; the Y-axis is time of day, columns are calendar days. Click or press Enter to load that session. Sessions are split when the gap between points exceeds 30 minutes.</p>
 	`;
 }
 
