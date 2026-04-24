@@ -38,6 +38,7 @@ When running at the repo root, both `go run ./...` and `go build .` use the root
 # Run the Heroku-style entry (env-driven config) — see README for required env vars
 go run ./...
 go run -tags admin ./...             # admin-capable local run
+go run -tags admin .                 # "boot admin" — root entry against local server.toml
 
 # Run the interactive CLI entry (TOML-driven)
 go run ./api-service/cmd/server
