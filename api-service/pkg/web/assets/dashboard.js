@@ -2,7 +2,6 @@ const VIEW_MODE_KEY = 'dashboard:view-mode';
 const THEME_KEY = 'dashboard:theme';
 let seenRows = new Set();
 let initializedRows = false;
-let useLocalTime = false;
 let currentViewMode = 'both';
 let mapLocations = [];
 let mapElement = null;
@@ -105,9 +104,7 @@ document.addEventListener('htmx:afterSwap', (event) => {
 			}
 		}
 
-		if (useLocalTime) {
-			applyLocalTime(rows);
-		}
+		applyLocalTime(rows);
 
 		if (selectedLocationUUID) {
 			const selectedRow = highlightLocationRow(selectedLocationUUID);
@@ -199,18 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 
-	const toggle = document.getElementById('toggle-local');
-	if (toggle) {
-		toggle.addEventListener('change', (e) => {
-			useLocalTime = e.target.checked;
-			const rows = Array.from(document.querySelectorAll('#locations-panel tbody tr.location-row'));
-			if (useLocalTime) {
-				applyLocalTime(rows);
-			} else {
-				restoreUTCTimes(rows);
-			}
-		});
-	}
+	applyLocalTime(Array.from(document.querySelectorAll('#locations-panel tbody tr.location-row')));
 
 	const quickRange = document.getElementById('date-range-select');
 	if (quickRange) {
@@ -559,9 +545,6 @@ function applyLocalTime(rows) {
 		const ts = cell.getAttribute('data-recorded');
 		if (!ts) return;
 		const date = new Date(ts);
-		if (cell.dataset.original === undefined) {
-			cell.dataset.original = cell.innerHTML;
-		}
 		if (!isNaN(date.getTime())) {
 			const datePart = date.toLocaleDateString(undefined, {
 				weekday: 'short',
@@ -1304,16 +1287,6 @@ function applyTheme(theme) {
 	if (button) {
 		button.textContent = theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode';
 	}
-}
-
-function restoreUTCTimes(rows) {
-	rows.forEach((row) => {
-		const cell = row.querySelector('[data-recorded]');
-		if (!cell || cell.dataset.original === undefined) {
-			return;
-		}
-		cell.innerHTML = cell.dataset.original;
-	});
 }
 
 function triggerRefresh() {

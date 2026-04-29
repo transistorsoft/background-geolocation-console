@@ -62,7 +62,7 @@ func NewServer() (*Server, error) {
 		tmpl:      tmpl,
 		assetFS:   sub,
 		htmxPoll:  10 * time.Second,
-		pageLimit: 250,
+		pageLimit: 2000,
 		mapsKey:   mapsKey,
 	}, nil
 }
