@@ -57,7 +57,7 @@ bootstrap_username = ""
 bootstrap_password = ""
 cookie_name = "bgc_admin"
 cookie_secure = false
-session_ttl_minutes = 30
+session_ttl_minutes = 480
 session_max_hours = 8
 
 # ===========================

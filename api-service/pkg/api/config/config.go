@@ -164,7 +164,7 @@ func Admin() (*AdminConfig, error) {
 		admin.CookieName = "bgc_admin"
 	}
 	if admin.SessionTTLMinutes <= 0 {
-		admin.SessionTTLMinutes = 30
+		admin.SessionTTLMinutes = 480
 	}
 	if admin.SessionMaxHours <= 0 {
 		admin.SessionMaxHours = 8
