@@ -475,11 +475,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	const timelineChart = document.getElementById('timeline-chart-wrap');
 	if (timelineChart) {
+		const markTimelineSelection = (session) => {
+			const svg = session.closest('svg');
+			const scope = svg || timelineChart;
+			scope.querySelectorAll('.timeline-session.is-selected').forEach((el) => {
+				if (el !== session) el.classList.remove('is-selected');
+			});
+			session.classList.add('is-selected');
+		};
 		timelineChart.addEventListener('click', (event) => {
 			const session = event.target.closest('.timeline-session[data-start][data-end]');
 			if (!session) {
 				return;
 			}
+			markTimelineSelection(session);
 			applyTimelineSessionSelection(session.dataset.start, session.dataset.end);
 		});
 		timelineChart.addEventListener('keydown', (event) => {
@@ -491,6 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				return;
 			}
 			event.preventDefault();
+			markTimelineSelection(session);
 			applyTimelineSessionSelection(session.dataset.start, session.dataset.end);
 		});
 	}
