@@ -943,12 +943,21 @@ body.theme-light .detail-close:hover {
 	display: none;
 }
 
+.panel-main[data-view-mode="map"] {
+	height: calc(100vh - 3rem);
+	box-sizing: border-box;
+}
+
 .panel-main[data-view-mode="map"] .content-split {
 	grid-template-columns: minmax(0, 1fr);
+	flex: 1 1 0;
+	min-height: 0;
 }
 
 .panel-main[data-view-mode="map"] .map-panel {
-	height: calc(100vh - 260px);
+	height: 100%;
+	min-height: 0;
+	box-sizing: border-box;
 }
 
 .panel-main[data-view-mode="list"] .content-split {
