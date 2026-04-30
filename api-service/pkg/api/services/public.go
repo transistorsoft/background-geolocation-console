@@ -175,7 +175,9 @@ func ListDevices(org string, companyID *int64, admin bool) ([]DeviceDetails, err
 		return nil, err
 	}
 	ctx := context.Background()
-	query := db.WithContext(ctx).Model(&storage.Device{}).Order("id ASC")
+	query := db.WithContext(ctx).Model(&storage.Device{}).
+		Order("(SELECT MAX(recorded_at) FROM locations WHERE locations.device_id = devices.id) DESC NULLS LAST").
+		Order("id ASC")
 	trimmed := strings.TrimSpace(org)
 	if !admin || trimmed != "" {
 		query = query.Where("company_token = ?", trimmed)
