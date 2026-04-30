@@ -944,7 +944,8 @@ body.theme-light .detail-close:hover {
 }
 
 .panel-main[data-view-mode="map"] {
-	height: calc(100vh - 3rem);
+	/* 3rem = dashboard-shell vertical padding; 69px = app-header rendered height */
+	height: calc(100vh - 3rem - 69px);
 	box-sizing: border-box;
 }
 
