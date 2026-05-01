@@ -1325,27 +1325,35 @@ function setupUUIDSearch() {
 				setStatus('Match found but timestamp could not be parsed.', 'error');
 				return;
 			}
-			// Bracket the day in UTC so the located record renders alongside
-			// neighbours from the same day. The user can widen later if needed.
-			const dayStart = new Date(Date.UTC(
-				recorded.getUTCFullYear(),
-				recorded.getUTCMonth(),
-				recorded.getUTCDate(),
-				0, 0, 0,
-			));
-			const dayEnd = new Date(Date.UTC(
-				recorded.getUTCFullYear(),
-				recorded.getUTCMonth(),
-				recorded.getUTCDate(),
-				23, 59, 0,
-			));
+			// Prefer the session (cluster) bracket the server computed around
+			// the record so the user lands on its neighbouring points. Fall
+			// back to a UTC day bracket if the server didn't return one.
+			let rangeStart = null;
+			let rangeEnd = null;
+			if (data?.session_start && data?.session_end) {
+				const s = new Date(data.session_start);
+				const e = new Date(data.session_end);
+				if (!Number.isNaN(s.getTime()) && !Number.isNaN(e.getTime())) {
+					rangeStart = s;
+					rangeEnd = e;
+				}
+			}
+			if (!rangeStart || !rangeEnd) {
+				rangeStart = new Date(Date.UTC(recorded.getUTCFullYear(), recorded.getUTCMonth(), recorded.getUTCDate(), 0, 0, 0));
+				rangeEnd = new Date(Date.UTC(recorded.getUTCFullYear(), recorded.getUTCMonth(), recorded.getUTCDate(), 23, 59, 0));
+			}
+			// URL params are minute-precision; pad the upper bound by a minute
+			// so the server's initial filter (recorded_at <= end) still
+			// includes records whose seconds fall inside the session end.
+			const paddedEnd = new Date(rangeEnd.getTime() + 60 * 1000);
 			const navParams = new URLSearchParams();
 			navParams.set('org', org);
 			navParams.set('device_id', String(deviceID));
-			navParams.set('start_date', formatDateTimeUTCInput(dayStart));
-			navParams.set('end_date', formatDateTimeUTCInput(dayEnd));
+			navParams.set('start_date', formatDateTimeUTCInput(rangeStart));
+			navParams.set('end_date', formatDateTimeUTCInput(paddedEnd));
 			navParams.set('focus_uuid', uuid);
-			setStatus('Match found — loading…', 'success');
+			const count = Number(data?.session_count) || 0;
+			setStatus(count > 1 ? `Match found in cluster of ${count} — loading…` : 'Match found — loading…', 'success');
 			window.location.assign(`${routeBase}/${encodeURIComponent(org)}?${navParams}`);
 		} catch (err) {
 			console.error('uuid search failed', err);
@@ -1370,6 +1378,14 @@ function focusUUIDFromQuery() {
 		const row = document.querySelector(`#locations-panel tr.location-row[data-uuid="${escapedUUID}"]`);
 		if (!row) return false;
 		handleLocationSelection(uuid);
+		// Tell the map to apply the red selection icon and pan to the point.
+		// Setting the property here is safe: updateMapData() ran first in this
+		// DOMContentLoaded handler, so mapElement.locations is already
+		// populated with the cluster.
+		const map = document.getElementById('dashboard-map');
+		if (map) {
+			map.selected = uuid;
+		}
 		return true;
 	};
 	if (tryFocus()) return;

@@ -327,8 +327,9 @@ func StreamLocations(filters LocationFilters, w io.Writer) (int64, error) {
 }
 
 // LocationLookup describes a single location resolved by UUID along with the
-// device it belongs to, sufficient for the dashboard to navigate to and
-// highlight that record.
+// device it belongs to and the contiguous session of points it sits inside,
+// sufficient for the dashboard to navigate to it and render its cluster with
+// the UUID highlighted.
 type LocationLookup struct {
 	UUID         string         `json:"uuid"`
 	DeviceID     int64          `json:"device_id"`
@@ -339,6 +340,9 @@ type LocationLookup struct {
 	Latitude     *float64       `json:"latitude,omitempty"`
 	Longitude    *float64       `json:"longitude,omitempty"`
 	Payload      map[string]any `json:"payload"`
+	SessionStart *time.Time     `json:"session_start,omitempty"`
+	SessionEnd   *time.Time     `json:"session_end,omitempty"`
+	SessionCount int            `json:"session_count,omitempty"`
 }
 
 // FindLocationByUUID returns the single location matching the supplied UUID
@@ -384,7 +388,7 @@ func FindLocationByUUID(org, uuid string) (*LocationLookup, error) {
 	}
 	payload := decodeLocationData(loc.Data)
 	enrichLocationPayload(payload, loc)
-	return &LocationLookup{
+	result := &LocationLookup{
 		UUID:         loc.UUID,
 		DeviceID:     deviceID,
 		DeviceLabel:  deviceLabel,
@@ -394,7 +398,15 @@ func FindLocationByUUID(org, uuid string) (*LocationLookup, error) {
 		Latitude:     loc.Latitude,
 		Longitude:    loc.Longitude,
 		Payload:      payload,
-	}, nil
+	}
+	if loc.RecordedAt != nil && deviceID > 0 {
+		if session, sErr := FindDeviceSessionAround(deviceID, loc.RecordedAt.UTC(), 0); sErr == nil && session != nil {
+			result.SessionStart = session.Start
+			result.SessionEnd = session.End
+			result.SessionCount = session.Count
+		}
+	}
+	return result, nil
 }
 
 // CountLocations returns the total number of matching locations for the filters.
@@ -441,6 +453,78 @@ func LatestLocation(filters LocationFilters) (map[string]any, error) {
 		return nil, nil
 	}
 	return results[0], nil
+}
+
+// FindDeviceSessionAround locates the contiguous session containing anchor for
+// the given device. A session is a run of recorded_at values whose adjacent
+// gaps are all <= maxGap. The returned range always includes anchor; if it
+// is the only matching record the start and end will both equal anchor.
+func FindDeviceSessionAround(deviceID int64, anchor time.Time, maxGap time.Duration) (*SessionRange, error) {
+	if deviceID <= 0 {
+		return nil, nil
+	}
+	if maxGap <= 0 {
+		maxGap = 30 * time.Minute
+	}
+	db, err := storage.DB()
+	if err != nil {
+		return nil, err
+	}
+	ctx := context.Background()
+
+	sessionStart := anchor.UTC()
+	sessionEnd := anchor.UTC()
+	count := 1
+
+	var earlier []storage.Location
+	if err := db.WithContext(ctx).
+		Where("device_id = ? AND recorded_at < ?", deviceID, anchor).
+		Order("recorded_at DESC").
+		Limit(2000).
+		Find(&earlier).Error; err != nil {
+		return nil, err
+	}
+	prev := sessionStart
+	for _, row := range earlier {
+		if row.RecordedAt == nil {
+			continue
+		}
+		ts := row.RecordedAt.UTC()
+		if prev.Sub(ts) > maxGap {
+			break
+		}
+		sessionStart = ts
+		prev = ts
+		count++
+	}
+
+	var later []storage.Location
+	if err := db.WithContext(ctx).
+		Where("device_id = ? AND recorded_at > ?", deviceID, anchor).
+		Order("recorded_at ASC").
+		Limit(2000).
+		Find(&later).Error; err != nil {
+		return nil, err
+	}
+	prev = sessionEnd
+	for _, row := range later {
+		if row.RecordedAt == nil {
+			continue
+		}
+		ts := row.RecordedAt.UTC()
+		if ts.Sub(prev) > maxGap {
+			break
+		}
+		sessionEnd = ts
+		prev = ts
+		count++
+	}
+
+	return &SessionRange{
+		Start: &sessionStart,
+		End:   &sessionEnd,
+		Count: count,
+	}, nil
 }
 
 // LatestSessionRange returns the newest contiguous session for the filters.
