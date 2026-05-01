@@ -169,16 +169,35 @@ func SearchCompanies(query string, limit int) ([]CompanySummary, error) {
 	return out, nil
 }
 
-// ListDevices enumerates devices for the provided org/company scope.
+// ListDevices enumerates devices for the provided org/company scope, ordered
+// by most recent activity.
 func ListDevices(org string, companyID *int64, admin bool) ([]DeviceDetails, error) {
+	return listDevices(org, companyID, admin, nil, nil)
+}
+
+// ListDevicesInRange enumerates devices but lifts those with locations inside
+// the supplied [start, end] window to the top of the result. Within the
+// in-range and out-of-range groups, ordering matches ListDevices (most recent
+// activity first).
+func ListDevicesInRange(org string, companyID *int64, admin bool, start, end *time.Time) ([]DeviceDetails, error) {
+	return listDevices(org, companyID, admin, start, end)
+}
+
+func listDevices(org string, companyID *int64, admin bool, start, end *time.Time) ([]DeviceDetails, error) {
 	db, err := storage.DB()
 	if err != nil {
 		return nil, err
 	}
 	ctx := context.Background()
-	query := db.WithContext(ctx).Model(&storage.Device{}).
+	query := db.WithContext(ctx).Model(&storage.Device{})
+
+	if expr := devicesInRangeOrderExpr(start, end); expr != "" {
+		query = query.Order(expr)
+	}
+	query = query.
 		Order("(SELECT MAX(recorded_at) FROM locations WHERE locations.device_id = devices.id) DESC NULLS LAST").
 		Order("id ASC")
+
 	trimmed := strings.TrimSpace(org)
 	if !admin || trimmed != "" {
 		query = query.Where("company_token = ?", trimmed)
@@ -205,6 +224,28 @@ func ListDevices(org string, companyID *int64, admin bool) ([]DeviceDetails, err
 		})
 	}
 	return out, nil
+}
+
+// devicesInRangeOrderExpr builds a raw ORDER BY clause that prioritises
+// devices with at least one location in [start, end]. The time bounds are
+// formatted as RFC3339 (no quoting characters of concern), so inlining them
+// is safe and avoids the GORM Order-with-vars contortions. Empty when both
+// bounds are nil.
+func devicesInRangeOrderExpr(start, end *time.Time) string {
+	conds := make([]string, 0, 2)
+	if start != nil {
+		conds = append(conds, fmt.Sprintf("recorded_at >= '%s'", start.UTC().Format(time.RFC3339)))
+	}
+	if end != nil {
+		conds = append(conds, fmt.Sprintf("recorded_at <= '%s'", end.UTC().Format(time.RFC3339)))
+	}
+	if len(conds) == 0 {
+		return ""
+	}
+	return fmt.Sprintf(
+		"EXISTS(SELECT 1 FROM locations WHERE locations.device_id = devices.id AND %s) DESC",
+		strings.Join(conds, " AND "),
+	)
 }
 
 // ListLocations returns raw JSON payloads matching the filters.

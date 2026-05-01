@@ -413,7 +413,9 @@ func (s *Server) buildDashboardData(org string, params map[string][]string, admi
 	if companyID != 0 {
 		companyPtr = int64Ptr(companyID)
 	}
-	devices, err := services.ListDevices(org, companyPtr, admin)
+	rangeStart := parseTime(data.From)
+	rangeEnd := parseTime(data.To)
+	devices, err := services.ListDevicesInRange(org, companyPtr, admin, rangeStart, rangeEnd)
 	if err != nil {
 		return nil, err
 	}
@@ -432,11 +434,11 @@ func (s *Server) buildDashboardData(org string, params map[string][]string, admi
 		DeviceID:  devicePtr,
 		Limit:     s.pageLimit,
 	}
-	if from := parseTime(data.From); from != nil {
-		filters.Start = from
+	if rangeStart != nil {
+		filters.Start = rangeStart
 	}
-	if to := parseTime(data.To); to != nil {
-		filters.End = to
+	if rangeEnd != nil {
+		filters.End = rangeEnd
 	}
 	data.HasActiveFilters = data.HasSelectedDevice && (filters.Start != nil || filters.End != nil)
 	if data.WatchMode && data.HasSelectedDevice {
