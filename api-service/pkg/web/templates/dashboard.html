@@ -20,16 +20,18 @@
 		</form>
 		{{end}}
 		{{if .Org}}
-		<form method="get" action="{{.RouteBase}}/{{.Org}}" class="form-control stacked">
+		<form id="scope-form" method="get" action="{{.RouteBase}}/{{.Org}}" class="form-control stacked">
 			<input type="hidden" name="org" value="{{.Org}}">
+			<input type="hidden" id="scope-start-date" name="start_date" value="{{.From}}">
+			<input type="hidden" id="scope-end-date" name="end_date" value="{{.To}}">
 			<label for="company">Company</label>
-			<select id="company" name="company_id" onchange="this.form.submit()">
+			<select id="company" name="company_id">
 				{{range .Companies}}
 				<option value="{{.ID}}" {{if eq $.SelectedCompanyID .ID}}selected{{end}}>{{.CompanyToken}}</option>
 				{{end}}
 			</select>
 			<label for="device">Device</label>
-			<select id="device" name="device_id" onchange="this.form.submit()">
+			<select id="device" name="device_id">
 				<option value="">All devices</option>
 				{{range .Devices}}
 				<option value="{{.ID}}" {{if eq $.SelectedDeviceID .ID}}selected{{end}}>

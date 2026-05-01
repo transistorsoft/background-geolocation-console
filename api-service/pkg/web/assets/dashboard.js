@@ -211,40 +211,6 @@ document.addEventListener('DOMContentLoaded', () => {
 		const searchParams = new URLSearchParams(window.location.search);
 		const hasExplicitDateFilters = searchParams.has('start_date') || searchParams.has('end_date');
 		timelineHasExplicitDateFilters = hasExplicitDateFilters;
-		const hasSelectedDevice = !!(deviceSelect && (deviceSelect.value || '').trim());
-		if (!hasExplicitDateFilters && hasSelectedDevice && startInput && endInput) {
-			startInput.value = formatDateTimeLocal(startOfLocalDay(new Date()));
-			endInput.value = formatDateTimeLocal(new Date());
-			normalizeDateTimeInput(startInput);
-			normalizeDateTimeInput(endInput);
-			setTimeout(() => triggerRefresh(), 0);
-		}
-		const defaultDateForInput = (input) => {
-			if (!input) {
-				return null;
-			}
-			if (input.id === 'start_date') {
-				const endValue = (endInput?.value || '').trim();
-				if (endValue) {
-					const endDate = new Date(endValue);
-					if (!Number.isNaN(endDate.getTime())) {
-						return startOfLocalDay(endDate);
-					}
-				}
-				return startOfLocalDay(new Date());
-			}
-			if (input.id === 'end_date') {
-				const startValue = (startInput?.value || '').trim();
-				if (startValue) {
-					const startDate = new Date(startValue);
-					if (!Number.isNaN(startDate.getTime())) {
-						return endOfLocalDay(startDate);
-					}
-				}
-				return endOfLocalDay(new Date());
-			}
-			return null;
-		};
 		const registerDateInput = (input) => {
 			if (!input) {
 				return;
@@ -279,15 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				timelineHasExplicitDateFilters = !!((startInput?.value || '').trim() || (endInput?.value || '').trim());
 			});
 			input.addEventListener('blur', normalizeLater);
-			input.addEventListener('focus', () => {
-				if (!(input.value || '').trim()) {
-					const defaultDate = defaultDateForInput(input);
-					if (defaultDate) {
-						input.value = formatDateTimeLocal(defaultDate);
-					}
-				}
-				startPolling();
-			});
+			input.addEventListener('focus', startPolling);
 			input.addEventListener('blur', stopPolling);
 
 			let _refreshTimer = null;
@@ -426,6 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 	initializeMapToggles();
+	setupScopeForm();
 	setupDownloadButton();
 
 	// Show/hide the watch-mode badge whenever the checkbox changes.
@@ -1303,6 +1262,30 @@ function applyTheme(theme) {
 function triggerRefresh() {
 	timelineQueryParams = null;
 	refreshLocationsPanel();
+}
+
+// setupScopeForm preserves the current date range across device/company
+// switches. The scope form (org/company/device) lives separately from the
+// filters form (dates), so without this the form submission would drop
+// start_date and end_date, allowing the URL/server defaults to take over.
+// Hidden inputs in the scope form are synchronised from the visible date
+// pickers immediately before submission.
+function setupScopeForm() {
+	const scopeForm = document.getElementById('scope-form');
+	if (!scopeForm) return;
+	const company = document.getElementById('company');
+	const device = document.getElementById('device');
+	const submitWithDates = () => {
+		const startInput = document.getElementById('start_date');
+		const endInput = document.getElementById('end_date');
+		const hiddenStart = document.getElementById('scope-start-date');
+		const hiddenEnd = document.getElementById('scope-end-date');
+		if (hiddenStart) hiddenStart.value = (startInput?.value || '').trim();
+		if (hiddenEnd) hiddenEnd.value = (endInput?.value || '').trim();
+		scopeForm.submit();
+	};
+	company?.addEventListener('change', submitWithDates);
+	device?.addEventListener('change', submitWithDates);
 }
 
 let _downloadCountReqId = 0;
