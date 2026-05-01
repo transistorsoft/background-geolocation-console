@@ -15,6 +15,31 @@ import (
 
 var safeFilenameRe = regexp.MustCompile(`[^a-zA-Z0-9._-]+`)
 
+// AdminFindLocationByUUID looks up a single location by UUID within the
+// supplied org. Used by the dashboard's UUID-search affordance.
+func AdminFindLocationByUUID(c *gin.Context) {
+	org := strings.TrimSpace(c.Query("org"))
+	uuid := strings.TrimSpace(c.Query("uuid"))
+	if org == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "org is required"})
+		return
+	}
+	if uuid == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "uuid is required"})
+		return
+	}
+	result, err := services.FindLocationByUUID(org, uuid)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if result == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "uuid not found in this org"})
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
 // AdminLocationsCount reports how many locations match the supplied filters.
 func AdminLocationsCount(c *gin.Context) {
 	filters, ok := parseLocationFilters(c)

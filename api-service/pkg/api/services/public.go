@@ -326,6 +326,77 @@ func StreamLocations(filters LocationFilters, w io.Writer) (int64, error) {
 	return count, nil
 }
 
+// LocationLookup describes a single location resolved by UUID along with the
+// device it belongs to, sufficient for the dashboard to navigate to and
+// highlight that record.
+type LocationLookup struct {
+	UUID         string         `json:"uuid"`
+	DeviceID     int64          `json:"device_id"`
+	DeviceLabel  string         `json:"device_id_string"`
+	CompanyID    int64          `json:"company_id"`
+	CompanyToken string         `json:"company_token"`
+	RecordedAt   *time.Time     `json:"recorded_at"`
+	Latitude     *float64       `json:"latitude,omitempty"`
+	Longitude    *float64       `json:"longitude,omitempty"`
+	Payload      map[string]any `json:"payload"`
+}
+
+// FindLocationByUUID returns the single location matching the supplied UUID
+// scoped to the org. Returns (nil, nil) when nothing is found so callers can
+// distinguish a miss from an error.
+func FindLocationByUUID(org, uuid string) (*LocationLookup, error) {
+	uuid = strings.TrimSpace(uuid)
+	org = strings.TrimSpace(org)
+	if uuid == "" || org == "" {
+		return nil, nil
+	}
+	db, err := storage.DB()
+	if err != nil {
+		return nil, err
+	}
+	ctx := context.Background()
+	company, err := findCompany(ctx, db, org)
+	if err != nil {
+		return nil, err
+	}
+	if company == nil {
+		return nil, nil
+	}
+	var loc storage.Location
+	if err := db.WithContext(ctx).
+		Where("uuid = ? AND company_id = ?", uuid, company.ID).
+		First(&loc).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	deviceID := derefInt64(loc.DeviceID)
+	deviceLabel := ""
+	if deviceID != 0 {
+		var dev storage.Device
+		if err := db.WithContext(ctx).
+			Select("device_id").
+			Where("id = ?", deviceID).
+			First(&dev).Error; err == nil {
+			deviceLabel = dev.DeviceID
+		}
+	}
+	payload := decodeLocationData(loc.Data)
+	enrichLocationPayload(payload, loc)
+	return &LocationLookup{
+		UUID:         loc.UUID,
+		DeviceID:     deviceID,
+		DeviceLabel:  deviceLabel,
+		CompanyID:    company.ID,
+		CompanyToken: company.CompanyToken,
+		RecordedAt:   loc.RecordedAt,
+		Latitude:     loc.Latitude,
+		Longitude:    loc.Longitude,
+		Payload:      payload,
+	}, nil
+}
+
 // CountLocations returns the total number of matching locations for the filters.
 func CountLocations(filters LocationFilters) (int64, error) {
 	db, err := storage.DB()

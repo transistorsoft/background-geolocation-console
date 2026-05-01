@@ -386,6 +386,8 @@ document.addEventListener('DOMContentLoaded', () => {
 	initializeMapToggles();
 	setupScopeForm();
 	setupDownloadButton();
+	setupUUIDSearch();
+	focusUUIDFromQuery();
 
 	// Show/hide the watch-mode badge whenever the checkbox changes.
 	const watchModeBadge = document.getElementById('watch-mode-badge');
@@ -1262,6 +1264,122 @@ function applyTheme(theme) {
 function triggerRefresh() {
 	timelineQueryParams = null;
 	refreshLocationsPanel();
+}
+
+// setupUUIDSearch wires the left-panel UUID lookup form. On submit it asks
+// the admin API to locate a single record, then navigates to the dashboard
+// URL for that record's device + a UTC day-bracket containing recorded_at,
+// with focus_uuid set so the matching row auto-expands once the page loads.
+function setupUUIDSearch() {
+	const form = document.getElementById('uuid-search-form');
+	if (!form) return;
+	const input = document.getElementById('uuid-search-input');
+	const button = document.getElementById('uuid-search-button');
+	const status = document.getElementById('uuid-search-status');
+	const setStatus = (msg, kind) => {
+		if (!status) return;
+		status.textContent = msg || '';
+		status.classList.remove('is-error', 'is-success');
+		if (kind) status.classList.add(`is-${kind}`);
+	};
+	form.addEventListener('submit', async (event) => {
+		event.preventDefault();
+		const uuid = (input?.value || '').trim();
+		if (!uuid) {
+			setStatus('Paste a UUID first.', 'error');
+			input?.focus();
+			return;
+		}
+		const panel = document.querySelector('.panel-main');
+		const org = (panel?.dataset?.org || '').trim();
+		const routeBase = dashboardRouteBase();
+		if (!org) {
+			setStatus('Select a company token first.', 'error');
+			return;
+		}
+		button.disabled = true;
+		setStatus('Searching…');
+		try {
+			const params = new URLSearchParams({ org, uuid });
+			const res = await fetch(`${routeBase}/api/locations/find?${params}`, {
+				headers: { Accept: 'application/json' },
+				credentials: 'same-origin',
+			});
+			if (res.status === 404) {
+				setStatus('No location with that UUID in this org.', 'error');
+				return;
+			}
+			if (!res.ok) {
+				setStatus('Search failed.', 'error');
+				return;
+			}
+			const data = await res.json();
+			const recordedAtRaw = data?.recorded_at || '';
+			const deviceID = data?.device_id;
+			if (!deviceID || !recordedAtRaw) {
+				setStatus('Match found but missing device or timestamp.', 'error');
+				return;
+			}
+			const recorded = new Date(recordedAtRaw);
+			if (Number.isNaN(recorded.getTime())) {
+				setStatus('Match found but timestamp could not be parsed.', 'error');
+				return;
+			}
+			// Bracket the day in UTC so the located record renders alongside
+			// neighbours from the same day. The user can widen later if needed.
+			const dayStart = new Date(Date.UTC(
+				recorded.getUTCFullYear(),
+				recorded.getUTCMonth(),
+				recorded.getUTCDate(),
+				0, 0, 0,
+			));
+			const dayEnd = new Date(Date.UTC(
+				recorded.getUTCFullYear(),
+				recorded.getUTCMonth(),
+				recorded.getUTCDate(),
+				23, 59, 0,
+			));
+			const navParams = new URLSearchParams();
+			navParams.set('org', org);
+			navParams.set('device_id', String(deviceID));
+			navParams.set('start_date', formatDateTimeUTCInput(dayStart));
+			navParams.set('end_date', formatDateTimeUTCInput(dayEnd));
+			navParams.set('focus_uuid', uuid);
+			setStatus('Match found — loading…', 'success');
+			window.location.assign(`${routeBase}/${encodeURIComponent(org)}?${navParams}`);
+		} catch (err) {
+			console.error('uuid search failed', err);
+			setStatus('Search failed.', 'error');
+		} finally {
+			button.disabled = false;
+		}
+	});
+}
+
+// focusUUIDFromQuery auto-expands a row matching ?focus_uuid=... after the
+// dashboard loads. Used by setupUUIDSearch to land directly on the located
+// record. Silently no-ops if the row is not in the rendered list.
+function focusUUIDFromQuery() {
+	const params = new URLSearchParams(window.location.search);
+	const uuid = (params.get('focus_uuid') || '').trim();
+	if (!uuid) return;
+	const escapedUUID = (typeof CSS !== 'undefined' && typeof CSS.escape === 'function')
+		? CSS.escape(uuid)
+		: uuid.replace(/(["\\])/g, '\\$1');
+	const tryFocus = () => {
+		const row = document.querySelector(`#locations-panel tr.location-row[data-uuid="${escapedUUID}"]`);
+		if (!row) return false;
+		handleLocationSelection(uuid);
+		return true;
+	};
+	if (tryFocus()) return;
+	// In case the row arrives through a later HTMX swap (watch-mode poll, etc.).
+	const onSwap = () => {
+		if (tryFocus()) {
+			document.removeEventListener('htmx:afterSwap', onSwap);
+		}
+	};
+	document.addEventListener('htmx:afterSwap', onSwap);
 }
 
 // setupScopeForm preserves the current date range across device/company

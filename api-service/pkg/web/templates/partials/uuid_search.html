@@ -1,0 +1,28 @@
+{{define "partials/uuid_search"}}
+<div class="uuid-search" aria-labelledby="uuid-search-heading">
+	<h3 id="uuid-search-heading">UUID Search</h3>
+	<p class="uuid-search-hint">Paste a location UUID to jump straight to it on the map.</p>
+	<form id="uuid-search-form" class="uuid-search-form" autocomplete="off" novalidate>
+		<input
+			id="uuid-search-input"
+			class="uuid-search-input"
+			type="text"
+			name="uuid"
+			inputmode="text"
+			autocapitalize="off"
+			autocorrect="off"
+			spellcheck="false"
+			placeholder="Paste UUID"
+			aria-label="UUID to search">
+		<button
+			id="uuid-search-button"
+			class="uuid-search-button"
+			type="submit"
+			aria-label="Search for UUID"
+			title="Search for UUID">
+			<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg>
+		</button>
+	</form>
+	<p id="uuid-search-status" class="uuid-search-status" role="status" aria-live="polite"></p>
+</div>
+{{end}}
