@@ -41,6 +41,8 @@ func registerAdminRoutes(r *gin.Engine, dashboard *web.Server) {
 		adminAPI.GET("/companies", handlers.AdminGetCompanies)
 		adminAPI.GET("/devices", handlers.AdminGetDevices)
 		adminAPI.GET("/locations", handlers.AdminGetLocations)
+		adminAPI.GET("/locations/count", handlers.AdminLocationsCount)
+		adminAPI.GET("/locations/export", handlers.AdminLocationsExport)
 		adminAPI.GET("/locations/latest", handlers.AdminGetLatestLocation)
 		adminAPI.DELETE("/devices/:id", middleware.CheckAdminCSRFFromRequest(), handlers.AdminDeleteDevice)
 	}

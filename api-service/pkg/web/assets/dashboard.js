@@ -426,6 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 	initializeMapToggles();
+	setupDownloadButton();
 
 	// Show/hide the watch-mode badge whenever the checkbox changes.
 	const watchModeBadge = document.getElementById('watch-mode-badge');
@@ -1302,6 +1303,110 @@ function applyTheme(theme) {
 function triggerRefresh() {
 	timelineQueryParams = null;
 	refreshLocationsPanel();
+}
+
+let _downloadCountReqId = 0;
+
+function downloadLocationParams() {
+	const panel = document.querySelector('.panel-main');
+	const org = (panel?.dataset?.org || '').trim();
+	const companyID = (panel?.dataset?.companyId || '').trim();
+	const deviceSelect = document.getElementById('device');
+	const deviceID = (deviceSelect?.value || '').trim();
+	const startInput = document.getElementById('start_date');
+	const endInput = document.getElementById('end_date');
+	const params = new URLSearchParams();
+	if (org) params.set('org', org);
+	if (companyID && companyID !== '0') params.set('company_id', companyID);
+	if (deviceID) params.set('device_id', deviceID);
+	const start = (startInput?.value || '').trim();
+	const end = (endInput?.value || '').trim();
+	if (start) params.set('start_date', start);
+	if (end) params.set('end_date', end);
+	return { params, hasDevice: !!deviceID, hasRange: !!(start && end) };
+}
+
+async function refreshDownloadButton() {
+	const wrapper = document.querySelector('.filter-download');
+	const button = document.getElementById('download-locations');
+	if (!wrapper || !button) return;
+	const { params, hasDevice, hasRange } = downloadLocationParams();
+	if (!hasDevice || !hasRange) {
+		wrapper.hidden = true;
+		button.title = 'Select a device and date range to enable download';
+		return;
+	}
+	const reqId = ++_downloadCountReqId;
+	try {
+		const res = await fetch(`${dashboardRouteBase()}/api/locations/count?${params}`, {
+			headers: { Accept: 'application/json' },
+			credentials: 'same-origin',
+		});
+		if (!res.ok) {
+			if (reqId === _downloadCountReqId) wrapper.hidden = true;
+			return;
+		}
+		const { count = 0 } = await res.json();
+		if (reqId !== _downloadCountReqId) return;
+		if (count > 0) {
+			wrapper.hidden = false;
+			button.title = `Download ${count} location${count === 1 ? '' : 's'} in this date range`;
+		} else {
+			wrapper.hidden = true;
+		}
+	} catch (err) {
+		if (reqId === _downloadCountReqId) wrapper.hidden = true;
+	}
+}
+
+async function downloadLocations() {
+	const button = document.getElementById('download-locations');
+	if (!button) return;
+	const { params, hasDevice, hasRange } = downloadLocationParams();
+	if (!hasDevice || !hasRange) return;
+	button.disabled = true;
+	try {
+		const res = await fetch(`${dashboardRouteBase()}/api/locations/export?${params}`, {
+			headers: { Accept: 'application/json' },
+			credentials: 'same-origin',
+		});
+		if (!res.ok) {
+			console.error('locations export failed', res.status);
+			return;
+		}
+		const disposition = res.headers.get('Content-Disposition') || '';
+		const match = disposition.match(/filename="?([^"]+)"?/);
+		const filename = match ? match[1] : `locations-${Date.now()}.json`;
+		const blob = await res.blob();
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = filename;
+		document.body.appendChild(a);
+		a.click();
+		a.remove();
+		URL.revokeObjectURL(url);
+	} finally {
+		button.disabled = false;
+	}
+}
+
+function setupDownloadButton() {
+	const button = document.getElementById('download-locations');
+	if (!button) return;
+	button.addEventListener('click', downloadLocations);
+	let debounce = null;
+	const schedule = () => {
+		if (debounce) clearTimeout(debounce);
+		debounce = setTimeout(() => {
+			debounce = null;
+			refreshDownloadButton();
+		}, 250);
+	};
+	document.getElementById('start_date')?.addEventListener('change', schedule);
+	document.getElementById('end_date')?.addEventListener('change', schedule);
+	document.getElementById('device')?.addEventListener('change', schedule);
+	refreshDownloadButton();
 }
 
 function resetMapView() {

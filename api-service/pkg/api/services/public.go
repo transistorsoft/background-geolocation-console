@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -234,6 +235,54 @@ func ListLocations(filters LocationFilters) ([]map[string]any, error) {
 		out = append(out, payload)
 	}
 	return out, nil
+}
+
+// StreamLocations writes a JSON array of matching locations to w without
+// applying ListLocations' result cap. Rows are iterated one at a time so
+// memory use stays bounded regardless of result size.
+func StreamLocations(filters LocationFilters, w io.Writer) (int64, error) {
+	db, err := storage.DB()
+	if err != nil {
+		return 0, err
+	}
+	ctx := context.Background()
+	query := buildLocationQuery(ctx, db, filters).Order("recorded_at DESC, id DESC")
+
+	rows, err := query.Rows()
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	if _, err := w.Write([]byte("[")); err != nil {
+		return 0, err
+	}
+	encoder := json.NewEncoder(w)
+	var count int64
+	for rows.Next() {
+		var row storage.Location
+		if err := db.ScanRows(rows, &row); err != nil {
+			return count, err
+		}
+		if count > 0 {
+			if _, err := w.Write([]byte(",")); err != nil {
+				return count, err
+			}
+		}
+		payload := decodeLocationData(row.Data)
+		enrichLocationPayload(payload, row)
+		if err := encoder.Encode(payload); err != nil {
+			return count, err
+		}
+		count++
+	}
+	if err := rows.Err(); err != nil {
+		return count, err
+	}
+	if _, err := w.Write([]byte("]")); err != nil {
+		return count, err
+	}
+	return count, nil
 }
 
 // CountLocations returns the total number of matching locations for the filters.

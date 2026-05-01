@@ -566,6 +566,45 @@ body.theme-light {
 	opacity: 0.7;
 }
 
+.filter-download {
+	display: flex;
+	align-items: end;
+}
+
+.filter-download[hidden] {
+	display: none;
+}
+
+.download-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 38px;
+	height: 38px;
+	padding: 6px;
+	border-radius: 8px;
+	border: 1px solid #2563eb;
+	background: #1d4ed8;
+	color: #fff;
+	cursor: pointer;
+}
+
+.download-button svg {
+	width: 100%;
+	height: 100%;
+	fill: currentColor;
+	display: block;
+}
+
+.download-button:hover {
+	background: #2563eb;
+}
+
+.download-button:disabled {
+	cursor: wait;
+	opacity: 0.6;
+}
+
 .filter-row {
 	display: flex;
 	align-items: center;

@@ -88,6 +88,13 @@
 					<label for="end_date">To</label>
 					<input type="datetime-local" id="end_date" name="end_date" value="{{.To}}">
 				</div>
+				{{if .IsAdmin}}
+				<div class="filter-download" hidden>
+					<button type="button" id="download-locations" class="download-button" aria-label="Download locations in date range" title="Download locations in date range">
+						<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg>
+					</button>
+				</div>
+				{{end}}
 				<div>
 					<label for="date-range-select">Quick range</label>
 					<select id="date-range-select" aria-label="Quick date range">
