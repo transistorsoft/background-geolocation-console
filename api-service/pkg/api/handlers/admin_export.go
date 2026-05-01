@@ -15,26 +15,23 @@ import (
 
 var safeFilenameRe = regexp.MustCompile(`[^a-zA-Z0-9._-]+`)
 
-// AdminFindLocationByUUID looks up a single location by UUID within the
-// supplied org. Used by the dashboard's UUID-search affordance.
+// AdminFindLocationByUUID looks up a single location by UUID across all orgs.
+// UUIDs are universally unique in practice, so the search needs no org or
+// device scoping; the matching row supplies the company token and device the
+// dashboard then navigates to.
 func AdminFindLocationByUUID(c *gin.Context) {
-	org := strings.TrimSpace(c.Query("org"))
 	uuid := strings.TrimSpace(c.Query("uuid"))
-	if org == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "org is required"})
-		return
-	}
 	if uuid == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "uuid is required"})
 		return
 	}
-	result, err := services.FindLocationByUUID(org, uuid)
+	result, err := services.FindLocationByUUID(uuid)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	if result == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "uuid not found in this org"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "uuid not found"})
 		return
 	}
 	c.JSON(http.StatusOK, result)

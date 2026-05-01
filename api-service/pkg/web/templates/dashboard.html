@@ -35,7 +35,6 @@
 				{{template "partials/device_options" .}}
 			</select>
 		</form>
-		{{template "partials/uuid_search" .}}
 		<div class="map-toggles" aria-label="Map display options">
 			<h3>Map Options</h3>
 			<label class="checkbox">
@@ -52,6 +51,7 @@
 			</label>
 		</div>
 		{{end}}
+		{{template "partials/uuid_search" .}}
 	</div>
 
 	<div class="panel panel-main" data-view-mode="both" data-company-id="{{.SelectedCompanyID}}" data-org="{{.Org}}" data-route-base="{{.RouteBase}}">

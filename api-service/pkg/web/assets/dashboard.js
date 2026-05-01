@@ -1290,17 +1290,11 @@ function setupUUIDSearch() {
 			input?.focus();
 			return;
 		}
-		const panel = document.querySelector('.panel-main');
-		const org = (panel?.dataset?.org || '').trim();
 		const routeBase = dashboardRouteBase();
-		if (!org) {
-			setStatus('Select a company token first.', 'error');
-			return;
-		}
 		button.disabled = true;
 		setStatus('Searching…');
 		try {
-			const params = new URLSearchParams({ org, uuid });
+			const params = new URLSearchParams({ uuid });
 			const res = await fetch(`${routeBase}/api/locations/find?${params}`, {
 				headers: { Accept: 'application/json' },
 				credentials: 'same-origin',
@@ -1316,8 +1310,9 @@ function setupUUIDSearch() {
 			const data = await res.json();
 			const recordedAtRaw = data?.recorded_at || '';
 			const deviceID = data?.device_id;
-			if (!deviceID || !recordedAtRaw) {
-				setStatus('Match found but missing device or timestamp.', 'error');
+			const companyToken = (data?.company_token || '').trim();
+			if (!deviceID || !recordedAtRaw || !companyToken) {
+				setStatus('Match found but missing device, company, or timestamp.', 'error');
 				return;
 			}
 			const recorded = new Date(recordedAtRaw);
@@ -1347,14 +1342,14 @@ function setupUUIDSearch() {
 			// includes records whose seconds fall inside the session end.
 			const paddedEnd = new Date(rangeEnd.getTime() + 60 * 1000);
 			const navParams = new URLSearchParams();
-			navParams.set('org', org);
+			navParams.set('org', companyToken);
 			navParams.set('device_id', String(deviceID));
 			navParams.set('start_date', formatDateTimeUTCInput(rangeStart));
 			navParams.set('end_date', formatDateTimeUTCInput(paddedEnd));
 			navParams.set('focus_uuid', uuid);
 			const count = Number(data?.session_count) || 0;
 			setStatus(count > 1 ? `Match found in cluster of ${count} — loading…` : 'Match found — loading…', 'success');
-			window.location.assign(`${routeBase}/${encodeURIComponent(org)}?${navParams}`);
+			window.location.assign(`${routeBase}/${encodeURIComponent(companyToken)}?${navParams}`);
 		} catch (err) {
 			console.error('uuid search failed', err);
 			setStatus('Search failed.', 'error');

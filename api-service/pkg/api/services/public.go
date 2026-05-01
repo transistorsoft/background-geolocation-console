@@ -346,12 +346,13 @@ type LocationLookup struct {
 }
 
 // FindLocationByUUID returns the single location matching the supplied UUID
-// scoped to the org. Returns (nil, nil) when nothing is found so callers can
-// distinguish a miss from an error.
-func FindLocationByUUID(org, uuid string) (*LocationLookup, error) {
+// across all orgs. UUIDs are universally unique in practice, so callers do
+// not need to scope the search; the matching row carries enough context to
+// resolve the company token and device. Returns (nil, nil) when nothing is
+// found so callers can distinguish a miss from an error.
+func FindLocationByUUID(uuid string) (*LocationLookup, error) {
 	uuid = strings.TrimSpace(uuid)
-	org = strings.TrimSpace(org)
-	if uuid == "" || org == "" {
+	if uuid == "" {
 		return nil, nil
 	}
 	db, err := storage.DB()
@@ -359,16 +360,9 @@ func FindLocationByUUID(org, uuid string) (*LocationLookup, error) {
 		return nil, err
 	}
 	ctx := context.Background()
-	company, err := findCompany(ctx, db, org)
-	if err != nil {
-		return nil, err
-	}
-	if company == nil {
-		return nil, nil
-	}
 	var loc storage.Location
 	if err := db.WithContext(ctx).
-		Where("uuid = ? AND company_id = ?", uuid, company.ID).
+		Where("uuid = ?", uuid).
 		First(&loc).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -386,14 +380,25 @@ func FindLocationByUUID(org, uuid string) (*LocationLookup, error) {
 			deviceLabel = dev.DeviceID
 		}
 	}
+	companyID := derefInt64(loc.CompanyID)
+	companyToken := ""
+	if companyID != 0 {
+		var company storage.Company
+		if err := db.WithContext(ctx).
+			Select("company_token").
+			Where("id = ?", companyID).
+			First(&company).Error; err == nil {
+			companyToken = company.CompanyToken
+		}
+	}
 	payload := decodeLocationData(loc.Data)
 	enrichLocationPayload(payload, loc)
 	result := &LocationLookup{
 		UUID:         loc.UUID,
 		DeviceID:     deviceID,
 		DeviceLabel:  deviceLabel,
-		CompanyID:    company.ID,
-		CompanyToken: company.CompanyToken,
+		CompanyID:    companyID,
+		CompanyToken: companyToken,
 		RecordedAt:   loc.RecordedAt,
 		Latitude:     loc.Latitude,
 		Longitude:    loc.Longitude,
