@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -36,7 +35,18 @@ func AdminLocationsExport(c *gin.Context) {
 	if !ok {
 		return
 	}
-	filename := buildExportFilename(filters)
+	companyToken := filters.Org
+	var deviceIDStr string
+	if filters.DeviceID != nil && *filters.DeviceID != 0 {
+		token, dev, err := services.LookupDeviceLabel(*filters.DeviceID)
+		if err == nil {
+			if companyToken == "" {
+				companyToken = token
+			}
+			deviceIDStr = dev
+		}
+	}
+	filename := buildExportFilename(companyToken, deviceIDStr)
 	c.Header("Content-Type", "application/json")
 	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 	c.Status(http.StatusOK)
@@ -75,15 +85,17 @@ func parseLocationFilters(c *gin.Context) (services.LocationFilters, bool) {
 	}, true
 }
 
-func buildExportFilename(filters services.LocationFilters) string {
-	parts := []string{"locations"}
-	if filters.DeviceID != nil && *filters.DeviceID != 0 {
-		parts = append(parts, fmt.Sprintf("device-%d", *filters.DeviceID))
-	} else if filters.CompanyID != nil && *filters.CompanyID != 0 {
-		parts = append(parts, fmt.Sprintf("company-%d", *filters.CompanyID))
-	} else if filters.Org != "" {
-		parts = append(parts, "org-"+safeFilenameRe.ReplaceAllString(filters.Org, "_"))
+func buildExportFilename(companyToken, deviceID string) string {
+	clean := func(s string) string {
+		return strings.Trim(safeFilenameRe.ReplaceAllString(s, "_"), "_")
 	}
-	parts = append(parts, fmt.Sprintf("%d.json", time.Now().Unix()))
-	return strings.Join(parts, "-")
+	parts := make([]string, 0, 3)
+	if t := clean(companyToken); t != "" {
+		parts = append(parts, t)
+	}
+	if d := clean(deviceID); d != "" {
+		parts = append(parts, d)
+	}
+	parts = append(parts, "locations.json")
+	return strings.Join(parts, "_")
 }

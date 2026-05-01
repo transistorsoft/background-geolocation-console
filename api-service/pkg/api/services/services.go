@@ -119,6 +119,31 @@ func GetDeviceByID(id int64, org string) (*Device, error) {
 	return toDevice(record), nil
 }
 
+// LookupDeviceLabel returns the company_token and string device_id for the
+// supplied numeric device id. Empty strings are returned if the device is not
+// found; callers should treat that as a non-error.
+func LookupDeviceLabel(id int64) (companyToken, deviceID string, err error) {
+	if id <= 0 {
+		return "", "", nil
+	}
+	db, err := storage.DB()
+	if err != nil {
+		return "", "", err
+	}
+	ctx := context.Background()
+	var record storage.Device
+	if err := db.WithContext(ctx).
+		Select("company_token", "device_id").
+		Where("id = ?", id).
+		First(&record).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", "", nil
+		}
+		return "", "", err
+	}
+	return record.CompanyToken, record.DeviceID, nil
+}
+
 // GetDevices returns a collection of devices scoped by org and optional company identifier.
 func GetDevices(org string, admin bool, companyID *int64) ([]Device, error) {
 	db, err := storage.DB()
