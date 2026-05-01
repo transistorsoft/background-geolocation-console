@@ -1319,20 +1319,29 @@ function downloadLocationParams() {
 	if (org) params.set('org', org);
 	if (companyID && companyID !== '0') params.set('company_id', companyID);
 	if (deviceID) params.set('device_id', deviceID);
-	const start = (startInput?.value || '').trim();
-	const end = (endInput?.value || '').trim();
-	if (start) params.set('start_date', start);
-	if (end) params.set('end_date', end);
-	return { params, hasDevice: !!deviceID, hasRange: !!(start && end) };
+	const startRaw = (startInput?.value || '').trim();
+	const endRaw = (endInput?.value || '').trim();
+	if (startRaw) {
+		const parsed = new Date(startRaw);
+		if (!Number.isNaN(parsed.getTime())) {
+			params.set('start_date', formatDateTimeUTCInput(parsed));
+		}
+	}
+	if (endRaw) {
+		const parsed = new Date(endRaw);
+		if (!Number.isNaN(parsed.getTime())) {
+			params.set('end_date', `${formatDateTimeUTCInput(parsed)}:59Z`);
+		}
+	}
+	return { params, hasDevice: !!deviceID, hasRange: !!(startRaw && endRaw) };
 }
 
 async function refreshDownloadButton() {
-	const wrapper = document.querySelector('.filter-download');
 	const button = document.getElementById('download-locations');
-	if (!wrapper || !button) return;
+	if (!button) return;
 	const { params, hasDevice, hasRange } = downloadLocationParams();
 	if (!hasDevice || !hasRange) {
-		wrapper.hidden = true;
+		button.hidden = true;
 		button.title = 'Select a device and date range to enable download';
 		return;
 	}
@@ -1343,19 +1352,19 @@ async function refreshDownloadButton() {
 			credentials: 'same-origin',
 		});
 		if (!res.ok) {
-			if (reqId === _downloadCountReqId) wrapper.hidden = true;
+			if (reqId === _downloadCountReqId) button.hidden = true;
 			return;
 		}
 		const { count = 0 } = await res.json();
 		if (reqId !== _downloadCountReqId) return;
 		if (count > 0) {
-			wrapper.hidden = false;
+			button.hidden = false;
 			button.title = `Download ${count} location${count === 1 ? '' : 's'} in this date range`;
 		} else {
-			wrapper.hidden = true;
+			button.hidden = true;
 		}
 	} catch (err) {
-		if (reqId === _downloadCountReqId) wrapper.hidden = true;
+		if (reqId === _downloadCountReqId) button.hidden = true;
 	}
 }
 
