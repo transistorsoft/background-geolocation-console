@@ -75,5 +75,8 @@
 		{{template "partials/stats" .}}
 	</div>
 	<script type="application/json" id="map-data" hx-swap-oob="outerHTML:#map-data">{{.MapLocationsJSON}}</script>
+	<div hx-swap-oob="innerHTML:#device">
+		{{template "partials/device_options" .}}
+	</div>
 </div>
 {{end}}
