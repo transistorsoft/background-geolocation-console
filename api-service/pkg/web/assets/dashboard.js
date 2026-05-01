@@ -1268,20 +1268,29 @@ function triggerRefresh() {
 // switches. The scope form (org/company/device) lives separately from the
 // filters form (dates), so without this the form submission would drop
 // start_date and end_date, allowing the URL/server defaults to take over.
-// Hidden inputs in the scope form are synchronised from the visible date
-// pickers immediately before submission.
+// Hidden inputs are synced from the visible date pickers and converted to
+// UTC ISO immediately before submission so the values round-trip cleanly:
+// localizeUTCInputValue() on the next page load assumes URL values are UTC
+// and converts them back to local for display.
 function setupScopeForm() {
 	const scopeForm = document.getElementById('scope-form');
 	if (!scopeForm) return;
 	const company = document.getElementById('company');
 	const device = document.getElementById('device');
+	const localToUTCParam = (raw) => {
+		const trimmed = (raw || '').trim();
+		if (!trimmed) return '';
+		const parsed = new Date(trimmed);
+		if (Number.isNaN(parsed.getTime())) return trimmed;
+		return formatDateTimeUTCInput(parsed);
+	};
 	const submitWithDates = () => {
 		const startInput = document.getElementById('start_date');
 		const endInput = document.getElementById('end_date');
 		const hiddenStart = document.getElementById('scope-start-date');
 		const hiddenEnd = document.getElementById('scope-end-date');
-		if (hiddenStart) hiddenStart.value = (startInput?.value || '').trim();
-		if (hiddenEnd) hiddenEnd.value = (endInput?.value || '').trim();
+		if (hiddenStart) hiddenStart.value = localToUTCParam(startInput?.value);
+		if (hiddenEnd) hiddenEnd.value = localToUTCParam(endInput?.value);
 		scopeForm.submit();
 	};
 	company?.addEventListener('change', submitWithDates);
