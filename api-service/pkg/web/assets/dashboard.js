@@ -936,6 +936,12 @@ function collapseLocationRow(key) {
 }
 
 function initializeMapToggles() {
+	// The map and its toggle checkboxes only exist when an org has been
+	// selected. Bail before touching mapElement so the empty initial page
+	// (where setupUUIDSearch now also lives) does not throw.
+	if (!mapElement) {
+		return;
+	}
 	const controls = {
 		markers: document.getElementById('toggle-show-markers'),
 		polyline: document.getElementById('toggle-show-polyline'),
