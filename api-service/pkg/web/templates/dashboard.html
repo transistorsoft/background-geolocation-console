@@ -51,7 +51,6 @@
 			</label>
 		</div>
 		{{end}}
-		{{template "partials/uuid_search" .}}
 	</div>
 
 	<div class="panel panel-main" data-view-mode="both" data-company-id="{{.SelectedCompanyID}}" data-org="{{.Org}}" data-route-base="{{.RouteBase}}">
@@ -64,6 +63,7 @@
 		<div class="panel-header">
 			<div class="header-title">{{if .Org}}{{.Org}}{{else}}Background Geolocation{{end}}</div>
 			<div class="actions">
+				{{template "partials/uuid_search" .}}
 				<div class="menu-wrapper">
 					<button type="button" class="menu-toggle" id="panel-menu-toggle" aria-label="Menu">
 						<span></span><span></span><span></span>

@@ -80,26 +80,11 @@ body.theme-light {
 }
 
 .uuid-search {
-	margin-top: 1.5rem;
-	padding: 0.75rem;
-	border: 1px solid #262b3d;
-	border-radius: 10px;
-	background: #111629;
+	position: relative;
 	display: flex;
 	flex-direction: column;
-	gap: 0.5rem;
-}
-
-.uuid-search h3 {
-	margin: 0;
-	font-size: 1rem;
-	color: #e2e8f0;
-}
-
-.uuid-search-hint {
-	margin: 0;
-	font-size: 0.75rem;
-	color: #94a3b8;
+	gap: 0.25rem;
+	min-width: 0;
 }
 
 .uuid-search-form {
@@ -109,9 +94,11 @@ body.theme-light {
 }
 
 .uuid-search-input {
-	flex: 1;
+	flex: 1 1 auto;
+	width: 38ch;
 	min-width: 0;
-	padding: 0.45rem 0.55rem;
+	max-width: 100%;
+	padding: 0.45rem 0.6rem;
 	border-radius: 6px;
 	border: 1px solid #2b3550;
 	background: #0f1525;
@@ -157,10 +144,18 @@ body.theme-light {
 }
 
 .uuid-search-status {
+	position: absolute;
+	top: calc(100% + 4px);
+	right: 0;
 	margin: 0;
-	min-height: 1rem;
 	font-size: 0.75rem;
 	color: #94a3b8;
+	pointer-events: none;
+	white-space: nowrap;
+}
+
+.uuid-search-status:empty {
+	display: none;
 }
 
 .uuid-search-status.is-error {
@@ -171,16 +166,6 @@ body.theme-light {
 	color: #4ade80;
 }
 
-body.theme-light .uuid-search {
-	background: #ffffff;
-	border-color: #d4dbe8;
-}
-
-body.theme-light .uuid-search h3 {
-	color: #0f172a;
-}
-
-body.theme-light .uuid-search-hint,
 body.theme-light .uuid-search-status {
 	color: #475569;
 }
@@ -773,7 +758,15 @@ body.theme-light .uuid-search-input {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	gap: 1rem;
 	margin-bottom: 1rem;
+}
+
+.panel-header .actions {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	min-width: 0;
 }
 
 .pill {
@@ -1377,6 +1370,14 @@ body.theme-light .empty-row-content strong {
 
 	.panel-controls {
 		position: static;
+	}
+
+	.panel-header {
+		flex-wrap: wrap;
+	}
+
+	.uuid-search-input {
+		width: 100%;
 	}
 
 	.timeline-toolbar {

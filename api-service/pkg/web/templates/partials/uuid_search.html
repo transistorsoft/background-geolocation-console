@@ -1,7 +1,5 @@
 {{define "partials/uuid_search"}}
-<div class="uuid-search" aria-labelledby="uuid-search-heading">
-	<h3 id="uuid-search-heading">UUID Search</h3>
-	<p class="uuid-search-hint">Paste a location UUID to jump straight to it on the map.</p>
+<div class="uuid-search">
 	<form id="uuid-search-form" class="uuid-search-form" autocomplete="off" novalidate>
 		<input
 			id="uuid-search-input"
@@ -12,7 +10,7 @@
 			autocapitalize="off"
 			autocorrect="off"
 			spellcheck="false"
-			placeholder="Paste UUID"
+			placeholder="Paste a location UUID"
 			aria-label="UUID to search">
 		<button
 			id="uuid-search-button"
