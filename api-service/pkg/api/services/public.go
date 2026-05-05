@@ -29,15 +29,16 @@ type CompanySummary struct {
 
 // DeviceDetails extends the lightweight Device struct with additional metadata.
 type DeviceDetails struct {
-	ID           int64      `json:"id"`
-	CompanyID    int64      `json:"company_id"`
-	CompanyToken string     `json:"company_token"`
-	DeviceID     string     `json:"device_id"`
-	DeviceModel  string     `json:"device_model"`
-	Framework    string     `json:"framework"`
-	Version      string     `json:"version"`
-	CreatedAt    *time.Time `json:"created_at"`
-	UpdatedAt    *time.Time `json:"updated_at"`
+	ID             int64      `json:"id"`
+	CompanyID      int64      `json:"company_id"`
+	CompanyToken   string     `json:"company_token"`
+	DeviceID       string     `json:"device_id"`
+	DeviceModel    string     `json:"device_model"`
+	Framework      string     `json:"framework"`
+	Version        string     `json:"version"`
+	CreatedAt      *time.Time `json:"created_at"`
+	UpdatedAt      *time.Time `json:"updated_at"`
+	HasDataInRange bool       `json:"has_data_in_range"`
 }
 
 // DisplayName returns the dashboard-friendly device label.
@@ -223,6 +224,38 @@ func listDevices(org string, companyID *int64, admin bool, start, end *time.Time
 			UpdatedAt:    rec.UpdatedAt,
 		})
 	}
+
+	// Flag devices that have at least one location in [start, end]. Skipped
+	// when no range is set, since the field is meaningless then.
+	if (start != nil || end != nil) && len(out) > 0 {
+		deviceIDs := make([]int64, len(out))
+		for i, d := range out {
+			deviceIDs[i] = d.ID
+		}
+		rangeQuery := db.WithContext(ctx).
+			Model(&storage.Location{}).
+			Where("device_id IN ?", deviceIDs)
+		if start != nil {
+			rangeQuery = rangeQuery.Where("recorded_at >= ?", start.UTC())
+		}
+		if end != nil {
+			rangeQuery = rangeQuery.Where("recorded_at <= ?", end.UTC())
+		}
+		var inRangeIDs []int64
+		if err := rangeQuery.Distinct("device_id").Pluck("device_id", &inRangeIDs).Error; err != nil {
+			return nil, err
+		}
+		flagged := make(map[int64]bool, len(inRangeIDs))
+		for _, id := range inRangeIDs {
+			flagged[id] = true
+		}
+		for i := range out {
+			if flagged[out[i].ID] {
+				out[i].HasDataInRange = true
+			}
+		}
+	}
+
 	return out, nil
 }
 

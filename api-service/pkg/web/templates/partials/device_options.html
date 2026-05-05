@@ -1,6 +1,6 @@
 {{define "partials/device_options"}}
 <option value="">All devices</option>
 {{range .Devices}}
-<option value="{{.ID}}" {{if eq $.SelectedDeviceID .ID}}selected{{end}}>{{.DisplayName}}</option>
+<option value="{{.ID}}" {{if eq $.SelectedDeviceID .ID}}selected{{end}}>{{if .HasDataInRange}}● {{end}}{{.DisplayName}}</option>
 {{end}}
 {{end}}
