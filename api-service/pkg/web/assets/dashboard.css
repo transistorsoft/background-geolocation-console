@@ -730,7 +730,7 @@ body {
 }
 
 .filters-form input[type="datetime-local"] {
-	width: 13rem;
+	width: 15rem;
 	padding: 0.45rem;
 	border-radius: var(--radius-sm);
 	border: 1px solid var(--color-border-strong);
