@@ -198,12 +198,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	applyLocalTime(Array.from(document.querySelectorAll('#locations-panel tbody tr.location-row')));
 
-	const quickRange = document.getElementById('date-range-select');
-	if (quickRange) {
+	const quickRangePills = Array.from(document.querySelectorAll('.quick-range-pill'));
+	if (quickRangePills.length) {
 		const startInput = document.getElementById('start_date');
 		const endInput = document.getElementById('end_date');
 		const loadLastSessionButton = document.getElementById('load-last-session');
-		const deviceSelect = document.getElementById('device');
 		localizeUTCInputValue(startInput);
 		localizeUTCInputValue(endInput);
 		normalizeDateTimeInput(startInput);
@@ -211,6 +210,16 @@ document.addEventListener('DOMContentLoaded', () => {
 		const searchParams = new URLSearchParams(window.location.search);
 		const hasExplicitDateFilters = searchParams.has('start_date') || searchParams.has('end_date');
 		timelineHasExplicitDateFilters = hasExplicitDateFilters;
+
+		const clearActivePill = () => {
+			quickRangePills.forEach((pill) => pill.classList.remove('is-active'));
+		};
+		const setActivePill = (rangeKey) => {
+			quickRangePills.forEach((pill) => {
+				pill.classList.toggle('is-active', pill.dataset.range === rangeKey);
+			});
+		};
+
 		const registerDateInput = (input) => {
 			if (!input) {
 				return;
@@ -243,6 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			input.addEventListener('change', normalizeLater);
 			input.addEventListener('change', () => {
 				timelineHasExplicitDateFilters = !!((startInput?.value || '').trim() || (endInput?.value || '').trim());
+				clearActivePill();
 			});
 			input.addEventListener('blur', normalizeLater);
 			input.addEventListener('focus', startPolling);
@@ -264,59 +274,70 @@ document.addEventListener('DOMContentLoaded', () => {
 		};
 		registerDateInput(startInput);
 		registerDateInput(endInput);
-		const applyQuickRange = async (shouldRefresh = true) => {
-			if (!startInput || !endInput) {
-				return;
-			}
-			const selection = quickRange.value;
-			if (!selection) {
-				return;
-			}
+
+		const DAY_MS = 24 * 60 * 60 * 1000;
+		const computeRange = async (rangeKey) => {
 			const now = new Date();
-			let start = null;
-			let end = null;
-			const resolveMostRecentRange = async () => {
-				const fromLocations = getRecordedRange(mapLocations);
-				if (fromLocations) {
-					return fromLocations;
+			switch (rangeKey) {
+				case 'most-recent': {
+					const range = await fetchRecordedRange();
+					if (!range?.end) {
+						return null;
+					}
+					return { start: new Date(range.end.getTime() - DAY_MS), end: range.end };
 				}
-				return fetchRecordedRange();
-			};
-			if (selection === 'today') {
-				start = startOfLocalDay(now);
-				end = now;
-			} else if (selection === 'most-recent') {
-				const range = await resolveMostRecentRange();
-				if (range?.start) {
-					start = range.start;
+				case 'last-24h':
+					return { start: new Date(now.getTime() - DAY_MS), end: now };
+				case 'today':
+					return { start: startOfLocalDay(now), end: now };
+				case 'yesterday': {
+					const y = new Date(now);
+					y.setDate(y.getDate() - 1);
+					return { start: startOfLocalDay(y), end: endOfLocalDay(y) };
 				}
-				if (range?.end) {
-					end = range.end;
-				}
-				if (!start && end) {
-					start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
-				}
-			} else if (selection === 'yesterday') {
-				const yesterday = new Date(now);
-				yesterday.setDate(yesterday.getDate() - 1);
-				start = startOfLocalDay(yesterday);
-				end = endOfLocalDay(yesterday);
-			} else if (selection === 'last-3-days') {
-				const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2, 0, 0, 0, 0);
-				start = startOfLocalDay(startDate);
-				end = now;
+				case 'last-3-days':
+					return { start: startOfLocalDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2)), end: now };
+				case 'last-7-days':
+					return { start: startOfLocalDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6)), end: now };
+				case 'last-30-days':
+					return { start: startOfLocalDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29)), end: now };
+				default:
+					return null;
 			}
-			startInput.value = start ? formatDateTimeLocal(start) : '';
-			endInput.value = end ? formatDateTimeLocal(end) : '';
+		};
+
+		const applyQuickRange = async (rangeKey, shouldRefresh = true) => {
+			if (!rangeKey || !startInput || !endInput) {
+				return;
+			}
+			const range = await computeRange(rangeKey);
+			if (!range) {
+				return;
+			}
+			startInput.value = range.start ? formatDateTimeLocal(range.start) : '';
+			endInput.value = range.end ? formatDateTimeLocal(range.end) : '';
+			normalizeDateTimeInput(startInput);
+			normalizeDateTimeInput(endInput);
+			setActivePill(rangeKey);
+			timelineHasExplicitDateFilters = true;
 			if (shouldRefresh) {
 				triggerRefresh();
 			}
 		};
-		quickRange.addEventListener('change', () => {
-			timelineHasExplicitDateFilters = !!quickRange.value;
-			applyQuickRange(true);
+
+		quickRangePills.forEach((pill) => {
+			pill.addEventListener('click', () => {
+				const rangeKey = pill.dataset.range;
+				if (!rangeKey) {
+					return;
+				}
+				pill.disabled = true;
+				applyQuickRange(rangeKey, true).finally(() => {
+					pill.disabled = false;
+				});
+			});
 		});
-		void applyQuickRange(false);
+
 		if (loadLastSessionButton) {
 			loadLastSessionButton.addEventListener('click', async () => {
 				const panel = document.getElementById('locations-panel');
@@ -332,7 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
 					timelineHasExplicitDateFilters = !!(startInput.value || endInput.value);
 					normalizeDateTimeInput(startInput);
 					normalizeDateTimeInput(endInput);
-					quickRange.value = '';
+					clearActivePill();
 					triggerRefresh();
 				} catch (err) {
 					console.warn('latest session fetch failed', err);
@@ -631,34 +652,6 @@ function normalizeDateTimeInput(input) {
 	}
 }
 
-function getRecordedRange(locations) {
-	if (!Array.isArray(locations) || locations.length === 0) {
-		return null;
-	}
-	let start = null;
-	let end = null;
-	locations.forEach((loc) => {
-		const raw = loc?.recorded_at || loc?.recordedAt || loc?.timestamp || loc?.location?.recorded_at || loc?.location?.timestamp;
-		if (!raw) {
-			return;
-		}
-		const parsed = new Date(raw);
-		if (Number.isNaN(parsed.getTime())) {
-			return;
-		}
-		if (!start || parsed < start) {
-			start = parsed;
-		}
-		if (!end || parsed > end) {
-			end = parsed;
-		}
-	});
-	if (!start && !end) {
-		return null;
-	}
-	return { start, end };
-}
-
 async function fetchLatestSessionRange() {
 	const panel = document.querySelector('.panel-main');
 	const org = panel?.dataset?.org;
@@ -798,7 +791,6 @@ function refreshLocationsPanel(overrides = {}, options = {}) {
 function setTimelineFormRange(start, end) {
 	const startInput = document.getElementById('start_date');
 	const endInput = document.getElementById('end_date');
-	const quickRange = document.getElementById('date-range-select');
 	if (!startInput || !endInput) {
 		return false;
 	}
@@ -806,9 +798,7 @@ function setTimelineFormRange(start, end) {
 	endInput.value = end ? formatDateTimeLocal(end) : '';
 	normalizeDateTimeInput(startInput);
 	normalizeDateTimeInput(endInput);
-	if (quickRange) {
-		quickRange.value = '';
-	}
+	document.querySelectorAll('.quick-range-pill.is-active').forEach((pill) => pill.classList.remove('is-active'));
 	return true;
 }
 

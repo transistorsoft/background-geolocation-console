@@ -642,11 +642,79 @@ body {
 }
 
 .filters-form {
+	display: flex;
+	flex-direction: column;
+	gap: 0.85rem;
+	margin-bottom: 0.5rem;
+}
+
+.filters-form-inputs {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 	gap: 0.75rem 1rem;
 	align-items: end;
-	margin-bottom: 0.5rem;
+}
+
+.quick-ranges {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+}
+
+.quick-range-pill {
+	padding: 0.35rem 0.85rem;
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--color-border-strong);
+	background: var(--color-surface-raised);
+	color: var(--color-text-secondary);
+	font-size: 0.8rem;
+	font-family: inherit;
+	cursor: pointer;
+	transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.quick-range-pill:hover {
+	background: var(--color-hover-soft-bg);
+	color: var(--color-text);
+}
+
+.quick-range-pill:focus-visible {
+	outline: none;
+	box-shadow: var(--ring);
+}
+
+.quick-range-pill.is-active {
+	background: var(--color-primary-bright);
+	border-color: var(--color-primary-bright);
+	color: var(--color-text-inverse);
+}
+
+.quick-range-pill:disabled {
+	cursor: wait;
+	opacity: 0.6;
+}
+
+.filters-form-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 1rem;
+}
+
+.filters-form-actions #load-last-session {
+	padding: 0.55rem 1rem;
+	border-radius: var(--radius-sm);
+	border: 1px solid var(--color-primary);
+	background: var(--color-primary-hover);
+	color: var(--color-text-inverse);
+	cursor: pointer;
+	font-weight: 600;
+	font-family: inherit;
+}
+
+.filters-form-actions #load-last-session:disabled {
+	cursor: wait;
+	opacity: 0.7;
 }
 
 .filters-form label {
@@ -685,27 +753,6 @@ body {
 body.theme-light .filters-form input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 	filter: none;
 	opacity: 0.6;
-}
-
-.filter-actions {
-	display: flex;
-	align-items: end;
-}
-
-.filter-actions button {
-	width: 100%;
-	padding: 0.6rem 0.8rem;
-	border-radius: 8px;
-	border: 1px solid var(--color-primary);
-	background: var(--color-primary-hover);
-	color: var(--color-text-inverse);
-	cursor: pointer;
-	font-weight: 600;
-}
-
-.filter-actions button:disabled {
-	cursor: wait;
-	opacity: 0.7;
 }
 
 .end-date-row {
@@ -752,12 +799,6 @@ body.theme-light .filters-form input[type="datetime-local"]::-webkit-calendar-pi
 .download-button:disabled {
 	cursor: wait;
 	opacity: 0.6;
-}
-
-.filter-row {
-	display: flex;
-	align-items: center;
-	gap: 0.75rem;
 }
 
 .checkbox {

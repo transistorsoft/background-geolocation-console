@@ -78,35 +78,34 @@
 		</div>
 		<div class="filters" hx-get="{{.PartialLocationsURL}}" hx-target="#locations-panel" hx-swap="innerHTML" hx-include="#filters-form">
 			<form id="filters-form" class="filters-form">
-				<div>
-					<label for="start_date">From</label>
-					<input type="datetime-local" id="start_date" name="start_date" value="{{.From}}">
-				</div>
-				<div>
-					<label for="end_date">To</label>
-					<div class="end-date-row">
-						<input type="datetime-local" id="end_date" name="end_date" value="{{.To}}">
-						{{if .IsAdmin}}
-						<button type="button" id="download-locations" class="download-button" aria-label="Download locations in date range" title="Download locations in date range" hidden>
-							<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg>
-						</button>
-						{{end}}
+				<div class="filters-form-inputs">
+					<div>
+						<label for="start_date">From</label>
+						<input type="datetime-local" id="start_date" name="start_date" value="{{.From}}">
+					</div>
+					<div>
+						<label for="end_date">To</label>
+						<div class="end-date-row">
+							<input type="datetime-local" id="end_date" name="end_date" value="{{.To}}">
+							{{if .IsAdmin}}
+							<button type="button" id="download-locations" class="download-button" aria-label="Download locations in date range" title="Download locations in date range" hidden>
+								<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg>
+							</button>
+							{{end}}
+						</div>
 					</div>
 				</div>
-				<div>
-					<label for="date-range-select">Quick range</label>
-					<select id="date-range-select" aria-label="Quick date range">
-						<option value="">Select a date</option>
-						<option value="most-recent">Most recent data</option>
-						<option value="today">Today</option>
-						<option value="yesterday">Yesterday</option>
-						<option value="last-3-days">Last three days</option>
-					</select>
+				<div class="quick-ranges" role="group" aria-label="Quick date ranges">
+					<button type="button" class="quick-range-pill" data-range="most-recent">Most recent</button>
+					<button type="button" class="quick-range-pill" data-range="last-24h">Last 24 hours</button>
+					<button type="button" class="quick-range-pill" data-range="today">Today</button>
+					<button type="button" class="quick-range-pill" data-range="yesterday">Yesterday</button>
+					<button type="button" class="quick-range-pill" data-range="last-3-days">Last 3 days</button>
+					<button type="button" class="quick-range-pill" data-range="last-7-days">Last 7 days</button>
+					<button type="button" class="quick-range-pill" data-range="last-30-days">Last 30 days</button>
 				</div>
-				<div class="filter-actions">
+				<div class="filters-form-actions">
 					<button type="button" id="load-last-session">Load Last Session</button>
-				</div>
-				<div class="filter-row">
 					<label class="checkbox">
 						<input type="checkbox" name="watch_mode" value="true" {{if .WatchMode}}checked{{end}}> Watch mode
 					</label>
