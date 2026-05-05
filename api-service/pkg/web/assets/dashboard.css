@@ -706,6 +706,13 @@ body {
 	gap: 1rem;
 }
 
+.session-loader {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+}
+
 .filters-form-actions #load-last-session {
 	padding: 0.55rem 1rem;
 	border-radius: var(--radius-sm);
@@ -718,8 +725,56 @@ body {
 }
 
 .filters-form-actions #load-last-session:disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+
+.filters-form-actions #load-last-session.is-loading {
 	cursor: wait;
 	opacity: 0.7;
+}
+
+.session-gap {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	font-size: 0.85rem;
+	color: var(--color-text-secondary);
+}
+
+.session-gap input {
+	width: 4rem;
+	padding: 0.35rem 0.4rem;
+	border-radius: var(--radius-sm);
+	border: 1px solid var(--color-border-strong);
+	background: var(--color-input-bg);
+	color: var(--color-text);
+	font-size: 0.85rem;
+	font-family: inherit;
+}
+
+.session-gap input:focus {
+	outline: none;
+	border-color: var(--color-primary-bright);
+	box-shadow: var(--ring);
+}
+
+.session-status {
+	font-size: 0.85rem;
+	color: var(--color-text-muted);
+	min-height: 1em;
+}
+
+.session-status:empty {
+	display: none;
+}
+
+.session-status.is-error {
+	color: var(--color-error);
+}
+
+.session-status.is-success {
+	color: var(--color-success);
 }
 
 .filters-form label {

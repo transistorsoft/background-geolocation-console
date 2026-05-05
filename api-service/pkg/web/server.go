@@ -324,7 +324,13 @@ func (s *Server) handleLatestSessionRange(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"start": "", "end": "", "count": 0})
 		return
 	}
-	session, err := services.LatestSessionRange(filters, 30*time.Minute)
+	gap := 30 * time.Minute
+	if raw := strings.TrimSpace(firstParam(params, "gap_minutes", "")); raw != "" {
+		if minutes, err := strconv.Atoi(raw); err == nil && minutes > 0 && minutes <= 1440 {
+			gap = time.Duration(minutes) * time.Minute
+		}
+	}
+	session, err := services.LatestSessionRange(filters, gap)
 	if err != nil {
 		c.Status(http.StatusInternalServerError)
 		_, _ = c.Writer.Write([]byte(err.Error()))

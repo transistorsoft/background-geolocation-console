@@ -105,7 +105,16 @@
 					<button type="button" class="quick-range-pill" data-range="last-30-days">Last 30 days</button>
 				</div>
 				<div class="filters-form-actions">
-					<button type="button" id="load-last-session">Load Last Session</button>
+					<div class="session-loader">
+						<button type="button" id="load-last-session" disabled
+							title="Select a device first to load its most recent session">Load Last Session</button>
+						<label class="session-gap" title="Maximum gap (minutes) between consecutive points before a session ends">
+							<span>Gap</span>
+							<input type="number" id="session-gap" min="1" max="1440" value="30" step="1">
+							<span>min</span>
+						</label>
+						<span id="session-status" class="session-status" role="status" aria-live="polite"></span>
+					</div>
 					<label class="checkbox">
 						<input type="checkbox" name="watch_mode" value="true" {{if .WatchMode}}checked{{end}}> Watch mode
 					</label>

@@ -339,26 +339,49 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 
 		if (loadLastSessionButton) {
+			const deviceSelectEl = document.getElementById('device');
+			const setSessionStatus = (msg, kind) => {
+				const el = document.getElementById('session-status');
+				if (!el) return;
+				el.textContent = msg || '';
+				el.classList.remove('is-error', 'is-success');
+				if (kind) el.classList.add(`is-${kind}`);
+			};
+			if (deviceSelectEl?.value) {
+				loadLastSessionButton.disabled = false;
+				loadLastSessionButton.removeAttribute('title');
+			}
 			loadLastSessionButton.addEventListener('click', async () => {
 				const panel = document.getElementById('locations-panel');
 				if (panel) {
 					htmx.trigger(panel, 'htmx:abort');
 				}
 				loadLastSessionButton.disabled = true;
+				loadLastSessionButton.classList.add('is-loading');
 				loadLastSessionButton.textContent = 'Loading...';
+				setSessionStatus('');
 				try {
 					const session = await fetchLatestSessionRange();
-					startInput.value = session?.start ? formatDateTimeLocal(session.start) : '';
-					endInput.value = session?.end ? formatDateTimeLocal(session.end) : '';
+					if (!session?.start || !session?.end) {
+						setSessionStatus('No recent session found for this device.', 'error');
+						return;
+					}
+					startInput.value = formatDateTimeLocal(session.start);
+					endInput.value = formatDateTimeLocal(session.end);
 					timelineHasExplicitDateFilters = !!(startInput.value || endInput.value);
 					normalizeDateTimeInput(startInput);
 					normalizeDateTimeInput(endInput);
 					clearActivePill();
+					const durationMs = session.end.getTime() - session.start.getTime();
+					const points = session.count || 0;
+					setSessionStatus(`Loaded ${points} point${points === 1 ? '' : 's'} over ${formatDuration(durationMs)}.`, 'success');
 					triggerRefresh();
 				} catch (err) {
 					console.warn('latest session fetch failed', err);
+					setSessionStatus('Could not load session. Please try again.', 'error');
 				} finally {
-					loadLastSessionButton.disabled = false;
+					loadLastSessionButton.disabled = !deviceSelectEl?.value;
+					loadLastSessionButton.classList.remove('is-loading');
 					loadLastSessionButton.textContent = 'Load Last Session';
 				}
 			});
@@ -667,6 +690,11 @@ async function fetchLatestSessionRange() {
 	if (deviceSelect?.value) {
 		params.set('device_id', deviceSelect.value);
 	}
+	const gapInput = document.getElementById('session-gap');
+	const gapMinutes = parseInt(gapInput?.value || '', 10);
+	if (Number.isFinite(gapMinutes) && gapMinutes > 0 && gapMinutes <= 1440) {
+		params.set('gap_minutes', String(gapMinutes));
+	}
 	const suffix = params.toString();
 	const url = `${dashboardRouteBase()}/${encodeURIComponent(org)}/session/latest${suffix ? `?${suffix}` : ''}`;
 	const response = await fetch(url, { headers: { Accept: 'application/json' } });
@@ -680,6 +708,18 @@ async function fetchLatestSessionRange() {
 		return null;
 	}
 	return { start, end, count: data?.count || 0 };
+}
+
+function formatDuration(ms) {
+	const totalSec = Math.max(0, Math.floor(ms / 1000));
+	const days = Math.floor(totalSec / 86400);
+	const hours = Math.floor((totalSec % 86400) / 3600);
+	const minutes = Math.floor((totalSec % 3600) / 60);
+	const seconds = totalSec % 60;
+	if (days > 0) return `${days}d ${hours}h`;
+	if (hours > 0) return `${hours}h ${minutes}m`;
+	if (minutes > 0) return `${minutes} min`;
+	return `${seconds} sec`;
 }
 
 async function fetchTimelineData() {
