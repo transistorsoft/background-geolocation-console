@@ -649,10 +649,15 @@ body {
 }
 
 .filters-form-inputs {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	display: flex;
+	flex-wrap: wrap;
 	gap: 0.75rem 1rem;
 	align-items: end;
+}
+
+.filters-form-inputs > div {
+	display: flex;
+	flex-direction: column;
 }
 
 .quick-ranges {
@@ -724,9 +729,8 @@ body {
 	color: var(--color-text-secondary);
 }
 
-.filters-form input[type="datetime-local"],
-.filters-form select {
-	width: 100%;
+.filters-form input[type="datetime-local"] {
+	width: 13rem;
 	padding: 0.45rem;
 	border-radius: var(--radius-sm);
 	border: 1px solid var(--color-border-strong);
@@ -737,8 +741,7 @@ body {
 	transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.filters-form input[type="datetime-local"]:focus,
-.filters-form select:focus {
+.filters-form input[type="datetime-local"]:focus {
 	outline: none;
 	border-color: var(--color-primary-bright);
 	box-shadow: var(--ring);
@@ -762,8 +765,7 @@ body.theme-light .filters-form input[type="datetime-local"]::-webkit-calendar-pi
 }
 
 .end-date-row input[type="datetime-local"] {
-	flex: 1;
-	min-width: 0;
+	flex: 0 0 auto;
 }
 
 .download-button {
