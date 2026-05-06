@@ -10,6 +10,15 @@ let currentTheme = 'dark';
 let timelineHasExplicitDateFilters = false;
 let timelineQueryParams = null;
 
+// Window state for the stock-app-style timeline browser. Sessions are fetched
+// once per Generate click; pan/span buttons re-filter the cached array
+// without going back to the server.
+let timelineSessions = [];          // [{raw, start: Date, end: Date, count}]
+let timelineFullStart = null;
+let timelineFullEnd = null;
+let timelineSpan = 'all';           // '1d'|'1w'|'1m'|'6m'|'1y'|'all'
+let timelineWindowEnd = null;       // right edge of current window (Date)
+
 // Called by the HTMX poll condition in hx-trigger="every Xs [isWatchMode()]".
 // Returning false suppresses the automatic poll so the list and map are never
 // cleared while the user is reviewing a static selection.
@@ -477,6 +486,22 @@ document.addEventListener('DOMContentLoaded', () => {
 		timelineClose.addEventListener('click', () => {
 			resetTimelinePanel();
 		});
+	}
+
+	document.querySelectorAll('.timeline-span').forEach((btn) => {
+		btn.addEventListener('click', () => {
+			const span = btn.dataset.span;
+			if (span) applyTimelineSpan(span);
+		});
+	});
+
+	const timelinePrev = document.getElementById('timeline-prev');
+	const timelineNext = document.getElementById('timeline-next');
+	if (timelinePrev) {
+		timelinePrev.addEventListener('click', () => panTimelineWindow(-1));
+	}
+	if (timelineNext) {
+		timelineNext.addEventListener('click', () => panTimelineWindow(+1));
 	}
 
 	const timelineChart = document.getElementById('timeline-chart-wrap');
@@ -1022,8 +1047,15 @@ function resetTimelinePanel() {
 	panel.classList.add('is-collapsed');
 	content.classList.add('hidden');
 	close.classList.add('hidden');
+	const controls = document.getElementById('timeline-controls');
+	if (controls) controls.classList.add('hidden');
 	summary.textContent = 'Generate a timeline to inspect grouped sessions across the current selection.';
 	chart.innerHTML = '';
+	timelineSessions = [];
+	timelineFullStart = null;
+	timelineFullEnd = null;
+	timelineSpan = 'all';
+	timelineWindowEnd = null;
 }
 
 function setTimelineStatus(message) {
@@ -1046,26 +1078,130 @@ function renderTimelinePanel(data) {
 	const close = document.getElementById('timeline-close');
 	const summary = document.getElementById('timeline-summary');
 	const chart = document.getElementById('timeline-chart-wrap');
+	const controls = document.getElementById('timeline-controls');
 	if (!panel || !content || !close || !summary || !chart) {
 		return;
 	}
 	panel.classList.remove('is-collapsed');
 	content.classList.remove('hidden');
 	close.classList.remove('hidden');
-	const sessions = Array.isArray(data?.sessions) ? data.sessions : [];
+
+	// Parse and cache sessions; both the original payload (for buildTimelineChartMarkup)
+	// and parsed Dates (for filtering) are kept on each entry.
+	const rawSessions = Array.isArray(data?.sessions) ? data.sessions : [];
+	timelineSessions = rawSessions
+		.map((raw) => {
+			const start = parseTimelineDate(raw?.start);
+			const end = parseTimelineDate(raw?.end);
+			return start && end ? { raw, start, end, count: Number(raw?.count || 0) } : null;
+		})
+		.filter(Boolean);
+	timelineFullStart = parseTimelineDate(data?.start) || (timelineSessions[0]?.start ?? null);
+	timelineFullEnd = parseTimelineDate(data?.end) || (timelineSessions[timelineSessions.length - 1]?.end ?? null);
+
+	// Reset the window to "show everything" for each fresh Generate.
+	timelineSpan = 'all';
+	timelineWindowEnd = timelineFullEnd ? new Date(timelineFullEnd.getTime()) : null;
+
 	const totalPoints = Number(data?.total_points || 0);
-	const sessionCount = Number(data?.session_count || sessions.length || 0);
-	const start = parseTimelineDate(data?.start);
-	const end = parseTimelineDate(data?.end);
-	if (!sessions.length) {
+	if (!timelineSessions.length) {
+		if (controls) controls.classList.add('hidden');
 		summary.textContent = totalPoints > 0
 			? `No grouped sessions could be identified across ${totalPoints} selected points.`
 			: 'No location data matches the current selection.';
 		chart.innerHTML = '<div class="timeline-empty-state">No timeline data is available for the current company, device, and date range.</div>';
 		return;
 	}
-	summary.textContent = `${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'} across ${totalPoints} points from ${formatTimelineDate(start)} to ${formatTimelineDate(end)}.`;
-	chart.innerHTML = buildTimelineChartMarkup(sessions);
+	if (controls) controls.classList.remove('hidden');
+	renderTimelineWithWindow();
+}
+
+// Shift a Date by exactly one window-span unit. Uses calendar-aware setMonth /
+// setFullYear so 1m means "one calendar month earlier", not "30 days".
+function shiftDateBySpan(date, span, direction) {
+	const d = new Date(date.getTime());
+	switch (span) {
+		case '1d': d.setDate(d.getDate() + direction); break;
+		case '1w': d.setDate(d.getDate() + direction * 7); break;
+		case '1m': d.setMonth(d.getMonth() + direction); break;
+		case '6m': d.setMonth(d.getMonth() + direction * 6); break;
+		case '1y': d.setFullYear(d.getFullYear() + direction); break;
+		default: return d;
+	}
+	return d;
+}
+
+// Resolve the visible window from the current state, clamped to the data range
+// so the window slides on a rail rather than escaping into emptiness.
+function currentTimelineWindow() {
+	if (timelineSpan === 'all' || !timelineWindowEnd || !timelineFullStart || !timelineFullEnd) {
+		return { start: timelineFullStart, end: timelineFullEnd };
+	}
+	let end = new Date(timelineWindowEnd.getTime());
+	if (end > timelineFullEnd) end = new Date(timelineFullEnd.getTime());
+	let start = shiftDateBySpan(end, timelineSpan, -1);
+	if (start < timelineFullStart) {
+		start = new Date(timelineFullStart.getTime());
+		end = shiftDateBySpan(start, timelineSpan, +1);
+		if (end > timelineFullEnd) end = new Date(timelineFullEnd.getTime());
+	}
+	return { start, end };
+}
+
+function panTimelineWindow(direction) {
+	if (timelineSpan === 'all' || !timelineWindowEnd) return;
+	timelineWindowEnd = shiftDateBySpan(timelineWindowEnd, timelineSpan, direction);
+	renderTimelineWithWindow();
+}
+
+function applyTimelineSpan(span) {
+	if (timelineSpan === span) return;
+	timelineSpan = span;
+	timelineWindowEnd = (span === 'all' || !timelineFullEnd)
+		? null
+		: new Date(timelineFullEnd.getTime());
+	renderTimelineWithWindow();
+}
+
+function renderTimelineWithWindow() {
+	const chart = document.getElementById('timeline-chart-wrap');
+	const summary = document.getElementById('timeline-summary');
+	const panLabel = document.getElementById('timeline-pan-label');
+	const prevBtn = document.getElementById('timeline-prev');
+	const nextBtn = document.getElementById('timeline-next');
+	if (!chart || !summary) return;
+
+	// Active span button highlight
+	document.querySelectorAll('.timeline-span').forEach((btn) => {
+		btn.classList.toggle('is-active', btn.dataset.span === timelineSpan);
+	});
+
+	const { start, end } = currentTimelineWindow();
+	const filtered = (timelineSpan === 'all')
+		? timelineSessions
+		: timelineSessions.filter((s) => s.start >= start && s.start <= end);
+
+	if (panLabel) {
+		panLabel.textContent = (timelineSpan === 'all')
+			? `All data — ${formatTimelineDate(timelineFullStart)} → ${formatTimelineDate(timelineFullEnd)}`
+			: `${formatTimelineDate(start)} → ${formatTimelineDate(end)}`;
+	}
+	const atRightEdge = (timelineSpan === 'all') || (timelineWindowEnd && timelineWindowEnd >= timelineFullEnd);
+	const atLeftEdge = (timelineSpan === 'all') || (start && timelineFullStart && start <= timelineFullStart);
+	if (prevBtn) prevBtn.disabled = atLeftEdge;
+	if (nextBtn) nextBtn.disabled = atRightEdge;
+
+	const sessionCount = filtered.length;
+	const totalPoints = filtered.reduce((sum, s) => sum + (s.count || 0), 0);
+	if (sessionCount === 0) {
+		summary.textContent = `No sessions in ${formatTimelineDate(start)} → ${formatTimelineDate(end)}.`;
+		chart.innerHTML = '<div class="timeline-empty-state">No sessions in the selected window. Pan or pick a wider range.</div>';
+		return;
+	}
+	summary.textContent = (timelineSpan === 'all')
+		? `${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'} across ${totalPoints} points from ${formatTimelineDate(start)} to ${formatTimelineDate(end)}.`
+		: `${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'} (${totalPoints} points) in ${formatTimelineDate(start)} → ${formatTimelineDate(end)}.`;
+	chart.innerHTML = buildTimelineChartMarkup(filtered.map((s) => s.raw));
 }
 
 function applyTimelineSessionSelection(startValue, endValue) {

@@ -140,6 +140,21 @@
 						<p class="timeline-summary" id="timeline-summary">Generate a timeline to inspect grouped sessions across the current selection.</p>
 					</div>
 				</div>
+				<div class="timeline-controls hidden" id="timeline-controls">
+					<div class="timeline-spans" role="group" aria-label="Window size">
+						<button type="button" class="timeline-span" data-span="1d">1d</button>
+						<button type="button" class="timeline-span" data-span="1w">1w</button>
+						<button type="button" class="timeline-span" data-span="1m">1m</button>
+						<button type="button" class="timeline-span" data-span="6m">6m</button>
+						<button type="button" class="timeline-span" data-span="1y">1y</button>
+						<button type="button" class="timeline-span is-active" data-span="all">All</button>
+					</div>
+					<div class="timeline-pan">
+						<button type="button" id="timeline-prev" class="timeline-pan-btn" aria-label="Shift window earlier" title="Shift window earlier">&lsaquo;</button>
+						<span class="timeline-pan-label" id="timeline-pan-label" aria-live="polite"></span>
+						<button type="button" id="timeline-next" class="timeline-pan-btn" aria-label="Shift window later" title="Shift window later">&rsaquo;</button>
+					</div>
+				</div>
 				<div class="timeline-chart-wrap" id="timeline-chart-wrap"></div>
 			</div>
 		</div>
