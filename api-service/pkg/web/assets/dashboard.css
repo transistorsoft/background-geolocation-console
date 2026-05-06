@@ -1174,20 +1174,25 @@ body.theme-light .timeline-session-count {
 }
 
 .panel-main[data-view-mode="map"] {
-	/* 3rem = dashboard-shell vertical padding; 69px = app-header rendered height */
-	height: calc(100vh - 3rem - 69px);
+	/*
+	 * 3rem = dashboard-shell vertical padding; 69px = app-header height.
+	 * Use min-height (not height) so the panel can grow when the timeline
+	 * is open. With a fixed height, opening the timeline ate the entire
+	 * vertical budget and the map collapsed to 0 px.
+	 */
+	min-height: calc(100vh - 3rem - 69px);
 	box-sizing: border-box;
 }
 
 .panel-main[data-view-mode="map"] .content-split {
 	grid-template-columns: minmax(0, 1fr);
-	flex: 1 1 0;
-	min-height: 0;
+	flex: 1 1 auto;
+	min-height: max(320px, 60vh);
 }
 
 .panel-main[data-view-mode="map"] .map-panel {
 	height: 100%;
-	min-height: 0;
+	min-height: max(320px, 60vh);
 	box-sizing: border-box;
 }
 
