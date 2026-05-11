@@ -488,6 +488,20 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 
+	const timelineRollup = document.getElementById('timeline-rollup');
+	if (timelineRollup) {
+		timelineRollup.addEventListener('click', () => {
+			setTimelineState('rolled-up');
+		});
+	}
+
+	const timelineRolldown = document.getElementById('timeline-rolldown');
+	if (timelineRolldown) {
+		timelineRolldown.addEventListener('click', () => {
+			setTimelineState('expanded');
+		});
+	}
+
 	document.querySelectorAll('.timeline-span').forEach((btn) => {
 		btn.addEventListener('click', () => {
 			const span = btn.dataset.span;
@@ -1037,16 +1051,12 @@ function initializeMapToggles() {
 
 function resetTimelinePanel() {
 	const panel = document.getElementById('timeline-panel');
-	const content = document.getElementById('timeline-content');
-	const close = document.getElementById('timeline-close');
 	const summary = document.getElementById('timeline-summary');
 	const chart = document.getElementById('timeline-chart-wrap');
-	if (!panel || !content || !close || !summary || !chart) {
+	if (!panel || !summary || !chart) {
 		return;
 	}
-	panel.classList.add('is-collapsed');
-	content.classList.add('hidden');
-	close.classList.add('hidden');
+	setTimelineState('empty');
 	const controls = document.getElementById('timeline-controls');
 	if (controls) controls.classList.add('hidden');
 	summary.textContent = 'Generate a timeline to inspect grouped sessions across the current selection.';
@@ -1059,32 +1069,70 @@ function resetTimelinePanel() {
 }
 
 function setTimelineStatus(message) {
-	const panel = document.getElementById('timeline-panel');
-	const content = document.getElementById('timeline-content');
-	const close = document.getElementById('timeline-close');
 	const chart = document.getElementById('timeline-chart-wrap');
-	if (!panel || !content || !close || !chart) {
-		return;
-	}
-	panel.classList.remove('is-collapsed');
-	content.classList.remove('hidden');
-	close.classList.remove('hidden');
+	if (!chart) return;
+	setTimelineState('expanded');
 	chart.innerHTML = `<div class="timeline-status">${message}</div>`;
+}
+
+// setTimelineState toggles the panel between three explicit states.
+// - "empty"      : initial; Generate button + helper text visible; no actions.
+// - "expanded"   : data loaded and rendered; rollup arrow + discard X visible.
+// - "rolled-up"  : data loaded but content hidden; rolldown arrow + label + X.
+//
+// Buttons (Generate, rollup, rolldown, label, content, close) all live in the
+// toolbar/content; this helper centralises which ones are shown per state.
+function setTimelineState(state) {
+	const panel = document.getElementById('timeline-panel');
+	if (!panel) return;
+	const trigger = document.getElementById('generate-timeline');
+	const helper = panel.querySelector('.timeline-helper');
+	const rollup = document.getElementById('timeline-rollup');
+	const rolldown = document.getElementById('timeline-rolldown');
+	const rolledLabel = document.getElementById('timeline-rolled-label');
+	const close = document.getElementById('timeline-close');
+	const content = document.getElementById('timeline-content');
+	const setHidden = (el, hide) => el && el.classList.toggle('hidden', hide);
+	panel.dataset.state = state;
+	if (state === 'empty') {
+		panel.classList.add('is-collapsed');
+		setHidden(trigger, false);
+		setHidden(helper, false);
+		setHidden(rollup, true);
+		setHidden(rolldown, true);
+		setHidden(rolledLabel, true);
+		setHidden(close, true);
+		setHidden(content, true);
+	} else if (state === 'expanded') {
+		panel.classList.remove('is-collapsed');
+		setHidden(trigger, true);
+		setHidden(helper, true);
+		setHidden(rollup, false);
+		setHidden(rolldown, true);
+		setHidden(rolledLabel, true);
+		setHidden(close, false);
+		setHidden(content, false);
+	} else if (state === 'rolled-up') {
+		panel.classList.add('is-collapsed');
+		setHidden(trigger, true);
+		setHidden(helper, true);
+		setHidden(rollup, true);
+		setHidden(rolldown, false);
+		setHidden(rolledLabel, false);
+		setHidden(close, false);
+		setHidden(content, true);
+	}
 }
 
 function renderTimelinePanel(data) {
 	const panel = document.getElementById('timeline-panel');
-	const content = document.getElementById('timeline-content');
-	const close = document.getElementById('timeline-close');
 	const summary = document.getElementById('timeline-summary');
 	const chart = document.getElementById('timeline-chart-wrap');
 	const controls = document.getElementById('timeline-controls');
-	if (!panel || !content || !close || !summary || !chart) {
+	if (!panel || !summary || !chart) {
 		return;
 	}
-	panel.classList.remove('is-collapsed');
-	content.classList.remove('hidden');
-	close.classList.remove('hidden');
+	setTimelineState('expanded');
 
 	// Parse and cache sessions; both the original payload (for buildTimelineChartMarkup)
 	// and parsed Dates (for filtering) are kept on each entry.
@@ -1236,13 +1284,13 @@ function buildTimelineChartMarkup(sessions) {
 		return '<div class="timeline-empty-state">No session groups were produced for this selection.</div>';
 	}
 
-	// Layout constants
+	// Layout constants (compact)
 	const chartWidth = 960;
-	const chartHeight = 380;
-	const margin = { top: 28, right: 28, bottom: 48, left: 64 };
+	const chartHeight = 300;
+	const margin = { top: 20, right: 20, bottom: 36, left: 52 };
 	const plotWidth = chartWidth - margin.left - margin.right;
 	const plotHeight = chartHeight - margin.top - margin.bottom;
-	const minBarH = 8;
+	const minBarH = 6;
 
 	// Group sessions by calendar date (local time) using session start
 	const dateKey = (d) =>
@@ -1281,7 +1329,7 @@ function buildTimelineChartMarkup(sessions) {
 	const yForMinute = (min) => margin.top + (min / 1440) * plotHeight;
 
 	// Abbreviate large counts
-	const pillH = 18;
+	const pillH = 14;
 	const countLabel = (n) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
 
 	const gridLines = [];
@@ -1305,7 +1353,7 @@ function buildTimelineChartMarkup(sessions) {
 	sortedDates.forEach(([, date], i) => {
 		const x = margin.left + (i + 0.5) * colWidth;
 		xLabels.push(
-			`<text class="timeline-axis-label" x="${x}" y="${chartHeight - 12}" text-anchor="middle">${dateLabel(date)}</text>`,
+			`<text class="timeline-axis-label" x="${x}" y="${chartHeight - 8}" text-anchor="middle">${dateLabel(date)}</text>`,
 		);
 		if (i > 0) {
 			const xSep = margin.left + i * colWidth;

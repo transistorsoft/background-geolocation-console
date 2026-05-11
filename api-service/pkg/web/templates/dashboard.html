@@ -123,15 +123,18 @@
 		</div>
 
 		{{if .HasSelectedDevice}}
-		<div class="timeline-panel is-collapsed" id="timeline-panel">
+		<div class="timeline-panel is-collapsed" id="timeline-panel" data-state="empty">
 			<div class="timeline-toolbar">
 				<div class="timeline-toolbar-copy">
 					<button type="button" class="timeline-trigger" id="generate-timeline">Generate Timeline</button>
 					<p class="timeline-helper">Group the selected location data into sessions using time gaps between points.</p>
+					<button type="button" class="timeline-roll-btn hidden" id="timeline-rolldown" aria-label="Expand timeline" title="Expand">&#x25BC;</button>
+					<span class="timeline-rolled-label hidden" id="timeline-rolled-label">Current timeline data</span>
 				</div>
-				<button type="button" class="timeline-close hidden" id="timeline-close" aria-label="Minimize timeline">
-					&times;
-				</button>
+				<div class="timeline-toolbar-actions">
+					<button type="button" class="timeline-roll-btn hidden" id="timeline-rollup" aria-label="Collapse timeline" title="Collapse">&#x25B2;</button>
+					<button type="button" class="timeline-close hidden" id="timeline-close" aria-label="Discard timeline" title="Discard">&times;</button>
+				</div>
 			</div>
 			<div class="timeline-content hidden" id="timeline-content">
 				<div class="timeline-header">
