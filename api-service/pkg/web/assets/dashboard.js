@@ -1286,11 +1286,11 @@ function buildTimelineChartMarkup(sessions) {
 
 	// Layout constants (compact)
 	const chartWidth = 960;
-	const chartHeight = 300;
-	const margin = { top: 20, right: 20, bottom: 36, left: 52 };
+	const chartHeight = 260;
+	const margin = { top: 16, right: 16, bottom: 28, left: 44 };
 	const plotWidth = chartWidth - margin.left - margin.right;
 	const plotHeight = chartHeight - margin.top - margin.bottom;
-	const minBarH = 6;
+	const minBarH = 5;
 
 	// Group sessions by calendar date (local time) using session start
 	const dateKey = (d) =>
@@ -1329,7 +1329,7 @@ function buildTimelineChartMarkup(sessions) {
 	const yForMinute = (min) => margin.top + (min / 1440) * plotHeight;
 
 	// Abbreviate large counts
-	const pillH = 14;
+	const pillH = 12;
 	const countLabel = (n) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
 
 	const gridLines = [];
@@ -1337,8 +1337,8 @@ function buildTimelineChartMarkup(sessions) {
 	const xLabels = [];
 	const bars = [];
 
-	// Y-axis grid lines and labels every 4 hours
-	for (let h = 0; h <= 24; h += 4) {
+	// Y-axis grid lines and labels every 6 hours to keep the compact chart readable.
+	for (let h = 0; h <= 24; h += 6) {
 		const y = yForMinute(h * 60);
 		gridLines.push(
 			`<line class="timeline-grid" x1="${margin.left}" y1="${y}" x2="${chartWidth - margin.right}" y2="${y}"></line>`,
@@ -1377,9 +1377,9 @@ function buildTimelineChartMarkup(sessions) {
 		const cx = margin.left + colIdx * colWidth + (laneIdx + 0.5) * laneWidth;
 
 		// Element widths scaled to lane width, with sensible min/max
-		const barW = Math.max(4, Math.min(10, laneWidth * 0.25));
-		const hitW = Math.max(20, Math.min(48, laneWidth * 0.85));
-		const pillW = Math.max(28, Math.min(52, laneWidth * 0.70));
+		const barW = Math.max(3, Math.min(8, laneWidth * 0.22));
+		const hitW = Math.max(18, Math.min(42, laneWidth * 0.8));
+		const pillW = Math.max(24, Math.min(46, laneWidth * 0.65));
 
 		const yTop = clampNumber(yForMinute(minuteOfDay(session.start)), margin.top, margin.top + plotHeight - minBarH);
 		const yRaw = yForMinute(minuteOfDay(session.end));
@@ -1399,7 +1399,7 @@ function buildTimelineChartMarkup(sessions) {
 				<rect class="timeline-session-hit" x="${cx - hitW / 2}" y="${hitY}" width="${hitW}" height="${hitH}"></rect>
 				<rect class="timeline-session-bar" x="${cx - barW / 2}" y="${yTop}" width="${barW}" height="${barH}" rx="3" ry="3"></rect>
 				<rect class="timeline-session-pill" x="${cx - pillW / 2}" y="${midY - pillH / 2}" width="${pillW}" height="${pillH}" rx="${pillH / 2}" ry="${pillH / 2}"></rect>
-				<text class="timeline-session-count" x="${cx}" y="${midY + 4}" text-anchor="middle">${label}</text>
+				<text class="timeline-session-count" x="${cx}" y="${midY + 3}" text-anchor="middle">${label}</text>
 			</g>`,
 		);
 	});
@@ -1413,7 +1413,7 @@ function buildTimelineChartMarkup(sessions) {
 			${yLabels.join('')}
 			${xLabels.join('')}
 		</svg>
-		<p class="timeline-caption">Each bar spans the start to end of a session; the Y-axis is time of day, columns are calendar days. Click or press Enter to load that session. Sessions are split when the gap between points exceeds 30 minutes.</p>
+		<p class="timeline-caption">Bars are sessions by time of day. Click or press Enter to load one; sessions split after 30-minute gaps.</p>
 	`;
 }
 
