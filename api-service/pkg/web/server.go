@@ -447,20 +447,15 @@ func (s *Server) buildDashboardData(org string, params map[string][]string, admi
 		filters.End = rangeEnd
 	}
 	data.HasActiveFilters = data.HasSelectedDevice && (filters.Start != nil || filters.End != nil)
+	fetchLocations := false
 	if data.WatchMode && data.HasSelectedDevice {
 		filters.Limit = 1
-		latest, err := services.LatestLocation(filters)
-		if err != nil {
-			return nil, err
-		}
-		if latest != nil {
-			data.Locations = buildLocationViews([]map[string]any{latest})
-			if payload, err := json.Marshal([]map[string]any{latest}); err == nil {
-				data.MapLocationsJSON = template.JS(payload)
-			}
-		}
+		fetchLocations = true
 	} else if data.HasActiveFilters {
-		records, err := services.ListLocations(filters)
+		fetchLocations = true
+	}
+	if fetchLocations {
+		records, total, err := services.ListLocationsWithCount(filters)
 		if err != nil {
 			return nil, err
 		}
@@ -470,15 +465,7 @@ func (s *Server) buildDashboardData(org string, params map[string][]string, admi
 		} else {
 			data.MapLocationsJSON = template.JS("[]")
 		}
-	}
-	if data.HasSelectedDevice && (data.HasActiveFilters || data.WatchMode) {
-		if count, err := services.CountLocations(filters); err == nil {
-			data.TotalLocations = count
-		} else {
-			data.TotalLocations = int64(len(data.Locations))
-		}
-	} else {
-		data.TotalLocations = 0
+		data.TotalLocations = total
 	}
 	if len(data.Locations) > 0 {
 		data.VisibleRangeEnd = formatDateOnly(data.Locations[0].RecordedAtISO)
