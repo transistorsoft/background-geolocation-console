@@ -7,7 +7,11 @@ let mapLocations = [];
 let mapElement = null;
 let selectedLocationUUID = null;
 let currentTheme = 'dark';
-let timelineHasExplicitDateFilters = false;
+// Snapshot of the request params used when Generate Timeline was clicked, so
+// session selections and pan/span re-fetches use the same scope. The timeline
+// is intentionally NOT scoped by the form's date filters — its purpose is a
+// bird's-eye view of the device's full recorded history; the form filters
+// belong to the locations table and map.
 let timelineQueryParams = null;
 
 // Window state for the stock-app-style timeline browser. Sessions are fetched
@@ -216,10 +220,6 @@ document.addEventListener('DOMContentLoaded', () => {
 		localizeUTCInputValue(endInput);
 		normalizeDateTimeInput(startInput);
 		normalizeDateTimeInput(endInput);
-		const searchParams = new URLSearchParams(window.location.search);
-		const hasExplicitDateFilters = searchParams.has('start_date') || searchParams.has('end_date');
-		timelineHasExplicitDateFilters = hasExplicitDateFilters;
-
 		const clearActivePill = () => {
 			quickRangePills.forEach((pill) => pill.classList.remove('is-active'));
 		};
@@ -259,10 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			input.addEventListener('blur', normalizeDelayed);
 			input.addEventListener('focus', normalizeDelayed);
 			input.addEventListener('change', normalizeLater);
-			input.addEventListener('change', () => {
-				timelineHasExplicitDateFilters = !!((startInput?.value || '').trim() || (endInput?.value || '').trim());
-				clearActivePill();
-			});
+			input.addEventListener('change', clearActivePill);
 			input.addEventListener('blur', normalizeLater);
 			input.addEventListener('focus', startPolling);
 			input.addEventListener('blur', stopPolling);
@@ -328,7 +325,6 @@ document.addEventListener('DOMContentLoaded', () => {
 			normalizeDateTimeInput(startInput);
 			normalizeDateTimeInput(endInput);
 			setActivePill(rangeKey);
-			timelineHasExplicitDateFilters = true;
 			if (shouldRefresh) {
 				triggerRefresh();
 			}
@@ -377,7 +373,6 @@ document.addEventListener('DOMContentLoaded', () => {
 					}
 					startInput.value = formatDateTimeLocal(session.start);
 					endInput.value = formatDateTimeLocal(session.end);
-					timelineHasExplicitDateFilters = !!(startInput.value || endInput.value);
 					normalizeDateTimeInput(startInput);
 					normalizeDateTimeInput(endInput);
 					clearActivePill();
@@ -777,34 +772,19 @@ async function fetchTimelineData() {
 	return response.json();
 }
 
+// Builds the params for timeline requests. Deliberately omits start_date and
+// end_date so the timeline always reflects the device's full recorded history;
+// span/pan controls navigate the returned range client-side. The form's date
+// filters scope the locations table and map only.
 function buildDashboardQueryParams() {
 	const params = new URLSearchParams();
 	const companySelect = document.getElementById('company');
 	const deviceSelect = document.getElementById('device');
-	const startInput = document.getElementById('start_date');
-	const endInput = document.getElementById('end_date');
 	if (companySelect?.value) {
 		params.set('company_id', companySelect.value);
 	}
 	if (deviceSelect?.value) {
 		params.set('device_id', deviceSelect.value);
-	}
-	if (!timelineHasExplicitDateFilters) {
-		return params;
-	}
-	const startRaw = (startInput?.value || '').trim();
-	if (startRaw) {
-		const parsed = new Date(startRaw);
-		if (!Number.isNaN(parsed.getTime())) {
-			params.set('start_date', formatDateTimeUTCInput(parsed));
-		}
-	}
-	const endRaw = (endInput?.value || '').trim();
-	if (endRaw) {
-		const parsed = new Date(endRaw);
-		if (!Number.isNaN(parsed.getTime())) {
-			params.set('end_date', formatDateTimeUTCInput(parsed));
-		}
 	}
 	return params;
 }
@@ -1157,7 +1137,7 @@ function renderTimelinePanel(data) {
 		summary.textContent = totalPoints > 0
 			? `No grouped sessions could be identified across ${totalPoints} selected points.`
 			: 'No location data matches the current selection.';
-		chart.innerHTML = '<div class="timeline-empty-state">No timeline data is available for the current company, device, and date range.</div>';
+		chart.innerHTML = '<div class="timeline-empty-state">No recorded locations for this device.</div>';
 		return;
 	}
 	if (controls) controls.classList.remove('hidden');
@@ -1231,7 +1211,7 @@ function renderTimelineWithWindow() {
 
 	if (panLabel) {
 		panLabel.textContent = (timelineSpan === 'all')
-			? `All data — ${formatTimelineDate(timelineFullStart)} → ${formatTimelineDate(timelineFullEnd)}`
+			? `Full history — ${formatTimelineDate(timelineFullStart)} → ${formatTimelineDate(timelineFullEnd)}`
 			: `${formatTimelineDate(start)} → ${formatTimelineDate(end)}`;
 	}
 	const atRightEdge = (timelineSpan === 'all') || (timelineWindowEnd && timelineWindowEnd >= timelineFullEnd);
