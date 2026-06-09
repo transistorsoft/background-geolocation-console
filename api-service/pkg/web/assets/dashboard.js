@@ -588,26 +588,21 @@ function setViewMode(mode) {
 	}
 }
 
+// Convert the server-rendered UTC timestamp (data-recorded ISO 8601) into
+// the browser's local time, formatted as YYYY-MM-DD on top and HH:MM:SS
+// underneath. Runs on initial render and after every HTMX swap.
 function applyLocalTime(rows) {
+	const pad = (n) => String(n).padStart(2, '0');
 	rows.forEach((row) => {
 		const cell = row.querySelector('[data-recorded]');
 		if (!cell) return;
 		const ts = cell.getAttribute('data-recorded');
 		if (!ts) return;
 		const date = new Date(ts);
-		if (!isNaN(date.getTime())) {
-			const datePart = date.toLocaleDateString(undefined, {
-				weekday: 'short',
-				year: 'numeric',
-				month: 'short',
-				day: 'numeric',
-			});
-			const timePart = date.toLocaleTimeString(undefined, { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-			const tz = date
-				.toLocaleTimeString(undefined, { timeZoneName: 'short' })
-				.replace(/.*\s/, '') || 'local';
-			cell.innerHTML = `<div class="meta-date">${datePart}</div><div class="meta-time">${timePart} ${tz}</div>`;
-		}
+		if (isNaN(date.getTime())) return;
+		const datePart = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+		const timePart = `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+		cell.innerHTML = `<div class="meta-date">${datePart}</div><div class="meta-time">${timePart}</div>`;
 	});
 }
 
