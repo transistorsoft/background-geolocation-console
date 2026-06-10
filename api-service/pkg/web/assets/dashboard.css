@@ -69,6 +69,12 @@
 	--color-timeline-cluster-hover-fill: #a78bfa;
 	--color-timeline-cluster-hover-stroke: #5b21b6;
 	--color-timeline-focus-glow: rgba(125, 211, 252, 0.55);
+	/* Density heatmap (wide spans): cyan cells whose opacity carries point
+	   volume; amber rings flag the busiest sessions without clashing with the
+	   orange selected pill. */
+	--color-timeline-heat-cell: #38bdf8;
+	--color-timeline-notable-ring: #fbbf24;
+	--color-timeline-notable-label: #fde68a;
 
 	--color-code-bg: #0d1224;
 	--color-code-text: #a5b4fc;
@@ -802,6 +808,63 @@ body {
 	font-size: 9px;
 	font-family: var(--font-mono);
 	font-weight: 700;
+	pointer-events: none;
+	user-select: none;
+}
+
+/* Density-mode heatmap + notable-session markers (wide spans) */
+.timeline-heat-cell {
+	fill: var(--color-timeline-heat-cell);
+	pointer-events: none;
+	shape-rendering: crispEdges;
+}
+
+.timeline-zoom-overlay {
+	fill: transparent;
+	pointer-events: all;
+	cursor: zoom-in;
+}
+
+.timeline-notable {
+	cursor: pointer;
+}
+
+.timeline-notable-hit {
+	fill: transparent;
+	pointer-events: all;
+}
+
+.timeline-notable-ring {
+	fill: none;
+	stroke: var(--color-timeline-notable-ring);
+	stroke-width: 1;
+	transition: stroke-width 140ms ease;
+}
+
+.timeline-notable:hover .timeline-notable-ring,
+.timeline-notable:focus .timeline-notable-ring {
+	stroke-width: 1.75;
+}
+
+.timeline-notable:focus {
+	outline: none;
+}
+
+.timeline-notable:focus-visible .timeline-notable-ring {
+	filter: drop-shadow(0 0 6px var(--color-timeline-focus-glow));
+}
+
+.timeline-notable.is-selected .timeline-notable-ring {
+	stroke: var(--color-timeline-session-selected-fill);
+	stroke-width: 1.75;
+}
+
+.timeline-notable-label {
+	fill: var(--color-timeline-notable-label);
+	font-size: 10px;
+	font-family: var(--font-mono);
+	font-weight: 400;
+	letter-spacing: 0.02em;
 	pointer-events: none;
 	user-select: none;
 }

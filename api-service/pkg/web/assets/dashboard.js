@@ -540,10 +540,26 @@ document.addEventListener('DOMContentLoaded', () => {
 				return;
 			}
 			const session = event.target.closest('.timeline-session[data-start][data-end]');
-			if (!session) return;
-			if (isKeyboard) event.preventDefault();
-			markTimelineSelection(session);
-			applyTimelineSessionSelection(session.dataset.start, session.dataset.end);
+			if (session) {
+				if (isKeyboard) event.preventDefault();
+				markTimelineSelection(session);
+				applyTimelineSessionSelection(session.dataset.start, session.dataset.end);
+				return;
+			}
+			// Density-mode heatmap: clicking the plot (cells or empty area) drills
+			// one zoom level finer, centred on the clicked time, until detail mode
+			// exposes individual session pills. Mouse-only — the overlay isn't a
+			// focusable target, so keyboard users zoom via the span pills.
+			const zone = event.target.closest('.timeline-zoom-overlay');
+			if (zone && !isKeyboard) {
+				const tStart = Number(zone.dataset.t0);
+				const tEnd = Number(zone.dataset.t1);
+				if (Number.isFinite(tStart) && Number.isFinite(tEnd) && tEnd > tStart) {
+					const rect = zone.getBoundingClientRect();
+					const frac = rect.width ? (event.clientX - rect.left) / rect.width : 0.5;
+					zoomTimelineToTime(tStart + clampNumber(frac, 0, 1) * (tEnd - tStart));
+				}
+			}
 		};
 		timelineChart.addEventListener('click', (event) => handleTimelineActivation(event, false));
 		timelineChart.addEventListener('keydown', (event) => {
@@ -1193,6 +1209,32 @@ function applyTimelineSpan(span) {
 	renderTimelineWithWindow();
 }
 
+// Span presets ordered widest → narrowest; "one finer" is the next entry.
+const TIMELINE_SPAN_ORDER = ['all', '1y', '6m', '1m', '1w', '1d'];
+const TIMELINE_SPAN_MS = {
+	'1d': 24 * 60 * 60 * 1000,
+	'1w': 7 * 24 * 60 * 60 * 1000,
+	'1m': 30 * 24 * 60 * 60 * 1000,
+	'6m': 182 * 24 * 60 * 60 * 1000,
+	'1y': 365 * 24 * 60 * 60 * 1000,
+};
+
+// Drill one zoom level finer than the current span, centring the new window on
+// the given calendar time (clamped to the data range). Used by click-to-zoom on
+// the density heatmap.
+function zoomTimelineToTime(centerMs) {
+	if (!timelineFullStart || !timelineFullEnd) return;
+	const idx = TIMELINE_SPAN_ORDER.indexOf(timelineSpan);
+	if (idx < 0 || idx >= TIMELINE_SPAN_ORDER.length - 1) return; // already finest
+	const next = TIMELINE_SPAN_ORDER[idx + 1];
+	timelineSpan = next;
+	const half = (TIMELINE_SPAN_MS[next] || 0) / 2;
+	let end = Math.min(timelineFullEnd.getTime(), centerMs + half);
+	if (end < timelineFullStart.getTime()) end = timelineFullStart.getTime();
+	timelineWindowEnd = new Date(end);
+	renderTimelineWithWindow();
+}
+
 function renderTimelineWithWindow() {
 	const chart = document.getElementById('timeline-chart-wrap');
 	const summary = document.getElementById('timeline-summary');
@@ -1234,7 +1276,10 @@ function renderTimelineWithWindow() {
 	summary.textContent = (timelineSpan === 'all')
 		? `${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'} across ${totalPoints} points from ${formatTimelineDate(start)} to ${formatTimelineDate(end)}.`
 		: `${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'} (${totalPoints} points) in ${formatTimelineDate(start)} → ${formatTimelineDate(end)}.`;
-	chart.innerHTML = buildTimelineChartMarkup(filtered.map((s) => s.raw));
+	chart.innerHTML = buildTimelineChartMarkup(filtered.map((s) => s.raw), {
+		windowStart: start,
+		windowEnd: end,
+	});
 }
 
 function applyTimelineSessionSelection(startValue, endValue) {
@@ -1363,7 +1408,68 @@ function zoomTimelineToOpenCluster() {
 	renderTimelineWithWindow();
 }
 
-function buildTimelineChartMarkup(sessions) {
+// Generate calendar-aligned x-axis ticks across a continuous time range,
+// picking the finest cadence (hour → 6h → day → week → month → quarter → year)
+// whose label count stays within maxLabels. Returns [{ ms, label }].
+function timelineAxisTicks(d0, d1, maxLabels) {
+	const start = d0.getTime();
+	const end = d1.getTime();
+	const HOUR = 3600000;
+	const DAY = 24 * HOUR;
+	const fmtHour = (d) => d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+	const fmtDay = (d) => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+	const fmtMonth = (d) => d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+	const fmtYear = (d) => String(d.getFullYear());
+
+	const fixed = (stepMs, align, fmt) => {
+		const ticks = [];
+		const first = align(new Date(start));
+		for (let t = first.getTime(); t <= end && ticks.length <= 500; t += stepMs) {
+			if (t >= start) ticks.push({ ms: t, label: fmt(new Date(t)) });
+		}
+		return ticks;
+	};
+	const alignHour = (d) => { d.setMinutes(0, 0, 0); return d; };
+	const alignDay = (d) => { d.setHours(0, 0, 0, 0); return d; };
+	const calendar = (monthStep, fmt) => {
+		const ticks = [];
+		const d = new Date(start);
+		d.setDate(1);
+		d.setHours(0, 0, 0, 0);
+		while (d.getTime() <= end && ticks.length <= 500) {
+			if (d.getTime() >= start) ticks.push({ ms: d.getTime(), label: fmt(new Date(d)) });
+			d.setMonth(d.getMonth() + monthStep);
+		}
+		return ticks;
+	};
+
+	const candidates = [
+		() => fixed(HOUR, alignHour, fmtHour),
+		() => fixed(6 * HOUR, alignHour, fmtHour),
+		() => fixed(DAY, alignDay, fmtDay),
+		() => fixed(7 * DAY, alignDay, fmtDay),
+		() => calendar(1, fmtMonth),
+		() => calendar(3, fmtMonth),
+		() => calendar(12, fmtYear),
+	];
+	for (const gen of candidates) {
+		const ticks = gen();
+		if (ticks.length && ticks.length <= maxLabels) return ticks;
+	}
+	return calendar(12, fmtYear);
+}
+
+// Render the session timeline. The chart adapts to how much calendar time the
+// current window spans (level of detail):
+//   • Detail mode (≥ ~12px per day, i.e. up to ~2 months): individual session
+//     pills by time of day, multi-session days merged into a click-to-drill
+//     cluster pill — the close-up "choose a session" view.
+//   • Density mode (wider, e.g. 6m / 1y / All): an hour-by-time density heatmap
+//     so two years stay legible, with the busiest few sessions ringed and
+//     labelled (and clickable) instead of labelling every one.
+// X is a *continuous* calendar scale (not one column per active date) so silent
+// gaps in the data stay visible and pills sit at their true temporal position.
+function buildTimelineChartMarkup(sessions, opts) {
 	const parsedSessions = sessions.map((session) => {
 		const sessionStart = parseTimelineDate(session.start);
 		const sessionEnd = parseTimelineDate(session.end);
@@ -1377,6 +1483,7 @@ function buildTimelineChartMarkup(sessions) {
 	}).filter((session) => session.start && session.end && session.count >= 0);
 
 	if (!parsedSessions.length) {
+		timelineClusters = [];
 		return '<div class="timeline-empty-state">No session groups were produced for this selection.</div>';
 	}
 
@@ -1387,49 +1494,30 @@ function buildTimelineChartMarkup(sessions) {
 	const plotWidth = chartWidth - margin.left - margin.right;
 	const plotHeight = chartHeight - margin.top - margin.bottom;
 	const minBarH = 5;
+	const pillH = 12;
 
-	// Group sessions by calendar date (local time) using session start
-	const dateKey = (d) =>
-		`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-	const dateMap = new Map();
-	parsedSessions.forEach((s) => {
-		const key = dateKey(s.start);
-		if (!dateMap.has(key)) dateMap.set(key, s.start);
-	});
-	const sortedDates = Array.from(dateMap.entries()).sort(([a], [b]) => a.localeCompare(b));
-	const colCount = sortedDates.length;
-	const colIndexMap = new Map(sortedDates.map(([key], i) => [key, i]));
-	const colWidth = plotWidth / Math.max(colCount, 1);
-
-	// Assign each session a lane within its column so sessions on the same day fan out horizontally
-	const colLaneMap = new Map(); // dateKey → sessions sorted by start time
-	parsedSessions.forEach((s) => {
-		const key = dateKey(s.start);
-		if (!colLaneMap.has(key)) colLaneMap.set(key, []);
-		colLaneMap.get(key).push(s);
-	});
-	// Sort each column's sessions by start time and stamp laneIdx / laneCount
-	colLaneMap.forEach((group) => {
-		group.sort((a, b) => a.start - b.start);
-		group.forEach((s, i) => {
-			s.laneIdx = i;
-			s.laneCount = group.length;
-		});
-	});
+	// Continuous calendar time on X. Window bounds come from the caller so the
+	// axis reflects the real selected range (and its gaps); fall back to the
+	// session extent when not supplied.
+	const ordered = parsedSessions.slice().sort((a, b) => a.start - b.start);
+	const winStart = (opts && opts.windowStart instanceof Date) ? opts.windowStart : ordered[0].start;
+	const winEnd = (opts && opts.windowEnd instanceof Date) ? opts.windowEnd : ordered[ordered.length - 1].end;
+	const t0 = winStart.getTime();
+	let t1 = winEnd.getTime();
+	if (!(t1 > t0)) t1 = t0 + 60000;
+	const tSpan = t1 - t0;
+	const DAY_MS = 24 * 60 * 60 * 1000;
+	const pxPerDay = plotWidth / Math.max(tSpan / DAY_MS, 1 / 24);
+	const xForTime = (ms) => margin.left + clampNumber((ms - t0) / tSpan, 0, 1) * plotWidth;
 
 	// Y-axis: time of day — 00:00 at top, 24:00 at bottom
 	const minuteOfDay = (d) => d.getHours() * 60 + d.getMinutes();
 	const yForMinute = (min) => margin.top + (min / 1440) * plotHeight;
-
-	// Abbreviate large counts
-	const pillH = 12;
 	const countLabel = (n) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
 
 	const gridLines = [];
 	const yLabels = [];
 	const xLabels = [];
-	const bars = [];
 
 	// Y-axis grid lines and labels every 6 hours to keep the compact chart readable.
 	for (let h = 0; h <= 24; h += 6) {
@@ -1443,120 +1531,84 @@ function buildTimelineChartMarkup(sessions) {
 		);
 	}
 
-	// X-axis: pick a label cadence that keeps text readable regardless of
-	// span. Bucketing the visible columns into day/week/month/quarter/year
-	// groups and emitting one label + separator per group means a 2-year
-	// view renders ~2-4 labels instead of hundreds of overlapping ones;
-	// zooming in via the span pills filters the columns down, so finer
-	// cadences become eligible automatically.
-	const minLabelPx = 80;
-	const maxLabels = Math.max(2, Math.floor(plotWidth / minLabelPx));
-	const startOfLocalWeek = (d) => {
-		const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-		const dow = (day.getDay() + 6) % 7; // 0 = Monday
-		day.setDate(day.getDate() - dow);
-		return day;
-	};
-	const cadences = [
-		{
-			bucket: (d) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`,
-			format: (d) => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-		},
-		{
-			bucket: (d) => {
-				const wk = startOfLocalWeek(d);
-				return `${wk.getFullYear()}-${wk.getMonth()}-${wk.getDate()}`;
-			},
-			format: (d) => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-		},
-		{
-			bucket: (d) => `${d.getFullYear()}-${d.getMonth()}`,
-			format: (d) => d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }),
-		},
-		{
-			bucket: (d) => `${d.getFullYear()}-${Math.floor(d.getMonth() / 3)}`,
-			format: (d) => `Q${Math.floor(d.getMonth() / 3) + 1} ${d.getFullYear()}`,
-		},
-		{
-			bucket: (d) => `${d.getFullYear()}`,
-			format: (d) => `${d.getFullYear()}`,
-		},
-	];
-	let cadence = cadences[cadences.length - 1];
-	for (const c of cadences) {
-		const buckets = new Set(sortedDates.map(([, date]) => c.bucket(date)));
-		if (buckets.size <= maxLabels) {
-			cadence = c;
-			break;
-		}
-	}
-	let lastBucket = null;
-	sortedDates.forEach(([, date], i) => {
-		const bucket = cadence.bucket(date);
-		if (bucket === lastBucket) return;
-		lastBucket = bucket;
-		const xCenter = margin.left + (i + 0.5) * colWidth;
+	// X-axis ticks on the continuous time scale; one gridline + label per tick.
+	const maxLabels = Math.max(2, Math.floor(plotWidth / 90));
+	timelineAxisTicks(winStart, new Date(t1), maxLabels).forEach((tick) => {
+		const x = xForTime(tick.ms);
+		if (x < margin.left - 0.5 || x > chartWidth - margin.right + 0.5) return;
 		xLabels.push(
-			`<text class="timeline-axis-label" x="${xCenter}" y="${chartHeight - 8}" text-anchor="middle">${cadence.format(date)}</text>`,
+			`<text class="timeline-axis-label" x="${x}" y="${chartHeight - 8}" text-anchor="middle">${tick.label}</text>`,
 		);
-		if (i > 0) {
-			const xSep = margin.left + i * colWidth;
-			gridLines.push(
-				`<line class="timeline-col-separator" x1="${xSep}" y1="${margin.top}" x2="${xSep}" y2="${margin.top + plotHeight}"></line>`,
-			);
-		}
+		gridLines.push(
+			`<line class="timeline-col-separator" x1="${x}" y1="${margin.top}" x2="${x}" y2="${margin.top + plotHeight}"></line>`,
+		);
 	});
 
-	// Cluster sessions semantically by calendar day. Days with one session
-	// render as the normal single-session pill (direct click → load on map);
-	// days with two or more collapse into one merged pill (click → popup
-	// listing the day's sessions). The bucket function is pluggable so we
-	// can introduce hour or week clustering later without re-plumbing.
-	const bucketKeyFor = dateKey;
-	const clusterMap = new Map();
-	parsedSessions.forEach((session) => {
-		const colIdx = colIndexMap.get(dateKey(session.start));
-		if (colIdx === undefined) return;
-		const key = bucketKeyFor(session.start);
-		const laneCount = session.laneCount || 1;
-		const laneIdx = session.laneIdx || 0;
-		const laneWidth = colWidth / laneCount;
-		const laneCx = margin.left + colIdx * colWidth + (laneIdx + 0.5) * laneWidth;
-		// Cluster centroid sits at the column centre so a multi-session day
-		// renders one pill in the middle of its column regardless of how
-		// many lanes the day would otherwise have used.
-		const colCx = margin.left + (colIdx + 0.5) * colWidth;
-		let cluster = clusterMap.get(key);
-		if (!cluster) {
-			cluster = {
+	const DETAIL_PX_PER_DAY = 12;
+	const detail = pxPerDay >= DETAIL_PX_PER_DAY;
+	const body = detail ? renderDetailMode() : renderDensityMode();
+	const caption = detail
+		? 'Pills are sessions by time of day; a purple pill is a day with several sessions — click to drill in. Numbers are recorded points; sessions split after 30-minute gaps.'
+		: 'Shaded cells show recorded points per hour (brighter = more). Click a ring to load that session, or click anywhere on the chart to zoom in — keep zooming until individual sessions appear.';
+
+	return `
+		<svg class="timeline-svg" viewBox="0 0 ${chartWidth} ${chartHeight}" role="img" aria-label="Session timeline chart">
+			${gridLines.join('')}
+			<line class="timeline-axis" x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${margin.top + plotHeight}"></line>
+			<line class="timeline-axis" x1="${margin.left}" y1="${margin.top + plotHeight}" x2="${chartWidth - margin.right}" y2="${margin.top + plotHeight}"></line>
+			${body}
+			${yLabels.join('')}
+			${xLabels.join('')}
+		</svg>
+		<p class="timeline-caption">${caption}</p>
+	`;
+
+	// ----- Detail mode: per-session pills, multi-session days clustered -----
+	function renderDetailMode() {
+		const dateKey = (d) =>
+			`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+		const dayMap = new Map();
+		parsedSessions.forEach((s) => {
+			const key = dateKey(s.start);
+			let group = dayMap.get(key);
+			if (!group) { group = []; dayMap.set(key, group); }
+			group.push(s);
+		});
+
+		const clusters = [];
+		dayMap.forEach((group, key) => {
+			group.sort((a, b) => a.start - b.start);
+			const first = group[0].start;
+			const dayMidnight = new Date(first.getFullYear(), first.getMonth(), first.getDate()).getTime();
+			const leftX = xForTime(dayMidnight);
+			const slice = Math.max(6, xForTime(dayMidnight + DAY_MS) - leftX);
+			const cluster = {
 				bucketKey: key,
-				colCx,
-				laneCx,
-				laneWidth,
-				colWidth,
-				sessions: [],
-				start: session.start,
-				end: session.end,
+				sessions: group,
+				start: group[0].start,
+				end: group[0].end,
 				totalCount: 0,
+				leftX,
+				slice,
+				colCx: leftX + slice / 2,
+				colWidth: slice,
 			};
-			clusterMap.set(key, cluster);
-		}
-		cluster.sessions.push(session);
-		cluster.totalCount += session.count || 0;
-		if (session.start < cluster.start) cluster.start = session.start;
-		if (session.end > cluster.end) cluster.end = session.end;
-	});
+			group.forEach((s) => {
+				cluster.totalCount += s.count || 0;
+				if (s.start < cluster.start) cluster.start = s.start;
+				if (s.end > cluster.end) cluster.end = s.end;
+			});
+			clusters.push(cluster);
+		});
+		clusters.sort((a, b) => a.start - b.start);
+		timelineClusters = clusters;
 
-	const clusters = Array.from(clusterMap.values()).sort((a, b) => a.start - b.start);
-	timelineClusters = clusters;
-
-	clusters.forEach((cluster, idx) => {
-		if (cluster.sessions.length === 1) {
-			bars.push(renderSingleSessionPill(cluster.sessions[0], cluster.laneCx, cluster.laneWidth));
-		} else {
-			bars.push(renderClusterPill(cluster, idx));
-		}
-	});
+		return clusters.map((cluster, idx) => (
+			cluster.sessions.length === 1
+				? renderSingleSessionPill(cluster.sessions[0], cluster.colCx, cluster.slice)
+				: renderClusterPill(cluster, idx)
+		)).join('');
+	}
 
 	function renderSingleSessionPill(session, cx, laneWidth) {
 		const barW = Math.max(3, Math.min(8, laneWidth * 0.22));
@@ -1588,14 +1640,14 @@ function buildTimelineChartMarkup(sessions) {
 		const sessionCount = cluster.sessions.length;
 		const totalCount = cluster.totalCount;
 
-		// Bigger pill = more sessions, capped by the column width so adjacent
+		// Bigger pill = more sessions, capped by the day's width so adjacent
 		// busy days don't overlap. Width scales with sqrt(N) which dampens
 		// the growth for very busy days (a 100-session day is still legible
 		// next to a 10-session day, not 10× wider).
 		const sqrtN = Math.sqrt(sessionCount);
-		const pillW = Math.min(cluster.colWidth - 2, Math.max(26, 18 + 6 * sqrtN));
+		const pillW = Math.min(Math.max(cluster.colWidth - 2, 24), Math.max(26, 18 + 6 * sqrtN));
 		const barW = Math.min(12, Math.max(4, 3 + sqrtN));
-		const hitW = Math.min(cluster.colWidth, pillW + 12);
+		const hitW = pillW + 12;
 
 		// Bar spans from earliest start-of-day to latest end-of-day across
 		// the cluster. Approximate but signals "activity window" at a glance.
@@ -1611,10 +1663,12 @@ function buildTimelineChartMarkup(sessions) {
 		const hitY = clampNumber(midY - hitH / 2, margin.top, margin.top + plotHeight - hitH);
 
 		const dayLabel = cluster.start.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+		// Number is always recorded points (consistent with the single-session
+		// pill); the purple colour and tooltip convey "several sessions".
 		const title = `${sessionCount} sessions on ${dayLabel}\n${totalCount} points total`;
-		const label = String(sessionCount);
+		const label = countLabel(totalCount);
 
-		return `<g class="timeline-cluster" tabindex="0" role="button" data-cluster-idx="${idx}" aria-label="Open ${sessionCount} sessions on ${dayLabel}">
+		return `<g class="timeline-cluster" tabindex="0" role="button" data-cluster-idx="${idx}" aria-label="Open ${sessionCount} sessions on ${dayLabel}, ${totalCount} points">
 			<title>${title}</title>
 			<rect class="timeline-cluster-hit" x="${cx - hitW / 2}" y="${hitY}" width="${hitW}" height="${hitH}"></rect>
 			<rect class="timeline-cluster-bar" x="${cx - barW / 2}" y="${yTop}" width="${barW}" height="${barH}" rx="3" ry="3"></rect>
@@ -1623,17 +1677,104 @@ function buildTimelineChartMarkup(sessions) {
 		</g>`;
 	}
 
-	return `
-		<svg class="timeline-svg" viewBox="0 0 ${chartWidth} ${chartHeight}" role="img" aria-label="Session timeline chart">
-			${gridLines.join('')}
-			<line class="timeline-axis" x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${margin.top + plotHeight}"></line>
-			<line class="timeline-axis" x1="${margin.left}" y1="${margin.top + plotHeight}" x2="${chartWidth - margin.right}" y2="${margin.top + plotHeight}"></line>
-			${bars.join('')}
-			${yLabels.join('')}
-			${xLabels.join('')}
-		</svg>
-		<p class="timeline-caption">Bars are sessions by time of day. Click or press Enter to load one; sessions split after 30-minute gaps.</p>
-	`;
+	// ----- Density mode: hour-by-time heatmap + ringed notable sessions -----
+	function renderDensityMode() {
+		timelineClusters = [];
+		const NX = Math.max(12, Math.min(220, Math.round(plotWidth / 4)));
+		const NY = 24;
+		const cellW = plotWidth / NX;
+		const cellH = plotHeight / NY;
+
+		// Accumulate point counts into (x time-bucket × hour-of-day) cells.
+		const counts = new Map();
+		let maxCell = 0;
+		parsedSessions.forEach((s) => {
+			const frac = (s.start.getTime() - t0) / tSpan;
+			if (frac < 0 || frac > 1) return;
+			const ix = Math.min(NX - 1, Math.floor(frac * NX));
+			const iy = Math.min(NY - 1, s.start.getHours());
+			const key = ix * NY + iy;
+			const v = (counts.get(key) || 0) + (s.count || 1);
+			counts.set(key, v);
+			if (v > maxCell) maxCell = v;
+		});
+
+		// Log scale so a 2,000-point cell doesn't wash out the 20-point ones.
+		const logMax = Math.log(1 + maxCell) || 1;
+		const cells = [];
+		counts.forEach((v, key) => {
+			const ix = Math.floor(key / NY);
+			const iy = key % NY;
+			const a = 0.16 + 0.84 * (Math.log(1 + v) / logMax);
+			const x = margin.left + ix * cellW;
+			const y = margin.top + iy * cellH;
+			cells.push(
+				`<rect class="timeline-heat-cell" x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${(cellW + 0.7).toFixed(2)}" height="${(cellH + 0.7).toFixed(2)}" fill-opacity="${a.toFixed(3)}"></rect>`,
+			);
+		});
+
+		// Surface one "champion" session per horizontal time-segment rather than
+		// the global top-N — otherwise every ring piles into whichever period was
+		// busiest. Segmenting spreads the highlights across the whole timeline so
+		// each stretch has a navigable candidate. Reuse the .timeline-session
+		// class so the existing click delegation loads them on the map.
+		const SEGMENTS = 12;
+		const segBest = new Array(SEGMENTS).fill(null);
+		parsedSessions.forEach((s) => {
+			const frac = (s.start.getTime() - t0) / tSpan;
+			if (frac < 0 || frac > 1) return;
+			const seg = Math.min(SEGMENTS - 1, Math.floor(frac * SEGMENTS));
+			if (!segBest[seg] || s.count > segBest[seg].count) segBest[seg] = s;
+		});
+		const notable = segBest.filter(Boolean).sort((a, b) => a.start - b.start);
+		const placed = [];
+		const overlaps = (a, b) => !(a.x2 < b.x1 || b.x2 < a.x1 || a.y2 < b.y1 || b.y2 < a.y1);
+		const marks = [];
+		notable.forEach((s) => {
+			if (s.count <= 0) return;
+			const cx = xForTime(s.start.getTime());
+			const cy = clampNumber(yForMinute(minuteOfDay(s.start)), margin.top + 6, margin.top + plotHeight - 6);
+			const label = countLabel(s.count);
+			const approxW = label.length * 6 + 6;
+			let chosen = null;
+			for (const dy of [0, -11, 11, -22, 22]) {
+				for (const side of [1, -1]) {
+					const lx = cx + side * 9;
+					const ly = cy + dy;
+					const box = {
+						x1: side === 1 ? lx : lx - approxW,
+						x2: side === 1 ? lx + approxW : lx,
+						y1: ly - 6,
+						y2: ly + 6,
+					};
+					if (box.x1 < margin.left || box.x2 > chartWidth - margin.right) continue;
+					if (box.y1 < margin.top || box.y2 > margin.top + plotHeight) continue;
+					if (placed.some((p) => overlaps(p, box))) continue;
+					chosen = { lx, ly, anchor: side === 1 ? 'start' : 'end', box };
+					break;
+				}
+				if (chosen) break;
+			}
+			let labelMarkup = '';
+			if (chosen) {
+				placed.push(chosen.box);
+				labelMarkup = `<text class="timeline-notable-label" x="${chosen.lx.toFixed(1)}" y="${(chosen.ly + 3).toFixed(1)}" text-anchor="${chosen.anchor}">${label}</text>`;
+			}
+			const title = `${formatTimelineDate(s.start)} – ${formatTimelineDate(s.end)} | ${s.count} points | ${s.durationMinutes} min`;
+			marks.push(`<g class="timeline-session timeline-notable" tabindex="0" role="button" data-start="${s.start.toISOString()}" data-end="${s.end.toISOString()}" data-count="${s.count}" aria-label="Load ${s.count} points from ${formatTimelineDate(s.start)} to ${formatTimelineDate(s.end)}">
+				<title>${title}</title>
+				<circle class="timeline-notable-hit" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="11"></circle>
+				<circle class="timeline-notable-ring" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="4.5"></circle>
+				${labelMarkup}
+			</g>`);
+		});
+
+		// Transparent click-to-zoom layer over the plot. Sits above the cells but
+		// below the rings (which appear later in the DOM) so ring clicks still win.
+		const zoomOverlay = `<rect class="timeline-zoom-overlay" data-t0="${t0}" data-t1="${t1}" x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}"></rect>`;
+
+		return cells.join('') + zoomOverlay + marks.join('');
+	}
 }
 
 function parseTimelineDate(value) {
