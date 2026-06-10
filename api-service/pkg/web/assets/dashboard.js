@@ -1636,7 +1636,7 @@ function buildTimelineChartMarkup(sessions, opts) {
 	const detail = pxPerDay >= DETAIL_PX_PER_DAY;
 	const body = detail ? renderDetailMode() : renderDensityMode();
 	const caption = detail
-		? 'Zoomed in: pills are sessions by time of day; a purple pill is a day with several sessions — click to drill in. Numbers are recorded points. Use the range buttons above (1d–All) or the Custom ✕ chip to zoom back out — drag-to-zoom returns in the wider views.'
+		? 'Zoomed in: pills are sessions by time of day; a purple pill is a day with several sessions — click to drill in. Numbers are recorded points. Use the range buttons above (1d–All) or the Zoom out button to widen the view — drag-to-zoom returns in the wider views.'
 		: 'Shaded cells show recorded points per hour (brighter = more). Click a ring to load that session; drag across the chart to zoom into a range, or click to zoom in 2× — keep going until individual sessions appear.';
 
 	return `

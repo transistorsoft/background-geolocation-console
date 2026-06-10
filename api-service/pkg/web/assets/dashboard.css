@@ -643,6 +643,9 @@ body {
 	background: var(--color-timeline-notable-ring);
 	color: var(--color-text-inverse);
 }
+.timeline-custom-chip.hidden {
+	display: none;
+}
 
 .timeline-pan {
 	display: inline-flex;
