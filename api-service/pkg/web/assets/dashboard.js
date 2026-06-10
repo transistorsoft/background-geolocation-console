@@ -512,6 +512,11 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	});
 
+	const timelineCustomChip = document.getElementById('timeline-custom-chip');
+	if (timelineCustomChip) {
+		timelineCustomChip.addEventListener('click', () => applyTimelineSpan('all'));
+	}
+
 	const timelinePrev = document.getElementById('timeline-prev');
 	const timelineNext = document.getElementById('timeline-next');
 	if (timelinePrev) {
@@ -1325,10 +1330,13 @@ function renderTimelineWithWindow() {
 	// references is about to be replaced by a fresh one.
 	closeTimelineClusterDialog();
 
-	// Active span button highlight
+	// Active span button highlight. A brushed custom range matches no preset,
+	// so all pills go inactive and the Custom chip appears to show that state.
 	document.querySelectorAll('.timeline-span').forEach((btn) => {
 		btn.classList.toggle('is-active', btn.dataset.span === timelineSpan);
 	});
+	const customChip = document.getElementById('timeline-custom-chip');
+	if (customChip) customChip.classList.toggle('hidden', !timelineCustomRange);
 
 	const { start, end } = currentTimelineWindow();
 	const filtered = (timelineSpan === 'all')
@@ -1628,7 +1636,7 @@ function buildTimelineChartMarkup(sessions, opts) {
 	const detail = pxPerDay >= DETAIL_PX_PER_DAY;
 	const body = detail ? renderDetailMode() : renderDensityMode();
 	const caption = detail
-		? 'Pills are sessions by time of day; a purple pill is a day with several sessions — click to drill in. Numbers are recorded points; sessions split after 30-minute gaps.'
+		? 'Zoomed in: pills are sessions by time of day; a purple pill is a day with several sessions — click to drill in. Numbers are recorded points. Use the range buttons above (1d–All) or the Custom ✕ chip to zoom back out — drag-to-zoom returns in the wider views.'
 		: 'Shaded cells show recorded points per hour (brighter = more). Click a ring to load that session; drag across the chart to zoom into a range, or click to zoom in 2× — keep going until individual sessions appear.';
 
 	return `

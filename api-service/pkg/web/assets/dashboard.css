@@ -625,6 +625,24 @@ body {
 	color: var(--color-text-inverse);
 	border-color: var(--color-primary-bright);
 }
+/* Shown only while a brushed custom range is active: signals the segmented
+   control's "off-preset" state and clears the zoom on click. */
+.timeline-custom-chip {
+	padding: 0.16rem 0.42rem;
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--color-timeline-notable-ring);
+	background: transparent;
+	color: var(--color-timeline-notable-ring);
+	font-size: 0.68rem;
+	font-family: inherit;
+	cursor: pointer;
+	white-space: nowrap;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+.timeline-custom-chip:hover {
+	background: var(--color-timeline-notable-ring);
+	color: var(--color-text-inverse);
+}
 
 .timeline-pan {
 	display: inline-flex;
