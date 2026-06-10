@@ -20,8 +20,11 @@ let timelineQueryParams = null;
 let timelineSessions = [];          // [{raw, start: Date, end: Date, count}]
 let timelineFullStart = null;
 let timelineFullEnd = null;
-let timelineSpan = 'all';           // '1d'|'1w'|'1m'|'6m'|'1y'|'all'
+let timelineSpan = 'all';           // '1d'|'1w'|'1m'|'6m'|'1y'|'all'|'custom'
 let timelineWindowEnd = null;       // right edge of current window (Date)
+// When set (by brush-select / click-to-zoom on the density heatmap), this is an
+// explicit {start, end} window that overrides the preset-span math above.
+let timelineCustomRange = null;
 // Clusters are computed each render, currently bucketed by calendar day:
 // every session on the same day collapses into one entry. Days with a single
 // session render as the regular session pill; multi-session days render as
@@ -546,25 +549,78 @@ document.addEventListener('DOMContentLoaded', () => {
 				applyTimelineSessionSelection(session.dataset.start, session.dataset.end);
 				return;
 			}
-			// Density-mode heatmap: clicking the plot (cells or empty area) drills
-			// one zoom level finer, centred on the clicked time, until detail mode
-			// exposes individual session pills. Mouse-only — the overlay isn't a
-			// focusable target, so keyboard users zoom via the span pills.
-			const zone = event.target.closest('.timeline-zoom-overlay');
-			if (zone && !isKeyboard) {
-				const tStart = Number(zone.dataset.t0);
-				const tEnd = Number(zone.dataset.t1);
-				if (Number.isFinite(tStart) && Number.isFinite(tEnd) && tEnd > tStart) {
-					const rect = zone.getBoundingClientRect();
-					const frac = rect.width ? (event.clientX - rect.left) / rect.width : 0.5;
-					zoomTimelineToTime(tStart + clampNumber(frac, 0, 1) * (tEnd - tStart));
-				}
-			}
 		};
-		timelineChart.addEventListener('click', (event) => handleTimelineActivation(event, false));
+		// Set after a brush/zoom so the synthetic click that follows mouseup
+		// doesn't also land on whatever pill/ring the re-render placed under the
+		// cursor. Cleared on the next tick as a backstop if no click arrives.
+		let suppressTimelineClick = false;
+		timelineChart.addEventListener('click', (event) => {
+			if (suppressTimelineClick) {
+				suppressTimelineClick = false;
+				return;
+			}
+			handleTimelineActivation(event, false);
+		});
 		timelineChart.addEventListener('keydown', (event) => {
 			if (event.key !== 'Enter' && event.key !== ' ') return;
 			handleTimelineActivation(event, true);
+		});
+		// Density-mode brush + click-to-zoom. mousedown on the transparent zoom
+		// overlay starts a drag: a small drag (or a plain click) zooms 2× on that
+		// point; a real drag zooms to exactly the selected calendar range. The
+		// overlay sits below the notable rings, so ring/pill clicks are untouched.
+		timelineChart.addEventListener('mousedown', (event) => {
+			if (event.button !== 0) return;
+			const zone = event.target.closest('.timeline-zoom-overlay');
+			const svg = zone && zone.closest('svg');
+			if (!zone || !svg) return;
+			const tStart = Number(zone.dataset.t0);
+			const tEnd = Number(zone.dataset.t1);
+			if (!Number.isFinite(tStart) || !Number.isFinite(tEnd) || tEnd <= tStart) return;
+			event.preventDefault();
+
+			const ovX = parseFloat(zone.getAttribute('x'));
+			const ovW = parseFloat(zone.getAttribute('width'));
+			const ovY = zone.getAttribute('y');
+			const ovH = zone.getAttribute('height');
+			const vbW = (svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width) || 960;
+			const toVbX = (clientX) => {
+				const r = svg.getBoundingClientRect();
+				const raw = r.width ? (clientX - r.left) / r.width * vbW : ovX;
+				return clampNumber(raw, ovX, ovX + ovW);
+			};
+			const timeForVbX = (vbX) => tStart + clampNumber((vbX - ovX) / ovW, 0, 1) * (tEnd - tStart);
+
+			const startVbX = toVbX(event.clientX);
+			const sel = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+			sel.setAttribute('class', 'timeline-brush-rect');
+			sel.setAttribute('y', ovY);
+			sel.setAttribute('height', ovH);
+			sel.setAttribute('x', String(startVbX));
+			sel.setAttribute('width', '0');
+			svg.appendChild(sel);
+
+			let endVbX = startVbX;
+			const onMove = (ev) => {
+				endVbX = toVbX(ev.clientX);
+				sel.setAttribute('x', String(Math.min(startVbX, endVbX)));
+				sel.setAttribute('width', String(Math.abs(endVbX - startVbX)));
+			};
+			const onUp = (ev) => {
+				document.removeEventListener('mousemove', onMove);
+				document.removeEventListener('mouseup', onUp);
+				if (sel.parentNode) sel.parentNode.removeChild(sel);
+				endVbX = toVbX(ev.clientX);
+				suppressTimelineClick = true;
+				window.setTimeout(() => { suppressTimelineClick = false; }, 0);
+				if (Math.abs(endVbX - startVbX) > 3) {
+					setTimelineCustomWindow(timeForVbX(startVbX), timeForVbX(endVbX));
+				} else {
+					zoomTimelineToTime(timeForVbX(startVbX));
+				}
+			};
+			document.addEventListener('mousemove', onMove);
+			document.addEventListener('mouseup', onUp);
 		});
 	}
 
@@ -1064,6 +1120,7 @@ function resetTimelinePanel() {
 	timelineFullEnd = null;
 	timelineSpan = 'all';
 	timelineWindowEnd = null;
+	timelineCustomRange = null;
 }
 
 function setTimelineStatus(message) {
@@ -1148,6 +1205,7 @@ function renderTimelinePanel(data) {
 	// Reset the window to "show everything" for each fresh Generate.
 	timelineSpan = 'all';
 	timelineWindowEnd = timelineFullEnd ? new Date(timelineFullEnd.getTime()) : null;
+	timelineCustomRange = null;
 
 	const totalPoints = Number(data?.total_points || 0);
 	if (!timelineSessions.length) {
@@ -1180,6 +1238,9 @@ function shiftDateBySpan(date, span, direction) {
 // Resolve the visible window from the current state, clamped to the data range
 // so the window slides on a rail rather than escaping into emptiness.
 function currentTimelineWindow() {
+	if (timelineCustomRange) {
+		return { start: timelineCustomRange.start, end: timelineCustomRange.end };
+	}
 	if (timelineSpan === 'all' || !timelineWindowEnd || !timelineFullStart || !timelineFullEnd) {
 		return { start: timelineFullStart, end: timelineFullEnd };
 	}
@@ -1195,13 +1256,24 @@ function currentTimelineWindow() {
 }
 
 function panTimelineWindow(direction) {
-	if (timelineSpan === 'all' || !timelineWindowEnd) return;
+	if (timelineSpan === 'all') return;
+	if (timelineCustomRange) {
+		const width = timelineCustomRange.end.getTime() - timelineCustomRange.start.getTime();
+		setTimelineCustomWindow(
+			timelineCustomRange.start.getTime() + direction * width,
+			timelineCustomRange.end.getTime() + direction * width,
+		);
+		return;
+	}
+	if (!timelineWindowEnd) return;
 	timelineWindowEnd = shiftDateBySpan(timelineWindowEnd, timelineSpan, direction);
 	renderTimelineWithWindow();
 }
 
 function applyTimelineSpan(span) {
-	if (timelineSpan === span) return;
+	// Picking a preset always exits any brushed custom window.
+	timelineCustomRange = null;
+	if (timelineSpan === span && span !== 'custom') return;
 	timelineSpan = span;
 	timelineWindowEnd = (span === 'all' || !timelineFullEnd)
 		? null
@@ -1209,30 +1281,33 @@ function applyTimelineSpan(span) {
 	renderTimelineWithWindow();
 }
 
-// Span presets ordered widest → narrowest; "one finer" is the next entry.
-const TIMELINE_SPAN_ORDER = ['all', '1y', '6m', '1m', '1w', '1d'];
-const TIMELINE_SPAN_MS = {
-	'1d': 24 * 60 * 60 * 1000,
-	'1w': 7 * 24 * 60 * 60 * 1000,
-	'1m': 30 * 24 * 60 * 60 * 1000,
-	'6m': 182 * 24 * 60 * 60 * 1000,
-	'1y': 365 * 24 * 60 * 60 * 1000,
-};
-
-// Drill one zoom level finer than the current span, centring the new window on
-// the given calendar time (clamped to the data range). Used by click-to-zoom on
-// the density heatmap.
-function zoomTimelineToTime(centerMs) {
+// Apply an explicit [start, end] window (brush-select / click-to-zoom on the
+// density heatmap), clamped to the data range with a 1-hour floor so a stray
+// click can't collapse the window to nothing.
+function setTimelineCustomWindow(startMs, endMs) {
 	if (!timelineFullStart || !timelineFullEnd) return;
-	const idx = TIMELINE_SPAN_ORDER.indexOf(timelineSpan);
-	if (idx < 0 || idx >= TIMELINE_SPAN_ORDER.length - 1) return; // already finest
-	const next = TIMELINE_SPAN_ORDER[idx + 1];
-	timelineSpan = next;
-	const half = (TIMELINE_SPAN_MS[next] || 0) / 2;
-	let end = Math.min(timelineFullEnd.getTime(), centerMs + half);
-	if (end < timelineFullStart.getTime()) end = timelineFullStart.getTime();
-	timelineWindowEnd = new Date(end);
+	const fullStart = timelineFullStart.getTime();
+	const fullEnd = timelineFullEnd.getTime();
+	let start = Math.max(fullStart, Math.min(startMs, endMs));
+	let end = Math.min(fullEnd, Math.max(startMs, endMs));
+	const MIN_WINDOW = 60 * 60 * 1000;
+	if (end - start < MIN_WINDOW) {
+		const center = (start + end) / 2;
+		start = Math.max(fullStart, center - MIN_WINDOW / 2);
+		end = Math.min(fullEnd, center + MIN_WINDOW / 2);
+	}
+	timelineCustomRange = { start: new Date(start), end: new Date(end) };
+	timelineSpan = 'custom';
 	renderTimelineWithWindow();
+}
+
+// Click-to-zoom: zoom in 2× centred on the clicked time. Produces a custom
+// window so successive clicks keep narrowing until detail mode reveals pills.
+function zoomTimelineToTime(centerMs) {
+	const { start, end } = currentTimelineWindow();
+	if (!start || !end) return;
+	const quarter = (end.getTime() - start.getTime()) / 4;
+	setTimelineCustomWindow(centerMs - quarter, centerMs + quarter);
 }
 
 function renderTimelineWithWindow() {
@@ -1261,7 +1336,7 @@ function renderTimelineWithWindow() {
 			? `Full history — ${formatTimelineDate(timelineFullStart)} → ${formatTimelineDate(timelineFullEnd)}`
 			: `${formatTimelineDate(start)} → ${formatTimelineDate(end)}`;
 	}
-	const atRightEdge = (timelineSpan === 'all') || (timelineWindowEnd && timelineWindowEnd >= timelineFullEnd);
+	const atRightEdge = (timelineSpan === 'all') || (end && timelineFullEnd && end >= timelineFullEnd);
 	const atLeftEdge = (timelineSpan === 'all') || (start && timelineFullStart && start <= timelineFullStart);
 	if (prevBtn) prevBtn.disabled = atLeftEdge;
 	if (nextBtn) nextBtn.disabled = atRightEdge;
@@ -1399,6 +1474,7 @@ function zoomTimelineToOpenCluster() {
 	if (!openClusterCache || !timelineFullEnd) return;
 	const cluster = openClusterCache;
 	const span = bestSpanForClusterDuration(cluster.end.getTime() - cluster.start.getTime());
+	timelineCustomRange = null;
 	timelineSpan = span;
 	// Anchor the right edge just past cluster.end (clamped to the data range
 	// inside currentTimelineWindow) so the cluster sits at the right side
@@ -1549,7 +1625,7 @@ function buildTimelineChartMarkup(sessions, opts) {
 	const body = detail ? renderDetailMode() : renderDensityMode();
 	const caption = detail
 		? 'Pills are sessions by time of day; a purple pill is a day with several sessions — click to drill in. Numbers are recorded points; sessions split after 30-minute gaps.'
-		: 'Shaded cells show recorded points per hour (brighter = more). Click a ring to load that session, or click anywhere on the chart to zoom in — keep zooming until individual sessions appear.';
+		: 'Shaded cells show recorded points per hour (brighter = more). Click a ring to load that session; drag across the chart to zoom into a range, or click to zoom in 2× — keep going until individual sessions appear.';
 
 	return `
 		<svg class="timeline-svg" viewBox="0 0 ${chartWidth} ${chartHeight}" role="img" aria-label="Session timeline chart">

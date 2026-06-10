@@ -825,6 +825,15 @@ body {
 	cursor: zoom-in;
 }
 
+.timeline-brush-rect {
+	fill: var(--color-timeline-heat-cell);
+	fill-opacity: 0.14;
+	stroke: var(--color-timeline-heat-cell);
+	stroke-width: 0.75;
+	stroke-dasharray: 3 2;
+	pointer-events: none;
+}
+
 .timeline-notable {
 	cursor: pointer;
 }
