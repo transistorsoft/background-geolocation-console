@@ -22,6 +22,11 @@ let timelineFullStart = null;
 let timelineFullEnd = null;
 let timelineSpan = 'all';           // '1d'|'1w'|'1m'|'6m'|'1y'|'all'
 let timelineWindowEnd = null;       // right edge of current window (Date)
+// Clusters are computed each render, currently bucketed by calendar day:
+// every session on the same day collapses into one entry. Days with a single
+// session render as the regular session pill; multi-session days render as
+// a merged pill that opens a popup. data-cluster-idx is the array index.
+let timelineClusters = [];
 
 // Called by the HTMX poll condition in hx-trigger="every Xs [isWatchMode()]".
 // Returning false suppresses the automatic poll so the list and map are never
@@ -523,25 +528,27 @@ document.addEventListener('DOMContentLoaded', () => {
 			});
 			session.classList.add('is-selected');
 		};
-		timelineChart.addEventListener('click', (event) => {
-			const session = event.target.closest('.timeline-session[data-start][data-end]');
-			if (!session) {
+		const handleTimelineActivation = (event, isKeyboard) => {
+			const clusterEl = event.target.closest('.timeline-cluster[data-cluster-idx]');
+			if (clusterEl) {
+				if (isKeyboard) event.preventDefault();
+				const idx = Number(clusterEl.dataset.clusterIdx);
+				const cluster = timelineClusters[idx];
+				if (cluster) {
+					openTimelineClusterDialog(cluster);
+				}
 				return;
 			}
+			const session = event.target.closest('.timeline-session[data-start][data-end]');
+			if (!session) return;
+			if (isKeyboard) event.preventDefault();
 			markTimelineSelection(session);
 			applyTimelineSessionSelection(session.dataset.start, session.dataset.end);
-		});
+		};
+		timelineChart.addEventListener('click', (event) => handleTimelineActivation(event, false));
 		timelineChart.addEventListener('keydown', (event) => {
-			if (event.key !== 'Enter' && event.key !== ' ') {
-				return;
-			}
-			const session = event.target.closest('.timeline-session[data-start][data-end]');
-			if (!session) {
-				return;
-			}
-			event.preventDefault();
-			markTimelineSelection(session);
-			applyTimelineSessionSelection(session.dataset.start, session.dataset.end);
+			if (event.key !== 'Enter' && event.key !== ' ') return;
+			handleTimelineActivation(event, true);
 		});
 	}
 
@@ -1193,6 +1200,9 @@ function renderTimelineWithWindow() {
 	const prevBtn = document.getElementById('timeline-prev');
 	const nextBtn = document.getElementById('timeline-next');
 	if (!chart || !summary) return;
+	// Drop any open cluster popup before re-rendering — the cluster it
+	// references is about to be replaced by a fresh one.
+	closeTimelineClusterDialog();
 
 	// Active span button highlight
 	document.querySelectorAll('.timeline-span').forEach((btn) => {
@@ -1240,6 +1250,117 @@ function applyTimelineSessionSelection(startValue, endValue) {
 		return;
 	}
 	refreshLocationsPanel({}, { resetTimeline: false });
+}
+
+// Pick the smallest span pill whose window covers the cluster's duration so
+// that zooming into a cluster keeps it fully visible on the right edge.
+function bestSpanForClusterDuration(durationMs) {
+	const DAY = 24 * 60 * 60 * 1000;
+	if (durationMs <= DAY) return '1d';
+	if (durationMs <= 7 * DAY) return '1w';
+	if (durationMs <= 31 * DAY) return '1m';
+	if (durationMs <= 183 * DAY) return '6m';
+	if (durationMs <= 366 * DAY) return '1y';
+	return 'all';
+}
+
+function ensureTimelineClusterDialog() {
+	let dialog = document.getElementById('timeline-cluster-dialog');
+	if (dialog) return dialog;
+	const host = document.getElementById('timeline-content') || document.getElementById('timeline-panel');
+	if (!host) return null;
+	dialog = document.createElement('div');
+	dialog.id = 'timeline-cluster-dialog';
+	dialog.className = 'timeline-cluster-dialog hidden';
+	dialog.setAttribute('role', 'dialog');
+	dialog.setAttribute('aria-modal', 'false');
+	dialog.setAttribute('aria-labelledby', 'timeline-cluster-dialog-title');
+	dialog.innerHTML = `
+		<header class="timeline-cluster-dialog-header">
+			<h4 id="timeline-cluster-dialog-title">Sessions</h4>
+			<button type="button" class="timeline-cluster-dialog-close" aria-label="Close">&times;</button>
+		</header>
+		<ul class="timeline-cluster-dialog-list" id="timeline-cluster-dialog-list"></ul>
+		<footer class="timeline-cluster-dialog-footer">
+			<button type="button" class="timeline-cluster-dialog-zoom">Zoom into this range</button>
+		</footer>
+	`;
+	host.appendChild(dialog);
+	dialog.addEventListener('click', (event) => {
+		if (event.target.closest('.timeline-cluster-dialog-close')) {
+			closeTimelineClusterDialog();
+			return;
+		}
+		const zoom = event.target.closest('.timeline-cluster-dialog-zoom');
+		if (zoom) {
+			zoomTimelineToOpenCluster();
+			return;
+		}
+		const item = event.target.closest('.timeline-cluster-dialog-item');
+		if (item) {
+			applyTimelineSessionSelection(item.dataset.start, item.dataset.end);
+			closeTimelineClusterDialog();
+		}
+	});
+	document.addEventListener('keydown', (event) => {
+		if (event.key === 'Escape' && !dialog.classList.contains('hidden')) {
+			closeTimelineClusterDialog();
+		}
+	});
+	return dialog;
+}
+
+let openClusterCache = null;
+
+function openTimelineClusterDialog(cluster) {
+	const dialog = ensureTimelineClusterDialog();
+	if (!dialog) return;
+	openClusterCache = cluster;
+	const title = dialog.querySelector('#timeline-cluster-dialog-title');
+	const list = dialog.querySelector('#timeline-cluster-dialog-list');
+	if (title) {
+		const dayLabel = cluster.start.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+		title.textContent = `${dayLabel} · ${cluster.sessions.length} sessions · ${cluster.totalCount} points`;
+	}
+	if (list) {
+		const fmt = (d) => d.toLocaleString(undefined, {
+			year: 'numeric', month: 'short', day: 'numeric',
+			hour: '2-digit', minute: '2-digit', hour12: false,
+		});
+		const sorted = cluster.sessions.slice().sort((a, b) => a.start - b.start);
+		list.innerHTML = sorted.map((session) => {
+			const startISO = session.start.toISOString();
+			const endISO = session.end.toISOString();
+			const duration = session.durationMinutes || Math.round((session.end - session.start) / 60000);
+			return `<li>
+				<button type="button" class="timeline-cluster-dialog-item" data-start="${startISO}" data-end="${endISO}">
+					<span class="cluster-item-when">${fmt(session.start)}</span>
+					<span class="cluster-item-meta">${session.count} pts · ${duration} min</span>
+				</button>
+			</li>`;
+		}).join('');
+	}
+	dialog.classList.remove('hidden');
+}
+
+function closeTimelineClusterDialog() {
+	const dialog = document.getElementById('timeline-cluster-dialog');
+	if (!dialog) return;
+	dialog.classList.add('hidden');
+	openClusterCache = null;
+}
+
+function zoomTimelineToOpenCluster() {
+	if (!openClusterCache || !timelineFullEnd) return;
+	const cluster = openClusterCache;
+	const span = bestSpanForClusterDuration(cluster.end.getTime() - cluster.start.getTime());
+	timelineSpan = span;
+	// Anchor the right edge just past cluster.end (clamped to the data range
+	// inside currentTimelineWindow) so the cluster sits at the right side
+	// of the new window — the same place pan-right would leave it.
+	timelineWindowEnd = new Date(Math.min(cluster.end.getTime(), timelineFullEnd.getTime()));
+	closeTimelineClusterDialog();
+	renderTimelineWithWindow();
 }
 
 function buildTimelineChartMarkup(sessions) {
@@ -1386,20 +1507,58 @@ function buildTimelineChartMarkup(sessions) {
 		}
 	});
 
-	// Vertical bar spanning session start → end time on the Y-axis.
-	// Each session is placed in its own lane within the day column so no two sessions share the same x.
+	// Cluster sessions semantically by calendar day. Days with one session
+	// render as the normal single-session pill (direct click → load on map);
+	// days with two or more collapse into one merged pill (click → popup
+	// listing the day's sessions). The bucket function is pluggable so we
+	// can introduce hour or week clustering later without re-plumbing.
+	const bucketKeyFor = dateKey;
+	const clusterMap = new Map();
 	parsedSessions.forEach((session) => {
 		const colIdx = colIndexMap.get(dateKey(session.start));
 		if (colIdx === undefined) return;
-
+		const key = bucketKeyFor(session.start);
 		const laneCount = session.laneCount || 1;
 		const laneIdx = session.laneIdx || 0;
-		// Each lane is an equal slice of the column width
 		const laneWidth = colWidth / laneCount;
-		// Centre of this lane
-		const cx = margin.left + colIdx * colWidth + (laneIdx + 0.5) * laneWidth;
+		const laneCx = margin.left + colIdx * colWidth + (laneIdx + 0.5) * laneWidth;
+		// Cluster centroid sits at the column centre so a multi-session day
+		// renders one pill in the middle of its column regardless of how
+		// many lanes the day would otherwise have used.
+		const colCx = margin.left + (colIdx + 0.5) * colWidth;
+		let cluster = clusterMap.get(key);
+		if (!cluster) {
+			cluster = {
+				bucketKey: key,
+				colCx,
+				laneCx,
+				laneWidth,
+				colWidth,
+				sessions: [],
+				start: session.start,
+				end: session.end,
+				totalCount: 0,
+			};
+			clusterMap.set(key, cluster);
+		}
+		cluster.sessions.push(session);
+		cluster.totalCount += session.count || 0;
+		if (session.start < cluster.start) cluster.start = session.start;
+		if (session.end > cluster.end) cluster.end = session.end;
+	});
 
-		// Element widths scaled to lane width, with sensible min/max
+	const clusters = Array.from(clusterMap.values()).sort((a, b) => a.start - b.start);
+	timelineClusters = clusters;
+
+	clusters.forEach((cluster, idx) => {
+		if (cluster.sessions.length === 1) {
+			bars.push(renderSingleSessionPill(cluster.sessions[0], cluster.laneCx, cluster.laneWidth));
+		} else {
+			bars.push(renderClusterPill(cluster, idx));
+		}
+	});
+
+	function renderSingleSessionPill(session, cx, laneWidth) {
 		const barW = Math.max(3, Math.min(8, laneWidth * 0.22));
 		const hitW = Math.max(18, Math.min(42, laneWidth * 0.8));
 		const pillW = Math.max(24, Math.min(46, laneWidth * 0.65));
@@ -1409,23 +1568,60 @@ function buildTimelineChartMarkup(sessions) {
 		const barH = Math.max(minBarH, yRaw - yTop);
 		const midY = yTop + barH / 2;
 
-		// Hit rect must always cover the pill (pillH + 8px padding) even when the bar is tiny
 		const hitH = Math.max(barH, pillH + 8);
 		const hitY = clampNumber(midY - hitH / 2, margin.top, margin.top + plotHeight - hitH);
 
 		const label = countLabel(session.count);
 		const title = `${formatTimelineDate(session.start)} – ${formatTimelineDate(session.end)} | ${session.count} points | ${session.durationMinutes} min`;
 
-		bars.push(
-			`<g class="timeline-session" tabindex="0" role="button" data-start="${session.start.toISOString()}" data-end="${session.end.toISOString()}" data-count="${session.count}" aria-label="Load ${session.count} points from ${formatTimelineDate(session.start)} to ${formatTimelineDate(session.end)}">
-				<title>${title}</title>
-				<rect class="timeline-session-hit" x="${cx - hitW / 2}" y="${hitY}" width="${hitW}" height="${hitH}"></rect>
-				<rect class="timeline-session-bar" x="${cx - barW / 2}" y="${yTop}" width="${barW}" height="${barH}" rx="3" ry="3"></rect>
-				<rect class="timeline-session-pill" x="${cx - pillW / 2}" y="${midY - pillH / 2}" width="${pillW}" height="${pillH}" rx="${pillH / 2}" ry="${pillH / 2}"></rect>
-				<text class="timeline-session-count" x="${cx}" y="${midY + 3}" text-anchor="middle">${label}</text>
-			</g>`,
-		);
-	});
+		return `<g class="timeline-session" tabindex="0" role="button" data-start="${session.start.toISOString()}" data-end="${session.end.toISOString()}" data-count="${session.count}" aria-label="Load ${session.count} points from ${formatTimelineDate(session.start)} to ${formatTimelineDate(session.end)}">
+			<title>${title}</title>
+			<rect class="timeline-session-hit" x="${cx - hitW / 2}" y="${hitY}" width="${hitW}" height="${hitH}"></rect>
+			<rect class="timeline-session-bar" x="${cx - barW / 2}" y="${yTop}" width="${barW}" height="${barH}" rx="3" ry="3"></rect>
+			<rect class="timeline-session-pill" x="${cx - pillW / 2}" y="${midY - pillH / 2}" width="${pillW}" height="${pillH}" rx="${pillH / 2}" ry="${pillH / 2}"></rect>
+			<text class="timeline-session-count" x="${cx}" y="${midY + 3}" text-anchor="middle">${label}</text>
+		</g>`;
+	}
+
+	function renderClusterPill(cluster, idx) {
+		const cx = cluster.colCx;
+		const sessionCount = cluster.sessions.length;
+		const totalCount = cluster.totalCount;
+
+		// Bigger pill = more sessions, capped by the column width so adjacent
+		// busy days don't overlap. Width scales with sqrt(N) which dampens
+		// the growth for very busy days (a 100-session day is still legible
+		// next to a 10-session day, not 10× wider).
+		const sqrtN = Math.sqrt(sessionCount);
+		const pillW = Math.min(cluster.colWidth - 2, Math.max(26, 18 + 6 * sqrtN));
+		const barW = Math.min(12, Math.max(4, 3 + sqrtN));
+		const hitW = Math.min(cluster.colWidth, pillW + 12);
+
+		// Bar spans from earliest start-of-day to latest end-of-day across
+		// the cluster. Approximate but signals "activity window" at a glance.
+		const earliestStartMin = cluster.sessions.reduce((min, s) => Math.min(min, minuteOfDay(s.start)), 1440);
+		const latestEndMin = cluster.sessions.reduce((max, s) => Math.max(max, minuteOfDay(s.end)), 0);
+
+		const yTop = clampNumber(yForMinute(earliestStartMin), margin.top, margin.top + plotHeight - minBarH);
+		const yRaw = yForMinute(latestEndMin);
+		const barH = Math.max(minBarH, yRaw - yTop);
+		const midY = yTop + barH / 2;
+
+		const hitH = Math.max(barH, pillH + 8);
+		const hitY = clampNumber(midY - hitH / 2, margin.top, margin.top + plotHeight - hitH);
+
+		const dayLabel = cluster.start.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+		const title = `${sessionCount} sessions on ${dayLabel}\n${totalCount} points total`;
+		const label = String(sessionCount);
+
+		return `<g class="timeline-cluster" tabindex="0" role="button" data-cluster-idx="${idx}" aria-label="Open ${sessionCount} sessions on ${dayLabel}">
+			<title>${title}</title>
+			<rect class="timeline-cluster-hit" x="${cx - hitW / 2}" y="${hitY}" width="${hitW}" height="${hitH}"></rect>
+			<rect class="timeline-cluster-bar" x="${cx - barW / 2}" y="${yTop}" width="${barW}" height="${barH}" rx="3" ry="3"></rect>
+			<rect class="timeline-cluster-pill" x="${cx - pillW / 2}" y="${midY - pillH / 2}" width="${pillW}" height="${pillH}" rx="${pillH / 2}" ry="${pillH / 2}"></rect>
+			<text class="timeline-cluster-count" x="${cx}" y="${midY + 3}" text-anchor="middle">${label}</text>
+		</g>`;
+	}
 
 	return `
 		<svg class="timeline-svg" viewBox="0 0 ${chartWidth} ${chartHeight}" role="img" aria-label="Session timeline chart">
