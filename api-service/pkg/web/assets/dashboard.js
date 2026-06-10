@@ -602,6 +602,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 			let endVbX = startVbX;
 			const onMove = (ev) => {
+				// First actual movement means this is a drag, not a click — switch
+				// the cursor to the horizontal-drag icon for the whole gesture.
+				document.body.classList.add('timeline-brushing');
 				endVbX = toVbX(ev.clientX);
 				sel.setAttribute('x', String(Math.min(startVbX, endVbX)));
 				sel.setAttribute('width', String(Math.abs(endVbX - startVbX)));
@@ -609,6 +612,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			const onUp = (ev) => {
 				document.removeEventListener('mousemove', onMove);
 				document.removeEventListener('mouseup', onUp);
+				document.body.classList.remove('timeline-brushing');
 				if (sel.parentNode) sel.parentNode.removeChild(sel);
 				endVbX = toVbX(ev.clientX);
 				suppressTimelineClick = true;

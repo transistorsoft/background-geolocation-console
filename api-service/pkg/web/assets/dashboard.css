@@ -633,13 +633,13 @@ body {
 }
 
 .timeline-pan-btn {
-	width: 22px;
-	height: 22px;
+	width: 24px;
+	height: 24px;
 	border-radius: var(--radius-pill);
 	border: 1px solid var(--color-border-strong);
 	background: var(--color-surface-raised);
-	color: var(--color-text-secondary);
-	font-size: 0.8rem;
+	color: var(--color-text);
+	font-size: 0.62rem;
 	line-height: 1;
 	cursor: pointer;
 	display: inline-flex;
@@ -823,6 +823,14 @@ body {
 	fill: transparent;
 	pointer-events: all;
 	cursor: zoom-in;
+}
+
+/* While a brush-drag is in progress, force the horizontal-drag cursor across
+   the whole document so it stays consistent even as the pointer leaves the
+   overlay. A plain click never adds this class (no mousemove fires). */
+body.timeline-brushing,
+body.timeline-brushing * {
+	cursor: ew-resize !important;
 }
 
 .timeline-brush-rect {
