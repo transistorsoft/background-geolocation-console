@@ -1270,8 +1270,6 @@ function buildTimelineChartMarkup(sessions) {
 	// Group sessions by calendar date (local time) using session start
 	const dateKey = (d) =>
 		`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-	const dateLabel = (d) =>
-		d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
 	const dateMap = new Map();
 	parsedSessions.forEach((s) => {
@@ -1324,11 +1322,61 @@ function buildTimelineChartMarkup(sessions) {
 		);
 	}
 
-	// X-axis: one column per unique calendar date
+	// X-axis: pick a label cadence that keeps text readable regardless of
+	// span. Bucketing the visible columns into day/week/month/quarter/year
+	// groups and emitting one label + separator per group means a 2-year
+	// view renders ~2-4 labels instead of hundreds of overlapping ones;
+	// zooming in via the span pills filters the columns down, so finer
+	// cadences become eligible automatically.
+	const minLabelPx = 80;
+	const maxLabels = Math.max(2, Math.floor(plotWidth / minLabelPx));
+	const startOfLocalWeek = (d) => {
+		const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+		const dow = (day.getDay() + 6) % 7; // 0 = Monday
+		day.setDate(day.getDate() - dow);
+		return day;
+	};
+	const cadences = [
+		{
+			bucket: (d) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`,
+			format: (d) => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+		},
+		{
+			bucket: (d) => {
+				const wk = startOfLocalWeek(d);
+				return `${wk.getFullYear()}-${wk.getMonth()}-${wk.getDate()}`;
+			},
+			format: (d) => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+		},
+		{
+			bucket: (d) => `${d.getFullYear()}-${d.getMonth()}`,
+			format: (d) => d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }),
+		},
+		{
+			bucket: (d) => `${d.getFullYear()}-${Math.floor(d.getMonth() / 3)}`,
+			format: (d) => `Q${Math.floor(d.getMonth() / 3) + 1} ${d.getFullYear()}`,
+		},
+		{
+			bucket: (d) => `${d.getFullYear()}`,
+			format: (d) => `${d.getFullYear()}`,
+		},
+	];
+	let cadence = cadences[cadences.length - 1];
+	for (const c of cadences) {
+		const buckets = new Set(sortedDates.map(([, date]) => c.bucket(date)));
+		if (buckets.size <= maxLabels) {
+			cadence = c;
+			break;
+		}
+	}
+	let lastBucket = null;
 	sortedDates.forEach(([, date], i) => {
-		const x = margin.left + (i + 0.5) * colWidth;
+		const bucket = cadence.bucket(date);
+		if (bucket === lastBucket) return;
+		lastBucket = bucket;
+		const xCenter = margin.left + (i + 0.5) * colWidth;
 		xLabels.push(
-			`<text class="timeline-axis-label" x="${x}" y="${chartHeight - 8}" text-anchor="middle">${dateLabel(date)}</text>`,
+			`<text class="timeline-axis-label" x="${xCenter}" y="${chartHeight - 8}" text-anchor="middle">${cadence.format(date)}</text>`,
 		);
 		if (i > 0) {
 			const xSep = margin.left + i * colWidth;
