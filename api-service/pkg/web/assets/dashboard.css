@@ -62,7 +62,19 @@
 	--color-timeline-session-selected-fill: #f97316;
 	--color-timeline-session-selected-stroke: #c2410c;
 	--color-timeline-session-count: #f8fafc;
+	/* Cluster pill: violet so it reads as related-but-distinct from the
+	   blue single-session pill and well clear of the orange selected pill. */
+	--color-timeline-cluster-fill: #8b5cf6;
+	--color-timeline-cluster-stroke: #6d28d9;
+	--color-timeline-cluster-hover-fill: #a78bfa;
+	--color-timeline-cluster-hover-stroke: #5b21b6;
 	--color-timeline-focus-glow: rgba(125, 211, 252, 0.55);
+	/* Density heatmap (wide spans): cyan cells whose opacity carries point
+	   volume; amber rings flag the busiest sessions without clashing with the
+	   orange selected pill. */
+	--color-timeline-heat-cell: #38bdf8;
+	--color-timeline-notable-ring: #fbbf24;
+	--color-timeline-notable-label: #fde68a;
 
 	--color-code-bg: #0d1224;
 	--color-code-text: #a5b4fc;
@@ -151,6 +163,10 @@ body.theme-light {
 	--color-timeline-session-pill: #0284c7;
 	--color-timeline-session-pill-hover: #0ea5e9;
 	--color-timeline-session-count: var(--color-text);
+	--color-timeline-cluster-fill: #7c3aed;
+	--color-timeline-cluster-stroke: #5b21b6;
+	--color-timeline-cluster-hover-fill: #8b5cf6;
+	--color-timeline-cluster-hover-stroke: #4c1d95;
 	--color-timeline-focus-glow: rgba(14, 165, 233, 0.25);
 
 	--color-code-bg: #f5f5f5;
@@ -609,6 +625,27 @@ body {
 	color: var(--color-text-inverse);
 	border-color: var(--color-primary-bright);
 }
+/* Shown only while a brushed custom range is active: signals the segmented
+   control's "off-preset" state and clears the zoom on click. */
+.timeline-custom-chip {
+	padding: 0.16rem 0.42rem;
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--color-timeline-notable-ring);
+	background: transparent;
+	color: var(--color-timeline-notable-ring);
+	font-size: 0.68rem;
+	font-family: inherit;
+	cursor: pointer;
+	white-space: nowrap;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+.timeline-custom-chip:hover {
+	background: var(--color-timeline-notable-ring);
+	color: var(--color-text-inverse);
+}
+.timeline-custom-chip.hidden {
+	display: none;
+}
 
 .timeline-pan {
 	display: inline-flex;
@@ -617,13 +654,13 @@ body {
 }
 
 .timeline-pan-btn {
-	width: 22px;
-	height: 22px;
+	width: 24px;
+	height: 24px;
 	border-radius: var(--radius-pill);
 	border: 1px solid var(--color-border-strong);
 	background: var(--color-surface-raised);
-	color: var(--color-text-secondary);
-	font-size: 0.8rem;
+	color: var(--color-text);
+	font-size: 0.62rem;
 	line-height: 1;
 	cursor: pointer;
 	display: inline-flex;
@@ -745,6 +782,245 @@ body {
 	font-weight: 700;
 	pointer-events: none;
 	user-select: none;
+}
+
+.timeline-cluster {
+	cursor: pointer;
+}
+
+.timeline-cluster-hit {
+	fill: transparent;
+	pointer-events: all;
+}
+
+.timeline-cluster-bar {
+	fill: var(--color-timeline-cluster-fill);
+	stroke: var(--color-timeline-cluster-stroke);
+	stroke-width: 1.5;
+	transition: fill 140ms ease, stroke 140ms ease;
+}
+
+.timeline-cluster-pill {
+	fill: var(--color-timeline-cluster-stroke);
+	transition: fill 140ms ease;
+}
+
+.timeline-cluster:hover .timeline-cluster-bar,
+.timeline-cluster:focus .timeline-cluster-bar {
+	fill: var(--color-timeline-cluster-hover-fill);
+	stroke: var(--color-timeline-cluster-hover-stroke);
+}
+
+.timeline-cluster:hover .timeline-cluster-pill,
+.timeline-cluster:focus .timeline-cluster-pill {
+	fill: var(--color-timeline-cluster-hover-stroke);
+}
+
+.timeline-cluster:focus {
+	outline: none;
+}
+
+.timeline-cluster:focus-visible .timeline-cluster-bar {
+	filter: drop-shadow(0 0 8px var(--color-timeline-focus-glow));
+}
+
+.timeline-cluster-count {
+	fill: var(--color-timeline-session-count);
+	font-size: 9px;
+	font-family: var(--font-mono);
+	font-weight: 700;
+	pointer-events: none;
+	user-select: none;
+}
+
+/* Density-mode heatmap + notable-session markers (wide spans) */
+.timeline-heat-cell {
+	fill: var(--color-timeline-heat-cell);
+	pointer-events: none;
+	shape-rendering: crispEdges;
+}
+
+.timeline-zoom-overlay {
+	fill: transparent;
+	pointer-events: all;
+	cursor: zoom-in;
+}
+
+/* While a brush-drag is in progress, force the horizontal-drag cursor across
+   the whole document so it stays consistent even as the pointer leaves the
+   overlay. A plain click never adds this class (no mousemove fires). */
+body.timeline-brushing,
+body.timeline-brushing * {
+	cursor: ew-resize !important;
+}
+
+.timeline-brush-rect {
+	fill: var(--color-timeline-heat-cell);
+	fill-opacity: 0.14;
+	stroke: var(--color-timeline-heat-cell);
+	stroke-width: 0.75;
+	stroke-dasharray: 3 2;
+	pointer-events: none;
+}
+
+.timeline-notable {
+	cursor: pointer;
+}
+
+.timeline-notable-hit {
+	fill: transparent;
+	pointer-events: all;
+}
+
+.timeline-notable-ring {
+	fill: none;
+	stroke: var(--color-timeline-notable-ring);
+	stroke-width: 1;
+	transition: stroke-width 140ms ease;
+}
+
+.timeline-notable:hover .timeline-notable-ring,
+.timeline-notable:focus .timeline-notable-ring {
+	stroke-width: 1.75;
+}
+
+.timeline-notable:focus {
+	outline: none;
+}
+
+.timeline-notable:focus-visible .timeline-notable-ring {
+	filter: drop-shadow(0 0 6px var(--color-timeline-focus-glow));
+}
+
+.timeline-notable.is-selected .timeline-notable-ring {
+	stroke: var(--color-timeline-session-selected-fill);
+	stroke-width: 1.75;
+}
+
+.timeline-notable-label {
+	fill: var(--color-timeline-notable-label);
+	font-size: 10px;
+	font-family: var(--font-mono);
+	font-weight: 400;
+	letter-spacing: 0.02em;
+	pointer-events: none;
+	user-select: none;
+}
+
+.timeline-content {
+	position: relative;
+}
+
+.timeline-cluster-dialog {
+	position: absolute;
+	top: 56px;
+	right: 16px;
+	width: 280px;
+	max-height: 320px;
+	display: flex;
+	flex-direction: column;
+	background: var(--color-timeline-panel-bg);
+	color: var(--color-text);
+	border: 1px solid var(--color-timeline-status-border);
+	border-radius: var(--radius-md);
+	box-shadow: 0 16px 32px rgba(0, 0, 0, 0.35);
+	z-index: 10;
+}
+
+.timeline-cluster-dialog.hidden {
+	display: none;
+}
+
+.timeline-cluster-dialog-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.5rem 0.75rem;
+	border-bottom: 1px solid var(--color-timeline-status-border);
+}
+
+.timeline-cluster-dialog-header h4 {
+	margin: 0;
+	font-size: 0.8rem;
+	font-weight: 600;
+}
+
+.timeline-cluster-dialog-close {
+	background: transparent;
+	border: 0;
+	color: var(--color-text-muted);
+	font-size: 1.1rem;
+	line-height: 1;
+	cursor: pointer;
+	padding: 0 0.25rem;
+}
+
+.timeline-cluster-dialog-close:hover {
+	color: var(--color-text);
+}
+
+.timeline-cluster-dialog-list {
+	list-style: none;
+	margin: 0;
+	padding: 0.25rem 0;
+	overflow-y: auto;
+	flex: 1;
+}
+
+.timeline-cluster-dialog-list li {
+	margin: 0;
+}
+
+.timeline-cluster-dialog-item {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	width: 100%;
+	background: transparent;
+	border: 0;
+	padding: 0.4rem 0.75rem;
+	cursor: pointer;
+	color: inherit;
+	text-align: left;
+	font-size: 0.75rem;
+	font-family: var(--font-mono);
+	gap: 2px;
+}
+
+.timeline-cluster-dialog-item:hover,
+.timeline-cluster-dialog-item:focus-visible {
+	background: rgba(148, 163, 184, 0.12);
+	outline: none;
+}
+
+.cluster-item-when {
+	font-weight: 600;
+}
+
+.cluster-item-meta {
+	color: var(--color-text-muted);
+	font-size: 0.7rem;
+}
+
+.timeline-cluster-dialog-footer {
+	padding: 0.5rem 0.75rem;
+	border-top: 1px solid var(--color-timeline-status-border);
+}
+
+.timeline-cluster-dialog-zoom {
+	width: 100%;
+	background: var(--color-timeline-session-pill);
+	color: #ffffff;
+	border: 0;
+	padding: 0.45rem 0.6rem;
+	border-radius: var(--radius-sm, 6px);
+	cursor: pointer;
+	font-size: 0.75rem;
+	font-weight: 600;
+}
+
+.timeline-cluster-dialog-zoom:hover {
+	background: var(--color-timeline-session-pill-hover);
 }
 
 .timeline-col-separator {

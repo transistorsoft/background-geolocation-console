@@ -114,6 +114,11 @@ type DeleteDeviceOptions struct {
 }
 
 // ListCompanies returns company rows filtered by token when provided.
+//
+// Read-only: it does not provision a company row when the token is unknown.
+// Provisioning happens at device-registration time via FindOrCreateDevice (and
+// EnsureDashboardDevice for dashboard viewers), so the dashboard polling path
+// no longer pays for a SELECT…FOR UPDATE + UPDATE every refresh.
 func ListCompanies(org string) ([]CompanySummary, error) {
 	db, err := storage.DB()
 	if err != nil {
@@ -123,9 +128,6 @@ func ListCompanies(org string) ([]CompanySummary, error) {
 	query := db.WithContext(ctx).Model(&storage.Company{}).Order("id ASC")
 	trimmed := strings.TrimSpace(org)
 	if trimmed != "" {
-		if _, err := ensureCompany(ctx, db.WithContext(ctx), trimmed); err != nil {
-			return nil, err
-		}
 		query = query.Where("company_token = ?", trimmed)
 	}
 	var rows []storage.Company
@@ -184,6 +186,14 @@ func ListDevicesInRange(org string, companyID *int64, admin bool, start, end *ti
 	return listDevices(org, companyID, admin, start, end)
 }
 
+// deviceWithActivity is the scan target for listDevices. Embeds storage.Device
+// and adds the projected has_data_in_range column so the in-range flag arrives
+// with the main result set instead of via a second round trip.
+type deviceWithActivity struct {
+	storage.Device
+	HasDataInRange bool `gorm:"column:has_data_in_range"`
+}
+
 func listDevices(org string, companyID *int64, admin bool, start, end *time.Time) ([]DeviceDetails, error) {
 	db, err := storage.DB()
 	if err != nil {
@@ -192,8 +202,16 @@ func listDevices(org string, companyID *int64, admin bool, start, end *time.Time
 	ctx := context.Background()
 	query := db.WithContext(ctx).Model(&storage.Device{})
 
-	if expr := devicesInRangeOrderExpr(start, end); expr != "" {
-		query = query.Order(expr)
+	// Project the in-range flag as a result column so we (a) skip the
+	// previously-separate DISTINCT device_id batch query and (b) reference
+	// the column by name in ORDER BY instead of forcing the planner to
+	// re-evaluate the EXISTS subquery for sorting.
+	flagExpr := devicesInRangeFlagExpr(start, end)
+	if flagExpr != "" {
+		query = query.Select("devices.*, (" + flagExpr + ") AS has_data_in_range")
+		query = query.Order("has_data_in_range DESC")
+	} else {
+		query = query.Select("devices.*, false AS has_data_in_range")
 	}
 	query = query.
 		Order("(SELECT MAX(recorded_at) FROM locations WHERE locations.device_id = devices.id) DESC NULLS LAST").
@@ -206,65 +224,35 @@ func listDevices(org string, companyID *int64, admin bool, start, end *time.Time
 	if companyID != nil && *companyID != 0 {
 		query = query.Where("company_id = ?", *companyID)
 	}
-	var records []storage.Device
-	if err := query.Find(&records).Error; err != nil {
+	var records []deviceWithActivity
+	if err := query.Scan(&records).Error; err != nil {
 		return nil, err
 	}
 	out := make([]DeviceDetails, 0, len(records))
 	for _, rec := range records {
 		out = append(out, DeviceDetails{
-			ID:           rec.ID,
-			CompanyID:    derefInt64(rec.CompanyID),
-			CompanyToken: rec.CompanyToken,
-			DeviceID:     rec.DeviceID,
-			DeviceModel:  rec.DeviceModel,
-			Framework:    rec.Framework,
-			Version:      rec.Version,
-			CreatedAt:    rec.CreatedAt,
-			UpdatedAt:    rec.UpdatedAt,
+			ID:             rec.Device.ID,
+			CompanyID:      derefInt64(rec.Device.CompanyID),
+			CompanyToken:   rec.Device.CompanyToken,
+			DeviceID:       rec.Device.DeviceID,
+			DeviceModel:    rec.Device.DeviceModel,
+			Framework:      rec.Device.Framework,
+			Version:        rec.Device.Version,
+			CreatedAt:      rec.Device.CreatedAt,
+			UpdatedAt:      rec.Device.UpdatedAt,
+			HasDataInRange: rec.HasDataInRange,
 		})
 	}
-
-	// Flag devices that have at least one location in [start, end]. Skipped
-	// when no range is set, since the field is meaningless then.
-	if (start != nil || end != nil) && len(out) > 0 {
-		deviceIDs := make([]int64, len(out))
-		for i, d := range out {
-			deviceIDs[i] = d.ID
-		}
-		rangeQuery := db.WithContext(ctx).
-			Model(&storage.Location{}).
-			Where("device_id IN ?", deviceIDs)
-		if start != nil {
-			rangeQuery = rangeQuery.Where("recorded_at >= ?", start.UTC())
-		}
-		if end != nil {
-			rangeQuery = rangeQuery.Where("recorded_at <= ?", end.UTC())
-		}
-		var inRangeIDs []int64
-		if err := rangeQuery.Distinct("device_id").Pluck("device_id", &inRangeIDs).Error; err != nil {
-			return nil, err
-		}
-		flagged := make(map[int64]bool, len(inRangeIDs))
-		for _, id := range inRangeIDs {
-			flagged[id] = true
-		}
-		for i := range out {
-			if flagged[out[i].ID] {
-				out[i].HasDataInRange = true
-			}
-		}
-	}
-
 	return out, nil
 }
 
-// devicesInRangeOrderExpr builds a raw ORDER BY clause that prioritises
-// devices with at least one location in [start, end]. The time bounds are
-// formatted as RFC3339 (no quoting characters of concern), so inlining them
-// is safe and avoids the GORM Order-with-vars contortions. Empty when both
-// bounds are nil.
-func devicesInRangeOrderExpr(start, end *time.Time) string {
+// devicesInRangeFlagExpr builds the EXISTS predicate that flags a device as
+// having at least one location in [start, end]. The time bounds are formatted
+// as RFC3339 (no quoting characters of concern), so inlining them is safe and
+// avoids GORM's bind-parameter limitations inside Select/Order clauses.
+// Returns the bare predicate (no DESC, no alias); callers wrap it as needed.
+// Empty when both bounds are nil.
+func devicesInRangeFlagExpr(start, end *time.Time) string {
 	conds := make([]string, 0, 2)
 	if start != nil {
 		conds = append(conds, fmt.Sprintf("recorded_at >= '%s'", start.UTC().Format(time.RFC3339)))
@@ -276,7 +264,7 @@ func devicesInRangeOrderExpr(start, end *time.Time) string {
 		return ""
 	}
 	return fmt.Sprintf(
-		"EXISTS(SELECT 1 FROM locations WHERE locations.device_id = devices.id AND %s) DESC",
+		"EXISTS(SELECT 1 FROM locations WHERE locations.device_id = devices.id AND %s)",
 		strings.Join(conds, " AND "),
 	)
 }
@@ -309,6 +297,55 @@ func ListLocations(filters LocationFilters) ([]map[string]any, error) {
 		out = append(out, payload)
 	}
 	return out, nil
+}
+
+// locationWithCount is the scan target for ListLocationsWithCount. Embeds
+// storage.Location and adds the total_count column produced by COUNT(*) OVER ().
+type locationWithCount struct {
+	storage.Location
+	TotalCount int64 `gorm:"column:total_count"`
+}
+
+// ListLocationsWithCount returns rows matching filters along with the total
+// number of matching rows (independent of Limit), produced in a single round
+// trip via a window-function count. Replaces the dashboard's separate
+// ListLocations + CountLocations pair.
+func ListLocationsWithCount(filters LocationFilters) ([]map[string]any, int64, error) {
+	db, err := storage.DB()
+	if err != nil {
+		return nil, 0, err
+	}
+	ctx := context.Background()
+	query := buildLocationQuery(ctx, db, filters)
+
+	limit := filters.Limit
+	if limit <= 0 {
+		limit = 250
+	}
+	if limit > 2000 {
+		limit = 2000
+	}
+
+	var rows []locationWithCount
+	if err := query.
+		Select("locations.*, COUNT(*) OVER () AS total_count").
+		Order("recorded_at DESC, id DESC").
+		Limit(limit).
+		Scan(&rows).Error; err != nil {
+		return nil, 0, err
+	}
+
+	var total int64
+	if len(rows) > 0 {
+		total = rows[0].TotalCount
+	}
+	out := make([]map[string]any, 0, len(rows))
+	for _, row := range rows {
+		payload := decodeLocationData(row.Location.Data)
+		enrichLocationPayload(payload, row.Location)
+		out = append(out, payload)
+	}
+	return out, total, nil
 }
 
 // StreamLocations writes a JSON array of matching locations to w without

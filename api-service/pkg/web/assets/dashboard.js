@@ -7,7 +7,11 @@ let mapLocations = [];
 let mapElement = null;
 let selectedLocationUUID = null;
 let currentTheme = 'dark';
-let timelineHasExplicitDateFilters = false;
+// Snapshot of the request params used when Generate Timeline was clicked, so
+// session selections and pan/span re-fetches use the same scope. The timeline
+// is intentionally NOT scoped by the form's date filters — its purpose is a
+// bird's-eye view of the device's full recorded history; the form filters
+// belong to the locations table and map.
 let timelineQueryParams = null;
 
 // Window state for the stock-app-style timeline browser. Sessions are fetched
@@ -16,8 +20,16 @@ let timelineQueryParams = null;
 let timelineSessions = [];          // [{raw, start: Date, end: Date, count}]
 let timelineFullStart = null;
 let timelineFullEnd = null;
-let timelineSpan = 'all';           // '1d'|'1w'|'1m'|'6m'|'1y'|'all'
+let timelineSpan = 'all';           // '1d'|'1w'|'1m'|'6m'|'1y'|'all'|'custom'
 let timelineWindowEnd = null;       // right edge of current window (Date)
+// When set (by brush-select / click-to-zoom on the density heatmap), this is an
+// explicit {start, end} window that overrides the preset-span math above.
+let timelineCustomRange = null;
+// Clusters are computed each render, currently bucketed by calendar day:
+// every session on the same day collapses into one entry. Days with a single
+// session render as the regular session pill; multi-session days render as
+// a merged pill that opens a popup. data-cluster-idx is the array index.
+let timelineClusters = [];
 
 // Called by the HTMX poll condition in hx-trigger="every Xs [isWatchMode()]".
 // Returning false suppresses the automatic poll so the list and map are never
@@ -216,10 +228,6 @@ document.addEventListener('DOMContentLoaded', () => {
 		localizeUTCInputValue(endInput);
 		normalizeDateTimeInput(startInput);
 		normalizeDateTimeInput(endInput);
-		const searchParams = new URLSearchParams(window.location.search);
-		const hasExplicitDateFilters = searchParams.has('start_date') || searchParams.has('end_date');
-		timelineHasExplicitDateFilters = hasExplicitDateFilters;
-
 		const clearActivePill = () => {
 			quickRangePills.forEach((pill) => pill.classList.remove('is-active'));
 		};
@@ -259,10 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			input.addEventListener('blur', normalizeDelayed);
 			input.addEventListener('focus', normalizeDelayed);
 			input.addEventListener('change', normalizeLater);
-			input.addEventListener('change', () => {
-				timelineHasExplicitDateFilters = !!((startInput?.value || '').trim() || (endInput?.value || '').trim());
-				clearActivePill();
-			});
+			input.addEventListener('change', clearActivePill);
 			input.addEventListener('blur', normalizeLater);
 			input.addEventListener('focus', startPolling);
 			input.addEventListener('blur', stopPolling);
@@ -328,7 +333,6 @@ document.addEventListener('DOMContentLoaded', () => {
 			normalizeDateTimeInput(startInput);
 			normalizeDateTimeInput(endInput);
 			setActivePill(rangeKey);
-			timelineHasExplicitDateFilters = true;
 			if (shouldRefresh) {
 				triggerRefresh();
 			}
@@ -377,7 +381,6 @@ document.addEventListener('DOMContentLoaded', () => {
 					}
 					startInput.value = formatDateTimeLocal(session.start);
 					endInput.value = formatDateTimeLocal(session.end);
-					timelineHasExplicitDateFilters = !!(startInput.value || endInput.value);
 					normalizeDateTimeInput(startInput);
 					normalizeDateTimeInput(endInput);
 					clearActivePill();
@@ -509,6 +512,11 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	});
 
+	const timelineCustomChip = document.getElementById('timeline-custom-chip');
+	if (timelineCustomChip) {
+		timelineCustomChip.addEventListener('click', () => applyTimelineSpan('all'));
+	}
+
 	const timelinePrev = document.getElementById('timeline-prev');
 	const timelineNext = document.getElementById('timeline-next');
 	if (timelinePrev) {
@@ -528,25 +536,100 @@ document.addEventListener('DOMContentLoaded', () => {
 			});
 			session.classList.add('is-selected');
 		};
-		timelineChart.addEventListener('click', (event) => {
-			const session = event.target.closest('.timeline-session[data-start][data-end]');
-			if (!session) {
+		const handleTimelineActivation = (event, isKeyboard) => {
+			const clusterEl = event.target.closest('.timeline-cluster[data-cluster-idx]');
+			if (clusterEl) {
+				if (isKeyboard) event.preventDefault();
+				const idx = Number(clusterEl.dataset.clusterIdx);
+				const cluster = timelineClusters[idx];
+				if (cluster) {
+					openTimelineClusterDialog(cluster);
+				}
 				return;
 			}
-			markTimelineSelection(session);
-			applyTimelineSessionSelection(session.dataset.start, session.dataset.end);
+			const session = event.target.closest('.timeline-session[data-start][data-end]');
+			if (session) {
+				if (isKeyboard) event.preventDefault();
+				markTimelineSelection(session);
+				applyTimelineSessionSelection(session.dataset.start, session.dataset.end);
+				return;
+			}
+		};
+		// Set after a brush/zoom so the synthetic click that follows mouseup
+		// doesn't also land on whatever pill/ring the re-render placed under the
+		// cursor. Cleared on the next tick as a backstop if no click arrives.
+		let suppressTimelineClick = false;
+		timelineChart.addEventListener('click', (event) => {
+			if (suppressTimelineClick) {
+				suppressTimelineClick = false;
+				return;
+			}
+			handleTimelineActivation(event, false);
 		});
 		timelineChart.addEventListener('keydown', (event) => {
-			if (event.key !== 'Enter' && event.key !== ' ') {
-				return;
-			}
-			const session = event.target.closest('.timeline-session[data-start][data-end]');
-			if (!session) {
-				return;
-			}
+			if (event.key !== 'Enter' && event.key !== ' ') return;
+			handleTimelineActivation(event, true);
+		});
+		// Density-mode brush + click-to-zoom. mousedown on the transparent zoom
+		// overlay starts a drag: a small drag (or a plain click) zooms 2× on that
+		// point; a real drag zooms to exactly the selected calendar range. The
+		// overlay sits below the notable rings, so ring/pill clicks are untouched.
+		timelineChart.addEventListener('mousedown', (event) => {
+			if (event.button !== 0) return;
+			const zone = event.target.closest('.timeline-zoom-overlay');
+			const svg = zone && zone.closest('svg');
+			if (!zone || !svg) return;
+			const tStart = Number(zone.dataset.t0);
+			const tEnd = Number(zone.dataset.t1);
+			if (!Number.isFinite(tStart) || !Number.isFinite(tEnd) || tEnd <= tStart) return;
 			event.preventDefault();
-			markTimelineSelection(session);
-			applyTimelineSessionSelection(session.dataset.start, session.dataset.end);
+
+			const ovX = parseFloat(zone.getAttribute('x'));
+			const ovW = parseFloat(zone.getAttribute('width'));
+			const ovY = zone.getAttribute('y');
+			const ovH = zone.getAttribute('height');
+			const vbW = (svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width) || 960;
+			const toVbX = (clientX) => {
+				const r = svg.getBoundingClientRect();
+				const raw = r.width ? (clientX - r.left) / r.width * vbW : ovX;
+				return clampNumber(raw, ovX, ovX + ovW);
+			};
+			const timeForVbX = (vbX) => tStart + clampNumber((vbX - ovX) / ovW, 0, 1) * (tEnd - tStart);
+
+			const startVbX = toVbX(event.clientX);
+			const sel = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+			sel.setAttribute('class', 'timeline-brush-rect');
+			sel.setAttribute('y', ovY);
+			sel.setAttribute('height', ovH);
+			sel.setAttribute('x', String(startVbX));
+			sel.setAttribute('width', '0');
+			svg.appendChild(sel);
+
+			let endVbX = startVbX;
+			const onMove = (ev) => {
+				// First actual movement means this is a drag, not a click — switch
+				// the cursor to the horizontal-drag icon for the whole gesture.
+				document.body.classList.add('timeline-brushing');
+				endVbX = toVbX(ev.clientX);
+				sel.setAttribute('x', String(Math.min(startVbX, endVbX)));
+				sel.setAttribute('width', String(Math.abs(endVbX - startVbX)));
+			};
+			const onUp = (ev) => {
+				document.removeEventListener('mousemove', onMove);
+				document.removeEventListener('mouseup', onUp);
+				document.body.classList.remove('timeline-brushing');
+				if (sel.parentNode) sel.parentNode.removeChild(sel);
+				endVbX = toVbX(ev.clientX);
+				suppressTimelineClick = true;
+				window.setTimeout(() => { suppressTimelineClick = false; }, 0);
+				if (Math.abs(endVbX - startVbX) > 3) {
+					setTimelineCustomWindow(timeForVbX(startVbX), timeForVbX(endVbX));
+				} else {
+					zoomTimelineToTime(timeForVbX(startVbX));
+				}
+			};
+			document.addEventListener('mousemove', onMove);
+			document.addEventListener('mouseup', onUp);
 		});
 	}
 
@@ -593,26 +676,21 @@ function setViewMode(mode) {
 	}
 }
 
+// Convert the server-rendered UTC timestamp (data-recorded ISO 8601) into
+// the browser's local time, formatted as YYYY-MM-DD on top and HH:MM:SS
+// underneath. Runs on initial render and after every HTMX swap.
 function applyLocalTime(rows) {
+	const pad = (n) => String(n).padStart(2, '0');
 	rows.forEach((row) => {
 		const cell = row.querySelector('[data-recorded]');
 		if (!cell) return;
 		const ts = cell.getAttribute('data-recorded');
 		if (!ts) return;
 		const date = new Date(ts);
-		if (!isNaN(date.getTime())) {
-			const datePart = date.toLocaleDateString(undefined, {
-				weekday: 'short',
-				year: 'numeric',
-				month: 'short',
-				day: 'numeric',
-			});
-			const timePart = date.toLocaleTimeString(undefined, { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-			const tz = date
-				.toLocaleTimeString(undefined, { timeZoneName: 'short' })
-				.replace(/.*\s/, '') || 'local';
-			cell.innerHTML = `<div class="meta-date">${datePart}</div><div class="meta-time">${timePart} ${tz}</div>`;
-		}
+		if (isNaN(date.getTime())) return;
+		const datePart = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+		const timePart = `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+		cell.innerHTML = `<div class="meta-date">${datePart}</div><div class="meta-time">${timePart}</div>`;
 	});
 }
 
@@ -777,34 +855,19 @@ async function fetchTimelineData() {
 	return response.json();
 }
 
+// Builds the params for timeline requests. Deliberately omits start_date and
+// end_date so the timeline always reflects the device's full recorded history;
+// span/pan controls navigate the returned range client-side. The form's date
+// filters scope the locations table and map only.
 function buildDashboardQueryParams() {
 	const params = new URLSearchParams();
 	const companySelect = document.getElementById('company');
 	const deviceSelect = document.getElementById('device');
-	const startInput = document.getElementById('start_date');
-	const endInput = document.getElementById('end_date');
 	if (companySelect?.value) {
 		params.set('company_id', companySelect.value);
 	}
 	if (deviceSelect?.value) {
 		params.set('device_id', deviceSelect.value);
-	}
-	if (!timelineHasExplicitDateFilters) {
-		return params;
-	}
-	const startRaw = (startInput?.value || '').trim();
-	if (startRaw) {
-		const parsed = new Date(startRaw);
-		if (!Number.isNaN(parsed.getTime())) {
-			params.set('start_date', formatDateTimeUTCInput(parsed));
-		}
-	}
-	const endRaw = (endInput?.value || '').trim();
-	if (endRaw) {
-		const parsed = new Date(endRaw);
-		if (!Number.isNaN(parsed.getTime())) {
-			params.set('end_date', formatDateTimeUTCInput(parsed));
-		}
 	}
 	return params;
 }
@@ -1066,6 +1129,7 @@ function resetTimelinePanel() {
 	timelineFullEnd = null;
 	timelineSpan = 'all';
 	timelineWindowEnd = null;
+	timelineCustomRange = null;
 }
 
 function setTimelineStatus(message) {
@@ -1150,6 +1214,7 @@ function renderTimelinePanel(data) {
 	// Reset the window to "show everything" for each fresh Generate.
 	timelineSpan = 'all';
 	timelineWindowEnd = timelineFullEnd ? new Date(timelineFullEnd.getTime()) : null;
+	timelineCustomRange = null;
 
 	const totalPoints = Number(data?.total_points || 0);
 	if (!timelineSessions.length) {
@@ -1157,7 +1222,7 @@ function renderTimelinePanel(data) {
 		summary.textContent = totalPoints > 0
 			? `No grouped sessions could be identified across ${totalPoints} selected points.`
 			: 'No location data matches the current selection.';
-		chart.innerHTML = '<div class="timeline-empty-state">No timeline data is available for the current company, device, and date range.</div>';
+		chart.innerHTML = '<div class="timeline-empty-state">No recorded locations for this device.</div>';
 		return;
 	}
 	if (controls) controls.classList.remove('hidden');
@@ -1182,6 +1247,9 @@ function shiftDateBySpan(date, span, direction) {
 // Resolve the visible window from the current state, clamped to the data range
 // so the window slides on a rail rather than escaping into emptiness.
 function currentTimelineWindow() {
+	if (timelineCustomRange) {
+		return { start: timelineCustomRange.start, end: timelineCustomRange.end };
+	}
 	if (timelineSpan === 'all' || !timelineWindowEnd || !timelineFullStart || !timelineFullEnd) {
 		return { start: timelineFullStart, end: timelineFullEnd };
 	}
@@ -1197,18 +1265,58 @@ function currentTimelineWindow() {
 }
 
 function panTimelineWindow(direction) {
-	if (timelineSpan === 'all' || !timelineWindowEnd) return;
+	if (timelineSpan === 'all') return;
+	if (timelineCustomRange) {
+		const width = timelineCustomRange.end.getTime() - timelineCustomRange.start.getTime();
+		setTimelineCustomWindow(
+			timelineCustomRange.start.getTime() + direction * width,
+			timelineCustomRange.end.getTime() + direction * width,
+		);
+		return;
+	}
+	if (!timelineWindowEnd) return;
 	timelineWindowEnd = shiftDateBySpan(timelineWindowEnd, timelineSpan, direction);
 	renderTimelineWithWindow();
 }
 
 function applyTimelineSpan(span) {
-	if (timelineSpan === span) return;
+	// Picking a preset always exits any brushed custom window.
+	timelineCustomRange = null;
+	if (timelineSpan === span && span !== 'custom') return;
 	timelineSpan = span;
 	timelineWindowEnd = (span === 'all' || !timelineFullEnd)
 		? null
 		: new Date(timelineFullEnd.getTime());
 	renderTimelineWithWindow();
+}
+
+// Apply an explicit [start, end] window (brush-select / click-to-zoom on the
+// density heatmap), clamped to the data range with a 1-hour floor so a stray
+// click can't collapse the window to nothing.
+function setTimelineCustomWindow(startMs, endMs) {
+	if (!timelineFullStart || !timelineFullEnd) return;
+	const fullStart = timelineFullStart.getTime();
+	const fullEnd = timelineFullEnd.getTime();
+	let start = Math.max(fullStart, Math.min(startMs, endMs));
+	let end = Math.min(fullEnd, Math.max(startMs, endMs));
+	const MIN_WINDOW = 60 * 60 * 1000;
+	if (end - start < MIN_WINDOW) {
+		const center = (start + end) / 2;
+		start = Math.max(fullStart, center - MIN_WINDOW / 2);
+		end = Math.min(fullEnd, center + MIN_WINDOW / 2);
+	}
+	timelineCustomRange = { start: new Date(start), end: new Date(end) };
+	timelineSpan = 'custom';
+	renderTimelineWithWindow();
+}
+
+// Click-to-zoom: zoom in 2× centred on the clicked time. Produces a custom
+// window so successive clicks keep narrowing until detail mode reveals pills.
+function zoomTimelineToTime(centerMs) {
+	const { start, end } = currentTimelineWindow();
+	if (!start || !end) return;
+	const quarter = (end.getTime() - start.getTime()) / 4;
+	setTimelineCustomWindow(centerMs - quarter, centerMs + quarter);
 }
 
 function renderTimelineWithWindow() {
@@ -1218,11 +1326,17 @@ function renderTimelineWithWindow() {
 	const prevBtn = document.getElementById('timeline-prev');
 	const nextBtn = document.getElementById('timeline-next');
 	if (!chart || !summary) return;
+	// Drop any open cluster popup before re-rendering — the cluster it
+	// references is about to be replaced by a fresh one.
+	closeTimelineClusterDialog();
 
-	// Active span button highlight
+	// Active span button highlight. A brushed custom range matches no preset,
+	// so all pills go inactive and the Custom chip appears to show that state.
 	document.querySelectorAll('.timeline-span').forEach((btn) => {
 		btn.classList.toggle('is-active', btn.dataset.span === timelineSpan);
 	});
+	const customChip = document.getElementById('timeline-custom-chip');
+	if (customChip) customChip.classList.toggle('hidden', !timelineCustomRange);
 
 	const { start, end } = currentTimelineWindow();
 	const filtered = (timelineSpan === 'all')
@@ -1231,10 +1345,10 @@ function renderTimelineWithWindow() {
 
 	if (panLabel) {
 		panLabel.textContent = (timelineSpan === 'all')
-			? `All data — ${formatTimelineDate(timelineFullStart)} → ${formatTimelineDate(timelineFullEnd)}`
+			? `Full history — ${formatTimelineDate(timelineFullStart)} → ${formatTimelineDate(timelineFullEnd)}`
 			: `${formatTimelineDate(start)} → ${formatTimelineDate(end)}`;
 	}
-	const atRightEdge = (timelineSpan === 'all') || (timelineWindowEnd && timelineWindowEnd >= timelineFullEnd);
+	const atRightEdge = (timelineSpan === 'all') || (end && timelineFullEnd && end >= timelineFullEnd);
 	const atLeftEdge = (timelineSpan === 'all') || (start && timelineFullStart && start <= timelineFullStart);
 	if (prevBtn) prevBtn.disabled = atLeftEdge;
 	if (nextBtn) nextBtn.disabled = atRightEdge;
@@ -1249,7 +1363,10 @@ function renderTimelineWithWindow() {
 	summary.textContent = (timelineSpan === 'all')
 		? `${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'} across ${totalPoints} points from ${formatTimelineDate(start)} to ${formatTimelineDate(end)}.`
 		: `${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'} (${totalPoints} points) in ${formatTimelineDate(start)} → ${formatTimelineDate(end)}.`;
-	chart.innerHTML = buildTimelineChartMarkup(filtered.map((s) => s.raw));
+	chart.innerHTML = buildTimelineChartMarkup(filtered.map((s) => s.raw), {
+		windowStart: start,
+		windowEnd: end,
+	});
 }
 
 function applyTimelineSessionSelection(startValue, endValue) {
@@ -1267,7 +1384,180 @@ function applyTimelineSessionSelection(startValue, endValue) {
 	refreshLocationsPanel({}, { resetTimeline: false });
 }
 
-function buildTimelineChartMarkup(sessions) {
+// Pick the smallest span pill whose window covers the cluster's duration so
+// that zooming into a cluster keeps it fully visible on the right edge.
+function bestSpanForClusterDuration(durationMs) {
+	const DAY = 24 * 60 * 60 * 1000;
+	if (durationMs <= DAY) return '1d';
+	if (durationMs <= 7 * DAY) return '1w';
+	if (durationMs <= 31 * DAY) return '1m';
+	if (durationMs <= 183 * DAY) return '6m';
+	if (durationMs <= 366 * DAY) return '1y';
+	return 'all';
+}
+
+function ensureTimelineClusterDialog() {
+	let dialog = document.getElementById('timeline-cluster-dialog');
+	if (dialog) return dialog;
+	const host = document.getElementById('timeline-content') || document.getElementById('timeline-panel');
+	if (!host) return null;
+	dialog = document.createElement('div');
+	dialog.id = 'timeline-cluster-dialog';
+	dialog.className = 'timeline-cluster-dialog hidden';
+	dialog.setAttribute('role', 'dialog');
+	dialog.setAttribute('aria-modal', 'false');
+	dialog.setAttribute('aria-labelledby', 'timeline-cluster-dialog-title');
+	dialog.innerHTML = `
+		<header class="timeline-cluster-dialog-header">
+			<h4 id="timeline-cluster-dialog-title">Sessions</h4>
+			<button type="button" class="timeline-cluster-dialog-close" aria-label="Close">&times;</button>
+		</header>
+		<ul class="timeline-cluster-dialog-list" id="timeline-cluster-dialog-list"></ul>
+		<footer class="timeline-cluster-dialog-footer">
+			<button type="button" class="timeline-cluster-dialog-zoom">Zoom into this range</button>
+		</footer>
+	`;
+	host.appendChild(dialog);
+	dialog.addEventListener('click', (event) => {
+		if (event.target.closest('.timeline-cluster-dialog-close')) {
+			closeTimelineClusterDialog();
+			return;
+		}
+		const zoom = event.target.closest('.timeline-cluster-dialog-zoom');
+		if (zoom) {
+			zoomTimelineToOpenCluster();
+			return;
+		}
+		const item = event.target.closest('.timeline-cluster-dialog-item');
+		if (item) {
+			applyTimelineSessionSelection(item.dataset.start, item.dataset.end);
+			closeTimelineClusterDialog();
+		}
+	});
+	document.addEventListener('keydown', (event) => {
+		if (event.key === 'Escape' && !dialog.classList.contains('hidden')) {
+			closeTimelineClusterDialog();
+		}
+	});
+	return dialog;
+}
+
+let openClusterCache = null;
+
+function openTimelineClusterDialog(cluster) {
+	const dialog = ensureTimelineClusterDialog();
+	if (!dialog) return;
+	openClusterCache = cluster;
+	const title = dialog.querySelector('#timeline-cluster-dialog-title');
+	const list = dialog.querySelector('#timeline-cluster-dialog-list');
+	if (title) {
+		const dayLabel = cluster.start.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+		title.textContent = `${dayLabel} · ${cluster.sessions.length} sessions · ${cluster.totalCount} points`;
+	}
+	if (list) {
+		const fmt = (d) => d.toLocaleString(undefined, {
+			year: 'numeric', month: 'short', day: 'numeric',
+			hour: '2-digit', minute: '2-digit', hour12: false,
+		});
+		const sorted = cluster.sessions.slice().sort((a, b) => a.start - b.start);
+		list.innerHTML = sorted.map((session) => {
+			const startISO = session.start.toISOString();
+			const endISO = session.end.toISOString();
+			const duration = session.durationMinutes || Math.round((session.end - session.start) / 60000);
+			return `<li>
+				<button type="button" class="timeline-cluster-dialog-item" data-start="${startISO}" data-end="${endISO}">
+					<span class="cluster-item-when">${fmt(session.start)}</span>
+					<span class="cluster-item-meta">${session.count} pts · ${duration} min</span>
+				</button>
+			</li>`;
+		}).join('');
+	}
+	dialog.classList.remove('hidden');
+}
+
+function closeTimelineClusterDialog() {
+	const dialog = document.getElementById('timeline-cluster-dialog');
+	if (!dialog) return;
+	dialog.classList.add('hidden');
+	openClusterCache = null;
+}
+
+function zoomTimelineToOpenCluster() {
+	if (!openClusterCache || !timelineFullEnd) return;
+	const cluster = openClusterCache;
+	const span = bestSpanForClusterDuration(cluster.end.getTime() - cluster.start.getTime());
+	timelineCustomRange = null;
+	timelineSpan = span;
+	// Anchor the right edge just past cluster.end (clamped to the data range
+	// inside currentTimelineWindow) so the cluster sits at the right side
+	// of the new window — the same place pan-right would leave it.
+	timelineWindowEnd = new Date(Math.min(cluster.end.getTime(), timelineFullEnd.getTime()));
+	closeTimelineClusterDialog();
+	renderTimelineWithWindow();
+}
+
+// Generate calendar-aligned x-axis ticks across a continuous time range,
+// picking the finest cadence (hour → 6h → day → week → month → quarter → year)
+// whose label count stays within maxLabels. Returns [{ ms, label }].
+function timelineAxisTicks(d0, d1, maxLabels) {
+	const start = d0.getTime();
+	const end = d1.getTime();
+	const HOUR = 3600000;
+	const DAY = 24 * HOUR;
+	const fmtHour = (d) => d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+	const fmtDay = (d) => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+	const fmtMonth = (d) => d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+	const fmtYear = (d) => String(d.getFullYear());
+
+	const fixed = (stepMs, align, fmt) => {
+		const ticks = [];
+		const first = align(new Date(start));
+		for (let t = first.getTime(); t <= end && ticks.length <= 500; t += stepMs) {
+			if (t >= start) ticks.push({ ms: t, label: fmt(new Date(t)) });
+		}
+		return ticks;
+	};
+	const alignHour = (d) => { d.setMinutes(0, 0, 0); return d; };
+	const alignDay = (d) => { d.setHours(0, 0, 0, 0); return d; };
+	const calendar = (monthStep, fmt) => {
+		const ticks = [];
+		const d = new Date(start);
+		d.setDate(1);
+		d.setHours(0, 0, 0, 0);
+		while (d.getTime() <= end && ticks.length <= 500) {
+			if (d.getTime() >= start) ticks.push({ ms: d.getTime(), label: fmt(new Date(d)) });
+			d.setMonth(d.getMonth() + monthStep);
+		}
+		return ticks;
+	};
+
+	const candidates = [
+		() => fixed(HOUR, alignHour, fmtHour),
+		() => fixed(6 * HOUR, alignHour, fmtHour),
+		() => fixed(DAY, alignDay, fmtDay),
+		() => fixed(7 * DAY, alignDay, fmtDay),
+		() => calendar(1, fmtMonth),
+		() => calendar(3, fmtMonth),
+		() => calendar(12, fmtYear),
+	];
+	for (const gen of candidates) {
+		const ticks = gen();
+		if (ticks.length && ticks.length <= maxLabels) return ticks;
+	}
+	return calendar(12, fmtYear);
+}
+
+// Render the session timeline. The chart adapts to how much calendar time the
+// current window spans (level of detail):
+//   • Detail mode (≥ ~12px per day, i.e. up to ~2 months): individual session
+//     pills by time of day, multi-session days merged into a click-to-drill
+//     cluster pill — the close-up "choose a session" view.
+//   • Density mode (wider, e.g. 6m / 1y / All): an hour-by-time density heatmap
+//     so two years stay legible, with the busiest few sessions ringed and
+//     labelled (and clickable) instead of labelling every one.
+// X is a *continuous* calendar scale (not one column per active date) so silent
+// gaps in the data stay visible and pills sit at their true temporal position.
+function buildTimelineChartMarkup(sessions, opts) {
 	const parsedSessions = sessions.map((session) => {
 		const sessionStart = parseTimelineDate(session.start);
 		const sessionEnd = parseTimelineDate(session.end);
@@ -1281,6 +1571,7 @@ function buildTimelineChartMarkup(sessions) {
 	}).filter((session) => session.start && session.end && session.count >= 0);
 
 	if (!parsedSessions.length) {
+		timelineClusters = [];
 		return '<div class="timeline-empty-state">No session groups were produced for this selection.</div>';
 	}
 
@@ -1291,51 +1582,30 @@ function buildTimelineChartMarkup(sessions) {
 	const plotWidth = chartWidth - margin.left - margin.right;
 	const plotHeight = chartHeight - margin.top - margin.bottom;
 	const minBarH = 5;
+	const pillH = 12;
 
-	// Group sessions by calendar date (local time) using session start
-	const dateKey = (d) =>
-		`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-	const dateLabel = (d) =>
-		d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-
-	const dateMap = new Map();
-	parsedSessions.forEach((s) => {
-		const key = dateKey(s.start);
-		if (!dateMap.has(key)) dateMap.set(key, s.start);
-	});
-	const sortedDates = Array.from(dateMap.entries()).sort(([a], [b]) => a.localeCompare(b));
-	const colCount = sortedDates.length;
-	const colIndexMap = new Map(sortedDates.map(([key], i) => [key, i]));
-	const colWidth = plotWidth / Math.max(colCount, 1);
-
-	// Assign each session a lane within its column so sessions on the same day fan out horizontally
-	const colLaneMap = new Map(); // dateKey → sessions sorted by start time
-	parsedSessions.forEach((s) => {
-		const key = dateKey(s.start);
-		if (!colLaneMap.has(key)) colLaneMap.set(key, []);
-		colLaneMap.get(key).push(s);
-	});
-	// Sort each column's sessions by start time and stamp laneIdx / laneCount
-	colLaneMap.forEach((group) => {
-		group.sort((a, b) => a.start - b.start);
-		group.forEach((s, i) => {
-			s.laneIdx = i;
-			s.laneCount = group.length;
-		});
-	});
+	// Continuous calendar time on X. Window bounds come from the caller so the
+	// axis reflects the real selected range (and its gaps); fall back to the
+	// session extent when not supplied.
+	const ordered = parsedSessions.slice().sort((a, b) => a.start - b.start);
+	const winStart = (opts && opts.windowStart instanceof Date) ? opts.windowStart : ordered[0].start;
+	const winEnd = (opts && opts.windowEnd instanceof Date) ? opts.windowEnd : ordered[ordered.length - 1].end;
+	const t0 = winStart.getTime();
+	let t1 = winEnd.getTime();
+	if (!(t1 > t0)) t1 = t0 + 60000;
+	const tSpan = t1 - t0;
+	const DAY_MS = 24 * 60 * 60 * 1000;
+	const pxPerDay = plotWidth / Math.max(tSpan / DAY_MS, 1 / 24);
+	const xForTime = (ms) => margin.left + clampNumber((ms - t0) / tSpan, 0, 1) * plotWidth;
 
 	// Y-axis: time of day — 00:00 at top, 24:00 at bottom
 	const minuteOfDay = (d) => d.getHours() * 60 + d.getMinutes();
 	const yForMinute = (min) => margin.top + (min / 1440) * plotHeight;
-
-	// Abbreviate large counts
-	const pillH = 12;
 	const countLabel = (n) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
 
 	const gridLines = [];
 	const yLabels = [];
 	const xLabels = [];
-	const bars = [];
 
 	// Y-axis grid lines and labels every 6 hours to keep the compact chart readable.
 	for (let h = 0; h <= 24; h += 6) {
@@ -1349,34 +1619,86 @@ function buildTimelineChartMarkup(sessions) {
 		);
 	}
 
-	// X-axis: one column per unique calendar date
-	sortedDates.forEach(([, date], i) => {
-		const x = margin.left + (i + 0.5) * colWidth;
+	// X-axis ticks on the continuous time scale; one gridline + label per tick.
+	const maxLabels = Math.max(2, Math.floor(plotWidth / 90));
+	timelineAxisTicks(winStart, new Date(t1), maxLabels).forEach((tick) => {
+		const x = xForTime(tick.ms);
+		if (x < margin.left - 0.5 || x > chartWidth - margin.right + 0.5) return;
 		xLabels.push(
-			`<text class="timeline-axis-label" x="${x}" y="${chartHeight - 8}" text-anchor="middle">${dateLabel(date)}</text>`,
+			`<text class="timeline-axis-label" x="${x}" y="${chartHeight - 8}" text-anchor="middle">${tick.label}</text>`,
 		);
-		if (i > 0) {
-			const xSep = margin.left + i * colWidth;
-			gridLines.push(
-				`<line class="timeline-col-separator" x1="${xSep}" y1="${margin.top}" x2="${xSep}" y2="${margin.top + plotHeight}"></line>`,
-			);
-		}
+		gridLines.push(
+			`<line class="timeline-col-separator" x1="${x}" y1="${margin.top}" x2="${x}" y2="${margin.top + plotHeight}"></line>`,
+		);
 	});
 
-	// Vertical bar spanning session start → end time on the Y-axis.
-	// Each session is placed in its own lane within the day column so no two sessions share the same x.
-	parsedSessions.forEach((session) => {
-		const colIdx = colIndexMap.get(dateKey(session.start));
-		if (colIdx === undefined) return;
+	const DETAIL_PX_PER_DAY = 12;
+	const detail = pxPerDay >= DETAIL_PX_PER_DAY;
+	const body = detail ? renderDetailMode() : renderDensityMode();
+	const caption = detail
+		? 'Zoomed in: pills are sessions by time of day; a purple pill is a day with several sessions — click to drill in. Numbers are recorded points. Use the range buttons above (1d–All) or the Zoom out button to widen the view — drag-to-zoom returns in the wider views.'
+		: 'Shaded cells show recorded points per hour (brighter = more). Click a ring to load that session; drag across the chart to zoom into a range, or click to zoom in 2× — keep going until individual sessions appear.';
 
-		const laneCount = session.laneCount || 1;
-		const laneIdx = session.laneIdx || 0;
-		// Each lane is an equal slice of the column width
-		const laneWidth = colWidth / laneCount;
-		// Centre of this lane
-		const cx = margin.left + colIdx * colWidth + (laneIdx + 0.5) * laneWidth;
+	return `
+		<svg class="timeline-svg" viewBox="0 0 ${chartWidth} ${chartHeight}" role="img" aria-label="Session timeline chart">
+			${gridLines.join('')}
+			<line class="timeline-axis" x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${margin.top + plotHeight}"></line>
+			<line class="timeline-axis" x1="${margin.left}" y1="${margin.top + plotHeight}" x2="${chartWidth - margin.right}" y2="${margin.top + plotHeight}"></line>
+			${body}
+			${yLabels.join('')}
+			${xLabels.join('')}
+		</svg>
+		<p class="timeline-caption">${caption}</p>
+	`;
 
-		// Element widths scaled to lane width, with sensible min/max
+	// ----- Detail mode: per-session pills, multi-session days clustered -----
+	function renderDetailMode() {
+		const dateKey = (d) =>
+			`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+		const dayMap = new Map();
+		parsedSessions.forEach((s) => {
+			const key = dateKey(s.start);
+			let group = dayMap.get(key);
+			if (!group) { group = []; dayMap.set(key, group); }
+			group.push(s);
+		});
+
+		const clusters = [];
+		dayMap.forEach((group, key) => {
+			group.sort((a, b) => a.start - b.start);
+			const first = group[0].start;
+			const dayMidnight = new Date(first.getFullYear(), first.getMonth(), first.getDate()).getTime();
+			const leftX = xForTime(dayMidnight);
+			const slice = Math.max(6, xForTime(dayMidnight + DAY_MS) - leftX);
+			const cluster = {
+				bucketKey: key,
+				sessions: group,
+				start: group[0].start,
+				end: group[0].end,
+				totalCount: 0,
+				leftX,
+				slice,
+				colCx: leftX + slice / 2,
+				colWidth: slice,
+			};
+			group.forEach((s) => {
+				cluster.totalCount += s.count || 0;
+				if (s.start < cluster.start) cluster.start = s.start;
+				if (s.end > cluster.end) cluster.end = s.end;
+			});
+			clusters.push(cluster);
+		});
+		clusters.sort((a, b) => a.start - b.start);
+		timelineClusters = clusters;
+
+		return clusters.map((cluster, idx) => (
+			cluster.sessions.length === 1
+				? renderSingleSessionPill(cluster.sessions[0], cluster.colCx, cluster.slice)
+				: renderClusterPill(cluster, idx)
+		)).join('');
+	}
+
+	function renderSingleSessionPill(session, cx, laneWidth) {
 		const barW = Math.max(3, Math.min(8, laneWidth * 0.22));
 		const hitW = Math.max(18, Math.min(42, laneWidth * 0.8));
 		const pillW = Math.max(24, Math.min(46, laneWidth * 0.65));
@@ -1386,35 +1708,161 @@ function buildTimelineChartMarkup(sessions) {
 		const barH = Math.max(minBarH, yRaw - yTop);
 		const midY = yTop + barH / 2;
 
-		// Hit rect must always cover the pill (pillH + 8px padding) even when the bar is tiny
 		const hitH = Math.max(barH, pillH + 8);
 		const hitY = clampNumber(midY - hitH / 2, margin.top, margin.top + plotHeight - hitH);
 
 		const label = countLabel(session.count);
 		const title = `${formatTimelineDate(session.start)} – ${formatTimelineDate(session.end)} | ${session.count} points | ${session.durationMinutes} min`;
 
-		bars.push(
-			`<g class="timeline-session" tabindex="0" role="button" data-start="${session.start.toISOString()}" data-end="${session.end.toISOString()}" data-count="${session.count}" aria-label="Load ${session.count} points from ${formatTimelineDate(session.start)} to ${formatTimelineDate(session.end)}">
-				<title>${title}</title>
-				<rect class="timeline-session-hit" x="${cx - hitW / 2}" y="${hitY}" width="${hitW}" height="${hitH}"></rect>
-				<rect class="timeline-session-bar" x="${cx - barW / 2}" y="${yTop}" width="${barW}" height="${barH}" rx="3" ry="3"></rect>
-				<rect class="timeline-session-pill" x="${cx - pillW / 2}" y="${midY - pillH / 2}" width="${pillW}" height="${pillH}" rx="${pillH / 2}" ry="${pillH / 2}"></rect>
-				<text class="timeline-session-count" x="${cx}" y="${midY + 3}" text-anchor="middle">${label}</text>
-			</g>`,
-		);
-	});
+		return `<g class="timeline-session" tabindex="0" role="button" data-start="${session.start.toISOString()}" data-end="${session.end.toISOString()}" data-count="${session.count}" aria-label="Load ${session.count} points from ${formatTimelineDate(session.start)} to ${formatTimelineDate(session.end)}">
+			<title>${title}</title>
+			<rect class="timeline-session-hit" x="${cx - hitW / 2}" y="${hitY}" width="${hitW}" height="${hitH}"></rect>
+			<rect class="timeline-session-bar" x="${cx - barW / 2}" y="${yTop}" width="${barW}" height="${barH}" rx="3" ry="3"></rect>
+			<rect class="timeline-session-pill" x="${cx - pillW / 2}" y="${midY - pillH / 2}" width="${pillW}" height="${pillH}" rx="${pillH / 2}" ry="${pillH / 2}"></rect>
+			<text class="timeline-session-count" x="${cx}" y="${midY + 3}" text-anchor="middle">${label}</text>
+		</g>`;
+	}
 
-	return `
-		<svg class="timeline-svg" viewBox="0 0 ${chartWidth} ${chartHeight}" role="img" aria-label="Session timeline chart">
-			${gridLines.join('')}
-			<line class="timeline-axis" x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${margin.top + plotHeight}"></line>
-			<line class="timeline-axis" x1="${margin.left}" y1="${margin.top + plotHeight}" x2="${chartWidth - margin.right}" y2="${margin.top + plotHeight}"></line>
-			${bars.join('')}
-			${yLabels.join('')}
-			${xLabels.join('')}
-		</svg>
-		<p class="timeline-caption">Bars are sessions by time of day. Click or press Enter to load one; sessions split after 30-minute gaps.</p>
-	`;
+	function renderClusterPill(cluster, idx) {
+		const cx = cluster.colCx;
+		const sessionCount = cluster.sessions.length;
+		const totalCount = cluster.totalCount;
+
+		// Bigger pill = more sessions, capped by the day's width so adjacent
+		// busy days don't overlap. Width scales with sqrt(N) which dampens
+		// the growth for very busy days (a 100-session day is still legible
+		// next to a 10-session day, not 10× wider).
+		const sqrtN = Math.sqrt(sessionCount);
+		const pillW = Math.min(Math.max(cluster.colWidth - 2, 24), Math.max(26, 18 + 6 * sqrtN));
+		const barW = Math.min(12, Math.max(4, 3 + sqrtN));
+		const hitW = pillW + 12;
+
+		// Bar spans from earliest start-of-day to latest end-of-day across
+		// the cluster. Approximate but signals "activity window" at a glance.
+		const earliestStartMin = cluster.sessions.reduce((min, s) => Math.min(min, minuteOfDay(s.start)), 1440);
+		const latestEndMin = cluster.sessions.reduce((max, s) => Math.max(max, minuteOfDay(s.end)), 0);
+
+		const yTop = clampNumber(yForMinute(earliestStartMin), margin.top, margin.top + plotHeight - minBarH);
+		const yRaw = yForMinute(latestEndMin);
+		const barH = Math.max(minBarH, yRaw - yTop);
+		const midY = yTop + barH / 2;
+
+		const hitH = Math.max(barH, pillH + 8);
+		const hitY = clampNumber(midY - hitH / 2, margin.top, margin.top + plotHeight - hitH);
+
+		const dayLabel = cluster.start.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+		// Number is always recorded points (consistent with the single-session
+		// pill); the purple colour and tooltip convey "several sessions".
+		const title = `${sessionCount} sessions on ${dayLabel}\n${totalCount} points total`;
+		const label = countLabel(totalCount);
+
+		return `<g class="timeline-cluster" tabindex="0" role="button" data-cluster-idx="${idx}" aria-label="Open ${sessionCount} sessions on ${dayLabel}, ${totalCount} points">
+			<title>${title}</title>
+			<rect class="timeline-cluster-hit" x="${cx - hitW / 2}" y="${hitY}" width="${hitW}" height="${hitH}"></rect>
+			<rect class="timeline-cluster-bar" x="${cx - barW / 2}" y="${yTop}" width="${barW}" height="${barH}" rx="3" ry="3"></rect>
+			<rect class="timeline-cluster-pill" x="${cx - pillW / 2}" y="${midY - pillH / 2}" width="${pillW}" height="${pillH}" rx="${pillH / 2}" ry="${pillH / 2}"></rect>
+			<text class="timeline-cluster-count" x="${cx}" y="${midY + 3}" text-anchor="middle">${label}</text>
+		</g>`;
+	}
+
+	// ----- Density mode: hour-by-time heatmap + ringed notable sessions -----
+	function renderDensityMode() {
+		timelineClusters = [];
+		const NX = Math.max(12, Math.min(220, Math.round(plotWidth / 4)));
+		const NY = 24;
+		const cellW = plotWidth / NX;
+		const cellH = plotHeight / NY;
+
+		// Accumulate point counts into (x time-bucket × hour-of-day) cells.
+		const counts = new Map();
+		let maxCell = 0;
+		parsedSessions.forEach((s) => {
+			const frac = (s.start.getTime() - t0) / tSpan;
+			if (frac < 0 || frac > 1) return;
+			const ix = Math.min(NX - 1, Math.floor(frac * NX));
+			const iy = Math.min(NY - 1, s.start.getHours());
+			const key = ix * NY + iy;
+			const v = (counts.get(key) || 0) + (s.count || 1);
+			counts.set(key, v);
+			if (v > maxCell) maxCell = v;
+		});
+
+		// Log scale so a 2,000-point cell doesn't wash out the 20-point ones.
+		const logMax = Math.log(1 + maxCell) || 1;
+		const cells = [];
+		counts.forEach((v, key) => {
+			const ix = Math.floor(key / NY);
+			const iy = key % NY;
+			const a = 0.16 + 0.84 * (Math.log(1 + v) / logMax);
+			const x = margin.left + ix * cellW;
+			const y = margin.top + iy * cellH;
+			cells.push(
+				`<rect class="timeline-heat-cell" x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${(cellW + 0.7).toFixed(2)}" height="${(cellH + 0.7).toFixed(2)}" fill-opacity="${a.toFixed(3)}"></rect>`,
+			);
+		});
+
+		// Surface one "champion" session per horizontal time-segment rather than
+		// the global top-N — otherwise every ring piles into whichever period was
+		// busiest. Segmenting spreads the highlights across the whole timeline so
+		// each stretch has a navigable candidate. Reuse the .timeline-session
+		// class so the existing click delegation loads them on the map.
+		const SEGMENTS = 12;
+		const segBest = new Array(SEGMENTS).fill(null);
+		parsedSessions.forEach((s) => {
+			const frac = (s.start.getTime() - t0) / tSpan;
+			if (frac < 0 || frac > 1) return;
+			const seg = Math.min(SEGMENTS - 1, Math.floor(frac * SEGMENTS));
+			if (!segBest[seg] || s.count > segBest[seg].count) segBest[seg] = s;
+		});
+		const notable = segBest.filter(Boolean).sort((a, b) => a.start - b.start);
+		const placed = [];
+		const overlaps = (a, b) => !(a.x2 < b.x1 || b.x2 < a.x1 || a.y2 < b.y1 || b.y2 < a.y1);
+		const marks = [];
+		notable.forEach((s) => {
+			if (s.count <= 0) return;
+			const cx = xForTime(s.start.getTime());
+			const cy = clampNumber(yForMinute(minuteOfDay(s.start)), margin.top + 6, margin.top + plotHeight - 6);
+			const label = countLabel(s.count);
+			const approxW = label.length * 6 + 6;
+			let chosen = null;
+			for (const dy of [0, -11, 11, -22, 22]) {
+				for (const side of [1, -1]) {
+					const lx = cx + side * 9;
+					const ly = cy + dy;
+					const box = {
+						x1: side === 1 ? lx : lx - approxW,
+						x2: side === 1 ? lx + approxW : lx,
+						y1: ly - 6,
+						y2: ly + 6,
+					};
+					if (box.x1 < margin.left || box.x2 > chartWidth - margin.right) continue;
+					if (box.y1 < margin.top || box.y2 > margin.top + plotHeight) continue;
+					if (placed.some((p) => overlaps(p, box))) continue;
+					chosen = { lx, ly, anchor: side === 1 ? 'start' : 'end', box };
+					break;
+				}
+				if (chosen) break;
+			}
+			let labelMarkup = '';
+			if (chosen) {
+				placed.push(chosen.box);
+				labelMarkup = `<text class="timeline-notable-label" x="${chosen.lx.toFixed(1)}" y="${(chosen.ly + 3).toFixed(1)}" text-anchor="${chosen.anchor}">${label}</text>`;
+			}
+			const title = `${formatTimelineDate(s.start)} – ${formatTimelineDate(s.end)} | ${s.count} points | ${s.durationMinutes} min`;
+			marks.push(`<g class="timeline-session timeline-notable" tabindex="0" role="button" data-start="${s.start.toISOString()}" data-end="${s.end.toISOString()}" data-count="${s.count}" aria-label="Load ${s.count} points from ${formatTimelineDate(s.start)} to ${formatTimelineDate(s.end)}">
+				<title>${title}</title>
+				<circle class="timeline-notable-hit" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="11"></circle>
+				<circle class="timeline-notable-ring" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="4.5"></circle>
+				${labelMarkup}
+			</g>`);
+		});
+
+		// Transparent click-to-zoom layer over the plot. Sits above the cells but
+		// below the rings (which appear later in the DOM) so ring clicks still win.
+		const zoomOverlay = `<rect class="timeline-zoom-overlay" data-t0="${t0}" data-t1="${t1}" x="${margin.left}" y="${margin.top}" width="${plotWidth}" height="${plotHeight}"></rect>`;
+
+		return cells.join('') + zoomOverlay + marks.join('');
+	}
 }
 
 function parseTimelineDate(value) {
