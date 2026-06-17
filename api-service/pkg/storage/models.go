@@ -12,6 +12,9 @@ type Company struct {
 	CompanyToken string     `gorm:"column:company_token;index:companies_company_token"`
 	CreatedAt    *time.Time `gorm:"column:created_at"`
 	UpdatedAt    *time.Time `gorm:"column:updated_at"`
+	Banned       bool       `gorm:"column:banned;not null;default:false;index:companies_banned"`
+	BannedAt     *time.Time `gorm:"column:banned_at"`
+	BannedReason string     `gorm:"column:banned_reason"`
 }
 
 // TableName specifies the canonical table name for Company.
@@ -30,6 +33,9 @@ type Device struct {
 	Framework    string     `gorm:"column:framework"`
 	Version      string     `gorm:"column:version"`
 	UpdatedAt    *time.Time `gorm:"column:updated_at"`
+	Banned       bool       `gorm:"column:banned;not null;default:false;index:devices_banned"`
+	BannedAt     *time.Time `gorm:"column:banned_at"`
+	BannedReason string     `gorm:"column:banned_reason"`
 }
 
 // TableName specifies the canonical table name for Device.

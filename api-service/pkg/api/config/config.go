@@ -67,6 +67,29 @@ type AccessConfig struct {
 	DeniedDeviceTokens    []string `toml:"denied_device_tokens"`
 }
 
+// AbuseConfig controls abuse detection, retention purging, and the maintenance scheduler.
+type AbuseConfig struct {
+	Enabled               bool   `toml:"enabled"`                  // master switch; retention purge stays off until true
+	RetentionDays         int    `toml:"retention_days"`           // default 90
+	WindowHours           int    `toml:"window_hours"`             // activity/threshold window, default 24
+	MaxLocationsPerWindow int64  `toml:"max_locations_per_window"` // 0 disables the locations threshold
+	MaxDevicesPerWindow   int64  `toml:"max_devices_per_window"`   // 0 disables the devices threshold
+	AutoBan               bool   `toml:"auto_ban"`                 // false → alert only
+	TickerIntervalMinutes int    `toml:"ticker_interval_minutes"`  // default 60; 0 disables the in-process ticker
+	MaintenanceToken      string `toml:"maintenance_token"`        // shared secret for cron-triggered maintenance endpoints
+}
+
+// SMTPConfig holds the outbound email settings used for abuse alerts (SendGrid SMTP by default).
+type SMTPConfig struct {
+	Enabled   bool   `toml:"enabled"`
+	Host      string `toml:"host"`     // default smtp.sendgrid.net
+	Port      int    `toml:"port"`     // default 587
+	Username  string `toml:"username"` // default "apikey" for SendGrid
+	APIKey    string `toml:"api_key"`  // SendGrid API key (SMTP password)
+	AlertFrom string `toml:"alert_from"`
+	AlertTo   string `toml:"alert_to"`
+}
+
 // DevelopmentConfig captures the values intended for local development tooling.
 type DevelopmentConfig struct {
 	DevPort int `toml:"dev_port"`
@@ -80,6 +103,8 @@ type Config struct {
 	Admin       AdminConfig       `toml:"admin"`
 	Frontend    FrontendConfig    `toml:"frontend"`
 	Access      AccessConfig      `toml:"access"`
+	Abuse       AbuseConfig       `toml:"abuse"`
+	SMTP        SMTPConfig        `toml:"smtp"`
 	Development DevelopmentConfig `toml:"development"`
 }
 
@@ -194,6 +219,44 @@ func Access() (*AccessConfig, error) {
 		return nil, err
 	}
 	return &cfg.Access, nil
+}
+
+// Abuse returns the abuse-control configuration with sensible defaults applied.
+func Abuse() (*AbuseConfig, error) {
+	cfg, err := Load()
+	if err != nil {
+		return nil, err
+	}
+	abuse := cfg.Abuse
+	if abuse.RetentionDays <= 0 {
+		abuse.RetentionDays = 90
+	}
+	if abuse.WindowHours <= 0 {
+		abuse.WindowHours = 24
+	}
+	if abuse.TickerIntervalMinutes == 0 {
+		abuse.TickerIntervalMinutes = 60
+	}
+	return &abuse, nil
+}
+
+// SMTP returns the outbound email configuration with SendGrid defaults applied.
+func SMTP() (*SMTPConfig, error) {
+	cfg, err := Load()
+	if err != nil {
+		return nil, err
+	}
+	smtp := cfg.SMTP
+	if strings.TrimSpace(smtp.Host) == "" {
+		smtp.Host = "smtp.sendgrid.net"
+	}
+	if smtp.Port <= 0 {
+		smtp.Port = 587
+	}
+	if strings.TrimSpace(smtp.Username) == "" {
+		smtp.Username = "apikey"
+	}
+	return &smtp, nil
 }
 
 // Development returns values intended for local development utilities.

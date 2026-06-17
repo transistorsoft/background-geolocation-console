@@ -44,6 +44,42 @@ func NewServer() (*Server, error) {
 		"formatTime": formatTime,
 		"formatBool": formatBool,
 		"shortUUID":  shortUUID,
+		"add":        func(a, b int) int { return a + b },
+		"sub":        func(a, b int) int { return a - b },
+		"shortTime": func(t *time.Time) string {
+			if t == nil {
+				return "—"
+			}
+			return t.UTC().Format("2006-01-02 15:04")
+		},
+		// activityRangeStart/End express the recent-activity window as datetime-local
+		// values so a company link can pre-seed the dashboard date filters.
+		"activityRangeStart": func(a *services.ActivityPage) string {
+			if a == nil {
+				return ""
+			}
+			return formatDateTimeInputUTC(a.GeneratedAt.Add(-time.Duration(a.WindowHours) * time.Hour))
+		},
+		"activityRangeEnd": func(a *services.ActivityPage) string {
+			if a == nil {
+				return ""
+			}
+			return formatDateTimeInputUTC(a.GeneratedAt)
+		},
+		"dict": func(values ...any) (map[string]any, error) {
+			if len(values)%2 != 0 {
+				return nil, fmt.Errorf("dict requires an even number of arguments")
+			}
+			m := make(map[string]any, len(values)/2)
+			for i := 0; i < len(values); i += 2 {
+				key, ok := values[i].(string)
+				if !ok {
+					return nil, fmt.Errorf("dict keys must be strings")
+				}
+				m[key] = values[i+1]
+			}
+			return m, nil
+		},
 	}
 	tmpl, err := template.New("base").Funcs(funcs).ParseFS(templateFS, "templates/*.html", "templates/partials/*.html")
 	if err != nil {
@@ -86,6 +122,8 @@ func (s *Server) RegisterAdmin(r *gin.RouterGroup) {
 	r.GET("", s.handleAdminDashboard)
 	r.GET("/", s.handleAdminDashboard)
 	r.GET("/partials/company-search", s.handleAdminCompanySearchPartial)
+	r.GET("/partials/activity", s.handleAdminActivityListPartial)
+	r.GET("/partials/activity/detail", s.handleAdminActivityDetailPartial)
 	r.GET("/:org", s.handleAdminDashboard)
 	r.GET("/:org/partials/locations", s.handleAdminLocationsPartial)
 	r.GET("/:org/timeline", s.handleTimeline)
@@ -118,6 +156,13 @@ func (s *Server) renderDashboard(c *gin.Context, admin bool, basePath string) {
 	data.IsAdmin = admin
 	data.PollEvery = s.htmxPoll
 	data.PartialLocationsURL = s.locationsURL(basePath, org, data.SelectedCompanyID, data.SelectedDeviceID, data.From, data.To, data.WatchMode)
+	if admin {
+		// The collapsible recent-activity container is present on every admin view,
+		// so populate it regardless of whether an org is selected.
+		if page, perr := s.buildActivityPage(q); perr == nil {
+			data.Activity = page
+		}
+	}
 	if err := s.tmpl.ExecuteTemplate(c.Writer, "dashboard", data); err != nil {
 		c.Status(http.StatusInternalServerError)
 		_, _ = c.Writer.Write([]byte(err.Error()))
@@ -145,6 +190,64 @@ func (s *Server) handleAdminCompanySearchPartial(c *gin.Context) {
 		_, _ = c.Writer.Write([]byte(err.Error()))
 		return
 	}
+}
+
+func (s *Server) handleAdminActivityListPartial(c *gin.Context) {
+	page, err := s.buildActivityPage(c.Request.URL.Query())
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		_, _ = c.Writer.Write([]byte(err.Error()))
+		return
+	}
+	data := &DashboardPage{RouteBase: "/admin", IsAdmin: true, Activity: page}
+	if err := s.tmpl.ExecuteTemplate(c.Writer, "partials/admin_activity_list", data); err != nil {
+		c.Status(http.StatusInternalServerError)
+		_, _ = c.Writer.Write([]byte(err.Error()))
+	}
+}
+
+func (s *Server) handleAdminActivityDetailPartial(c *gin.Context) {
+	org := strings.TrimSpace(c.Query("org"))
+	windowHours := parseIntDefault(firstParam(c.Request.URL.Query(), "window_hours", ""), 24)
+	window := time.Duration(windowHours) * time.Hour
+	view := &ActivityDetailView{Org: org, WindowHours: windowHours}
+	if org != "" {
+		company, err := services.CompanyActivityDetail(org, window)
+		if err != nil {
+			c.Status(http.StatusInternalServerError)
+			_, _ = c.Writer.Write([]byte(err.Error()))
+			return
+		}
+		view.Company = company
+		if company != nil {
+			devices, err := services.RecentDeviceActivity(company.CompanyID, window)
+			if err != nil {
+				c.Status(http.StatusInternalServerError)
+				_, _ = c.Writer.Write([]byte(err.Error()))
+				return
+			}
+			view.Devices = devices
+		}
+	}
+	if err := s.tmpl.ExecuteTemplate(c.Writer, "partials/admin_activity_detail", view); err != nil {
+		c.Status(http.StatusInternalServerError)
+		_, _ = c.Writer.Write([]byte(err.Error()))
+	}
+}
+
+// buildActivityPage builds a paged activity listing from request query params.
+func (s *Server) buildActivityPage(params map[string][]string) (*services.ActivityPage, error) {
+	windowHours := parseIntDefault(firstParam(params, "window_hours", ""), 24)
+	if windowHours <= 0 {
+		windowHours = 24
+	}
+	return services.RecentActivityPaged(services.ActivityQuery{
+		Window:  time.Duration(windowHours) * time.Hour,
+		Sort:    firstParam(params, "sort", "locations"),
+		Dir:     firstParam(params, "dir", "desc"),
+		Page:    parseIntDefault(firstParam(params, "page", ""), 1),
+		PerPage: parseIntDefault(firstParam(params, "per_page", ""), 25),
+	})
 }
 
 func (s *Server) renderLocationsPartial(c *gin.Context, admin bool, basePath string) {
@@ -517,6 +620,15 @@ type DashboardPage struct {
 	TotalLocations      int64
 	VisibleRangeStart   string
 	VisibleRangeEnd     string
+	Activity            *services.ActivityPage
+}
+
+// ActivityDetailView is the data for the master/detail right pane.
+type ActivityDetailView struct {
+	Org         string
+	WindowHours int
+	Company     *services.CompanyActivity
+	Devices     []services.DeviceActivity
 }
 
 // SearchResult is a template-friendly admin company-token search result.
@@ -754,6 +866,13 @@ func formatDateTimeInputUTC(ts time.Time) string {
 
 func startOfUTCDay(ts time.Time) time.Time {
 	return time.Date(ts.UTC().Year(), ts.UTC().Month(), ts.UTC().Day(), 0, 0, 0, 0, time.UTC)
+}
+
+func parseIntDefault(value string, fallback int) int {
+	if n, err := strconv.Atoi(strings.TrimSpace(value)); err == nil {
+		return n
+	}
+	return fallback
 }
 
 func firstParam(values map[string][]string, key, fallback string) string {

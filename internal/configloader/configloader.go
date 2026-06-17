@@ -29,6 +29,8 @@ func EnsureConfigFile() (string, error) {
 	populateAdminConfig(&cfg.Admin)
 	populateFrontendConfig(&cfg.Frontend)
 	populateAccessConfig(&cfg.Access)
+	populateAbuseConfig(&cfg.Abuse)
+	populateSMTPConfig(&cfg.SMTP)
 	populateDevelopmentConfig(&cfg.Development)
 
 	envErr := validateEnvConfig(cfg)
@@ -127,6 +129,27 @@ func populateAccessConfig(cfg *config.AccessConfig) {
 	cfg.DeniedDeviceTokens = sliceFromEnv("DENIED_DEVICE_TOKENS")
 }
 
+func populateAbuseConfig(cfg *config.AbuseConfig) {
+	cfg.Enabled = boolFromEnv("ABUSE_ENABLED", false)
+	cfg.RetentionDays = intFromEnv("ABUSE_RETENTION_DAYS")
+	cfg.WindowHours = intFromEnv("ABUSE_WINDOW_HOURS")
+	cfg.MaxLocationsPerWindow = int64FromEnv("ABUSE_MAX_LOCATIONS_PER_WINDOW")
+	cfg.MaxDevicesPerWindow = int64FromEnv("ABUSE_MAX_DEVICES_PER_WINDOW")
+	cfg.AutoBan = boolFromEnv("ABUSE_AUTO_BAN", false)
+	cfg.TickerIntervalMinutes = intFromEnv("ABUSE_TICKER_INTERVAL_MINUTES")
+	cfg.MaintenanceToken = strings.TrimSpace(os.Getenv("ABUSE_MAINTENANCE_TOKEN"))
+}
+
+func populateSMTPConfig(cfg *config.SMTPConfig) {
+	cfg.Enabled = boolFromEnv("SMTP_ENABLED", false)
+	cfg.Host = strings.TrimSpace(os.Getenv("SMTP_HOST"))
+	cfg.Port = intFromEnv("SMTP_PORT")
+	cfg.Username = strings.TrimSpace(os.Getenv("SMTP_USERNAME"))
+	cfg.APIKey = strings.TrimSpace(os.Getenv("SENDGRID_API_KEY"))
+	cfg.AlertFrom = strings.TrimSpace(os.Getenv("ALERT_FROM"))
+	cfg.AlertTo = strings.TrimSpace(os.Getenv("ALERT_TO"))
+}
+
 func populateDevelopmentConfig(cfg *config.DevelopmentConfig) {
 	if port := intFromEnv("DEV_PORT"); port > 0 {
 		cfg.DevPort = port
@@ -178,6 +201,19 @@ func intFromEnv(key string) int {
 		return 0
 	}
 	val, err := strconv.Atoi(raw)
+	if err != nil {
+		log.Printf("configloader: ignoring invalid integer %s=%q: %v", key, raw, err)
+		return 0
+	}
+	return val
+}
+
+func int64FromEnv(key string) int64 {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return 0
+	}
+	val, err := strconv.ParseInt(raw, 10, 64)
 	if err != nil {
 		log.Printf("configloader: ignoring invalid integer %s=%q: %v", key, raw, err)
 		return 0

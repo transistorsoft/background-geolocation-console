@@ -4,7 +4,10 @@ CREATE TABLE IF NOT EXISTS companies (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     company_token TEXT,
     created_at DATETIME,
-    updated_at DATETIME
+    updated_at DATETIME,
+    banned BOOLEAN NOT NULL DEFAULT 0,
+    banned_at DATETIME,
+    banned_reason TEXT
 );
 
 CREATE TABLE IF NOT EXISTS devices (
@@ -17,6 +20,9 @@ CREATE TABLE IF NOT EXISTS devices (
     framework TEXT,
     version TEXT,
     updated_at DATETIME,
+    banned BOOLEAN NOT NULL DEFAULT 0,
+    banned_at DATETIME,
+    banned_reason TEXT,
     FOREIGN KEY (company_id) REFERENCES companies(id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
@@ -42,3 +48,5 @@ CREATE INDEX IF NOT EXISTS locations_company_id_device_id_recorded_at ON locatio
 CREATE INDEX IF NOT EXISTS locations_device_id ON locations(device_id);
 CREATE INDEX IF NOT EXISTS locations_recorded_at ON locations(recorded_at);
 CREATE INDEX IF NOT EXISTS locations_uuid ON locations(uuid);
+CREATE INDEX IF NOT EXISTS companies_banned ON companies(banned);
+CREATE INDEX IF NOT EXISTS devices_banned ON devices(banned);

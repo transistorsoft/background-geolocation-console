@@ -214,6 +214,10 @@ func listDevices(org string, companyID *int64, admin bool, start, end *time.Time
 		query = query.Select("devices.*, false AS has_data_in_range")
 	}
 	query = query.
+		// Primary order: most locations recorded first, so the busiest device
+		// surfaces at the top of the device picker. A selected date range still
+		// floats in-range devices above out-of-range ones via has_data_in_range.
+		Order("(SELECT COUNT(*) FROM locations WHERE locations.device_id = devices.id) DESC").
 		Order("(SELECT MAX(recorded_at) FROM locations WHERE locations.device_id = devices.id) DESC NULLS LAST").
 		Order("id ASC")
 
@@ -757,7 +761,15 @@ func DeleteDeviceHistory(opts DeleteDeviceOptions) error {
 	if !opts.Admin && device.CompanyToken != strings.TrimSpace(opts.Org) {
 		return ErrForbidden
 	}
-	return db.WithContext(ctx).Delete(&device).Error
+	// Delete the device's location data explicitly before removing the device.
+	// The schema's FK cascade is not guaranteed (AutoMigrate creates the tables
+	// without FK constraints), so we cannot rely on ON DELETE CASCADE here.
+	return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("device_id = ?", device.ID).Delete(&storage.Location{}).Error; err != nil {
+			return err
+		}
+		return tx.Where("id = ?", device.ID).Delete(&storage.Device{}).Error
+	})
 }
 
 // EnsureDashboardDevice provisions a logical device used by dashboard viewers.

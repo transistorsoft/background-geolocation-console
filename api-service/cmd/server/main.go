@@ -97,6 +97,9 @@ func main() {
 		}
 	}()
 
+	stopBackground := api.StartBackground(context.Background())
+	defer stopBackground()
+
 	addr := ":9000"
 	if port := cfg.Server.Port; port != 0 {
 		addr = fmt.Sprintf(":%d", port)

@@ -1,0 +1,60 @@
+{{define "partials/admin_activity_detail"}}
+{{if not .Org}}
+<div class="activity-empty">Select a company to inspect and manage its devices.</div>
+{{else if not .Company}}
+<div class="activity-empty">Company <code>{{.Org}}</code> no longer exists.</div>
+{{else}}
+<div class="activity-detail-head">
+	<div>
+		<h2><code>{{.Company.CompanyToken}}</code></h2>
+		<p class="activity-metrics">
+			{{if .Company.Banned}}<span class="badge banned">banned</span>{{else}}<span class="badge active">active</span>{{end}}
+			· {{.Company.LocationCount}} loc · {{.Company.DeviceCount}} dev · last {{shortTime .Company.LastRecorded}}
+		</p>
+	</div>
+	<div class="activity-detail-actions">
+		{{if .Company.Banned}}
+		<form class="inline" hx-post="/admin/api/companies/unban" hx-swap="none" hx-on::after-request="afterCompanyAction(event)">
+			<input type="hidden" name="org" value="{{.Company.CompanyToken}}">
+			<button type="submit">Unban company</button>
+		</form>
+		{{else}}
+		<form class="inline" hx-post="/admin/api/companies/ban" hx-swap="none" hx-on::after-request="afterCompanyAction(event)">
+			<input type="hidden" name="org" value="{{.Company.CompanyToken}}">
+			<button type="submit">Ban company</button>
+		</form>
+		{{end}}
+		<form class="inline" hx-post="/admin/api/companies/delete" hx-confirm="Delete {{.Company.CompanyToken}} and ALL its data?" hx-swap="none" hx-on::after-request="afterCompanyAction(event)">
+			<input type="hidden" name="org" value="{{.Company.CompanyToken}}">
+			<button type="submit" class="danger">Delete company</button>
+		</form>
+		<a class="detail-dashboard" href="/admin/{{.Org}}">Open dashboard ↗</a>
+	</div>
+</div>
+
+<h3>Devices ({{.WindowHours}}h)</h3>
+{{if not .Devices}}
+<div class="activity-empty">No devices for this company.</div>
+{{else}}
+<table class="activity-table">
+	<thead>
+		<tr><th>Device</th><th class="num">Loc</th><th>Last seen</th><th class="col-actions">Actions</th></tr>
+	</thead>
+	<tbody>
+		{{range .Devices}}
+		<tr>
+			<td><span class="muted">#{{.DeviceID}}</span> {{.DeviceToken}}</td>
+			<td class="num">{{.LocationCount}}</td>
+			<td>{{shortTime .LastRecorded}}</td>
+			<td class="col-actions">
+				<form class="inline" hx-post="/admin/api/devices/{{.DeviceID}}/delete" hx-confirm="Delete this device and all its location data?" hx-swap="none" hx-on::after-request="afterDeviceAction(event)">
+					<button type="submit" class="danger">Delete</button>
+				</form>
+			</td>
+		</tr>
+		{{end}}
+	</tbody>
+</table>
+{{end}}
+{{end}}
+{{end}}

@@ -23,6 +23,21 @@ func APIRegister(c *gin.Context) {
 		return
 	}
 
+	// The _transistor prefix is reserved for administrator-created companies.
+	if services.IsProtectedCompanyToken(req.Org) {
+		c.JSON(http.StatusForbidden, gin.H{"message": "reserved company token"})
+		return
+	}
+	// Reject banned or denylisted companies before provisioning anything.
+	if banned, err := services.CompanyBanned(req.Org); err == nil && banned {
+		writeBannedStop(c)
+		return
+	}
+	if services.IsDeniedCompany(req.Org) {
+		writeBannedStop(c)
+		return
+	}
+
 	companyID, deviceID, err := services.FindOrCreateDevice(req.Org, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -75,7 +90,17 @@ func APIPostLocations(c *gin.Context) {
 	cl := middleware.Claims(c)
 	dev, _ := services.GetDeviceByID(cl.DeviceID, cl.Org)
 	if dev == nil {
-		c.JSON(http.StatusGone, gin.H{"error": "DEVICE_ID_NOT_FOUND", "background_geolocation": []any{"stop"}})
+		c.JSON(http.StatusGone, gin.H{"error": "DEVICE_ID_NOT_FOUND", "background_geolocation": []any{[]any{"stop"}}})
+		return
+	}
+	// Banned or denylisted companies are told to stop sending data. (Devices are
+	// delete-only — a deleted device already hits the DEVICE_ID_NOT_FOUND stop path.)
+	if banned, err := services.CompanyBanned(cl.Org); err == nil && banned {
+		writeBannedStop(c)
+		return
+	}
+	if services.IsDeniedCompany(cl.Org) {
+		writeBannedStop(c)
 		return
 	}
 	if services.IsDDosCompany(cl.Org) {
@@ -92,6 +117,6 @@ func APIPostLocations(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	_ = services.RemoveOld(cl.Org)
+	// Retention is handled centrally by the maintenance cycle (ticker + endpoints).
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }

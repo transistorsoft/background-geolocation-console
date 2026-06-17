@@ -46,5 +46,21 @@ func registerAdminRoutes(r *gin.Engine, dashboard *web.Server) {
 		adminAPI.GET("/locations/find", handlers.AdminFindLocationByUUID)
 		adminAPI.GET("/locations/latest", handlers.AdminGetLatestLocation)
 		adminAPI.DELETE("/devices/:id", middleware.CheckAdminCSRFFromRequest(), handlers.AdminDeleteDevice)
+		adminAPI.POST("/companies/create", middleware.CheckAdminCSRFFromRequest(), handlers.AdminCreateCompany)
+		adminAPI.POST("/companies/ban", middleware.CheckAdminCSRFFromRequest(), handlers.AdminBanCompany)
+		adminAPI.POST("/companies/unban", middleware.CheckAdminCSRFFromRequest(), handlers.AdminUnbanCompany)
+		adminAPI.POST("/companies/delete", middleware.CheckAdminCSRFFromRequest(), handlers.AdminDeleteCompany)
+		adminAPI.POST("/companies/bulk-ban", middleware.CheckAdminCSRFFromRequest(), handlers.AdminBulkBanCompanies)
+		adminAPI.POST("/companies/bulk-delete", middleware.CheckAdminCSRFFromRequest(), handlers.AdminBulkDeleteCompanies)
+		adminAPI.POST("/devices/:id/delete", middleware.CheckAdminCSRFFromRequest(), handlers.AdminDeleteDeviceAndData)
+	}
+
+	// Maintenance endpoints accept either an admin session+CSRF or a shared-secret
+	// header so the free Heroku Scheduler / external cron can trigger them headlessly.
+	maintenance := r.Group("/admin/api/maintenance")
+	maintenance.Use(middleware.CheckMaintenanceOrAdmin())
+	{
+		maintenance.POST("/cleanup", handlers.AdminMaintenanceCleanup)
+		maintenance.POST("/check-thresholds", handlers.AdminMaintenanceCheckThresholds)
 	}
 }

@@ -2,7 +2,10 @@ CREATE TABLE IF NOT EXISTS public.companies (
     id SERIAL PRIMARY KEY,
     company_token TEXT,
     created_at TIMESTAMPTZ,
-    updated_at TIMESTAMPTZ
+    updated_at TIMESTAMPTZ,
+    banned BOOLEAN NOT NULL DEFAULT FALSE,
+    banned_at TIMESTAMPTZ,
+    banned_reason TEXT
 );
 
 CREATE TABLE IF NOT EXISTS public.devices (
@@ -14,7 +17,10 @@ CREATE TABLE IF NOT EXISTS public.devices (
     created_at TIMESTAMPTZ,
     framework TEXT,
     version TEXT,
-    updated_at TIMESTAMPTZ
+    updated_at TIMESTAMPTZ,
+    banned BOOLEAN NOT NULL DEFAULT FALSE,
+    banned_at TIMESTAMPTZ,
+    banned_reason TEXT
 );
 
 CREATE TABLE IF NOT EXISTS public.locations (
@@ -37,3 +43,5 @@ CREATE INDEX IF NOT EXISTS locations_company_id_device_id_recorded_at ON public.
 CREATE INDEX IF NOT EXISTS locations_device_id ON public.locations (device_id);
 CREATE INDEX IF NOT EXISTS locations_recorded_at ON public.locations (recorded_at);
 CREATE INDEX IF NOT EXISTS locations_uuid ON public.locations (uuid);
+CREATE INDEX IF NOT EXISTS companies_banned ON public.companies (banned);
+CREATE INDEX IF NOT EXISTS devices_banned ON public.devices (banned);

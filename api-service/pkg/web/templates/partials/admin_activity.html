@@ -1,0 +1,85 @@
+{{define "partials/admin_activity"}}
+<details class="activity-disclosure" id="activity-disclosure" open>
+	<summary class="activity-summary">
+		<span class="activity-summary__title">Recent Activity{{if .Activity}} ({{.Activity.WindowHours}}h){{end}}</span>
+		{{if .Activity}}<span class="activity-summary__hint">{{.Activity.ActiveCount}} active · {{.Activity.TotalCompanies}} companies</span>{{end}}
+		<span class="activity-summary__chev" aria-hidden="true"></span>
+	</summary>
+	<div class="activity-shell">
+		<div class="activity-master">
+			{{template "partials/admin_activity_list" .}}
+		</div>
+		<aside class="activity-detail" id="activity-detail"
+			data-org="{{.Org}}" data-window="{{if .Activity}}{{.Activity.WindowHours}}{{else}}24{{end}}"
+			{{if .Org}}hx-get="/admin/partials/activity/detail?org={{urlquery .Org}}&window_hours={{if .Activity}}{{.Activity.WindowHours}}{{else}}24{{end}}" hx-trigger="load" hx-swap="innerHTML"{{end}}>
+			<div class="activity-empty">{{if .Org}}Loading devices…{{else}}Select a company to inspect and manage its devices.{{end}}</div>
+		</aside>
+	</div>
+</details>
+<script>
+(function () {
+	if (window.__activityWired) return;
+	window.__activityWired = true;
+
+	function csrfToken() {
+		var m = document.cookie.match(/(?:^|;\s*)([^=;\s]*_csrf)=([^;]*)/);
+		return m ? decodeURIComponent(m[2]) : '';
+	}
+
+	// Attach the admin CSRF token to every mutating /admin request.
+	document.body.addEventListener('htmx:configRequest', function (evt) {
+		var path = evt.detail.path || '';
+		var verb = (evt.detail.verb || 'get').toLowerCase();
+		if (verb !== 'get' && path.indexOf('/admin/') === 0) {
+			evt.detail.headers['X-CSRF-Token'] = csrfToken();
+		}
+	});
+
+	window.refreshActivity = function () {
+		var el = document.getElementById('activity-list');
+		if (!el || !window.htmx) return;
+		var url = el.getAttribute('data-activity-url') || '/admin/partials/activity';
+		window.htmx.ajax('GET', url, { target: '#activity-list', swap: 'outerHTML' });
+	};
+
+	window.refreshActivityDetail = function () {
+		var el = document.getElementById('activity-detail');
+		if (!el || !window.htmx) return;
+		var org = el.getAttribute('data-org') || '';
+		var win = el.getAttribute('data-window') || '24';
+		if (!org) return;
+		window.htmx.ajax('GET', '/admin/partials/activity/detail?org=' + encodeURIComponent(org) + '&window_hours=' + encodeURIComponent(win),
+			{ target: '#activity-detail', swap: 'innerHTML' });
+	};
+
+	// After any company-level action, refresh both panes.
+	window.afterCompanyAction = function (evt) {
+		if (evt.detail && evt.detail.successful) {
+			window.refreshActivity();
+			window.refreshActivityDetail();
+		}
+	};
+	// After a device-level action, refresh only the detail pane.
+	window.afterDeviceAction = function (evt) {
+		if (evt.detail && evt.detail.successful) {
+			window.refreshActivityDetail();
+		}
+	};
+
+	// Recent Activity stays expanded by default; remember the admin's collapse
+	// choice across reloads (e.g. when selecting devices) so they can keep the
+	// map in focus once they roll it up.
+	var disc = document.getElementById('activity-disclosure');
+	if (disc) {
+		try {
+			var saved = localStorage.getItem('bgcActivityOpen');
+			if (saved === '0') disc.open = false;
+			else if (saved === '1') disc.open = true;
+		} catch (e) {}
+		disc.addEventListener('toggle', function () {
+			try { localStorage.setItem('bgcActivityOpen', disc.open ? '1' : '0'); } catch (e) {}
+		});
+	}
+})();
+</script>
+{{end}}

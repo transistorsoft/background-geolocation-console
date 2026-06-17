@@ -54,11 +54,16 @@
 	</div>
 
 	<div class="panel panel-main" data-view-mode="both" data-company-id="{{.SelectedCompanyID}}" data-org="{{.Org}}" data-route-base="{{.RouteBase}}">
+		{{if .IsAdmin}}
+		{{template "partials/admin_activity" .}}
+		{{end}}
 		{{if not .Org}}
+		{{if not .IsAdmin}}
 		<div class="empty-state">
 			<h2>Select an organization token</h2>
 			<p>Provide the company token you registered with the API to inspect devices and locations in real time.</p>
 		</div>
+		{{end}}
 		{{else}}
 		<div class="panel-header">
 			<div class="header-title">{{if .Org}}{{.Org}}{{else}}Background Geolocation{{end}}</div>

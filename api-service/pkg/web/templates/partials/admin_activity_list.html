@@ -1,0 +1,104 @@
+{{define "partials/admin_activity_list"}}
+{{$a := .Activity}}
+<div id="activity-list" class="activity-list"
+	data-activity-url="/admin/partials/activity?window_hours={{$a.WindowHours}}&per_page={{$a.PerPage}}&sort={{$a.Sort}}&dir={{$a.Dir}}&page={{$a.Page}}">
+
+	<div class="activity-head">
+		<div>
+			<h2>Recent Activity ({{$a.WindowHours}}h)</h2>
+			<p class="activity-metrics">
+				active <strong>{{$a.ActiveCount}}</strong> ·
+				total <strong>{{$a.TotalLocations}}</strong> ·
+				min <strong>{{$a.MinLocations}}</strong> ·
+				max <strong>{{$a.MaxLocations}}</strong> ·
+				avg <strong>{{printf "%.1f" $a.AvgLocations}}</strong>
+			</p>
+		</div>
+		<div class="activity-controls">
+			<form hx-get="/admin/partials/activity" hx-target="#activity-list" hx-swap="outerHTML" class="activity-window">
+				<input type="hidden" name="sort" value="{{$a.Sort}}">
+				<input type="hidden" name="dir" value="{{$a.Dir}}">
+				<input type="hidden" name="per_page" value="{{$a.PerPage}}">
+				<label for="activity-window-hours">Window (h)</label>
+				<input type="number" id="activity-window-hours" name="window_hours" value="{{$a.WindowHours}}" min="1" max="8760" style="width:5rem">
+				<button type="submit">Apply</button>
+			</form>
+			<button type="button" onclick="refreshActivity()">↻ Refresh</button>
+		</div>
+	</div>
+
+	<div class="activity-bulkbar">
+		<form id="activity-bulk-form"></form>
+		<button type="button" hx-post="/admin/api/companies/bulk-ban" hx-include="#activity-bulk-form" hx-swap="none" hx-on::after-request="afterCompanyAction(event)">Ban selected</button>
+		<button type="button" class="danger" hx-post="/admin/api/companies/bulk-delete" hx-include="#activity-bulk-form" hx-confirm="Delete the selected companies and ALL their data?" hx-swap="none" hx-on::after-request="afterCompanyAction(event)">Delete selected</button>
+	</div>
+
+	{{if not $a.Companies}}
+	<div class="activity-empty">No companies found.</div>
+	{{else}}
+	<table class="activity-table">
+		<thead>
+			<tr>
+				<th class="col-check"></th>
+				<th>{{template "partials/activity_sort" dict "A" $a "Key" "token" "Label" "Company"}}</th>
+				<th>Status</th>
+				<th class="num">{{template "partials/activity_sort" dict "A" $a "Key" "locations" "Label" "Loc"}}</th>
+				<th class="num">{{template "partials/activity_sort" dict "A" $a "Key" "devices" "Label" "Dev"}}</th>
+				<th>{{template "partials/activity_sort" dict "A" $a "Key" "last_seen" "Label" "Last seen"}}</th>
+				<th class="col-actions">Actions</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{range $a.Companies}}
+			<tr>
+				<td class="col-check"><input type="checkbox" name="orgs" value="{{.CompanyToken}}" form="activity-bulk-form"></td>
+				<td>
+					<a class="activity-token" href="/admin?org={{urlquery .CompanyToken}}&start_date={{urlquery (activityRangeStart $a)}}&end_date={{urlquery (activityRangeEnd $a)}}" title="Scope the dashboard to {{.CompanyToken}} over the last {{$a.WindowHours}}h">
+						<code>{{.CompanyToken}}</code>
+					</a>
+				</td>
+				<td>{{if .Banned}}<span class="badge banned">banned</span>{{else}}<span class="badge active">active</span>{{end}}</td>
+				<td class="num">{{.LocationCount}}</td>
+				<td class="num">{{.DeviceCount}}</td>
+				<td>{{shortTime .LastRecorded}}</td>
+				<td class="col-actions">
+					{{if .Banned}}
+					<form class="inline" hx-post="/admin/api/companies/unban" hx-swap="none" hx-on::after-request="afterCompanyAction(event)">
+						<input type="hidden" name="org" value="{{.CompanyToken}}">
+						<button type="submit">Unban</button>
+					</form>
+					{{else}}
+					<form class="inline" hx-post="/admin/api/companies/ban" hx-swap="none" hx-on::after-request="afterCompanyAction(event)">
+						<input type="hidden" name="org" value="{{.CompanyToken}}">
+						<button type="submit">Ban</button>
+					</form>
+					{{end}}
+					<form class="inline" hx-post="/admin/api/companies/delete" hx-confirm="Delete {{.CompanyToken}} and ALL its data?" hx-swap="none" hx-on::after-request="afterCompanyAction(event)">
+						<input type="hidden" name="org" value="{{.CompanyToken}}">
+						<button type="submit" class="danger">Delete</button>
+					</form>
+				</td>
+			</tr>
+			{{end}}
+		</tbody>
+	</table>
+
+	<div class="activity-pager">
+		{{if gt $a.Page 1}}
+		<a hx-get="/admin/partials/activity?window_hours={{$a.WindowHours}}&per_page={{$a.PerPage}}&sort={{$a.Sort}}&dir={{$a.Dir}}&page={{sub $a.Page 1}}" hx-target="#activity-list" hx-swap="outerHTML">‹ prev</a>
+		{{else}}<span class="muted">‹ prev</span>{{end}}
+		<span class="muted">page {{$a.Page}} of {{$a.TotalPages}} · {{$a.TotalCompanies}} companies</span>
+		{{if lt $a.Page $a.TotalPages}}
+		<a hx-get="/admin/partials/activity?window_hours={{$a.WindowHours}}&per_page={{$a.PerPage}}&sort={{$a.Sort}}&dir={{$a.Dir}}&page={{add $a.Page 1}}" hx-target="#activity-list" hx-swap="outerHTML">next ›</a>
+		{{else}}<span class="muted">next ›</span>{{end}}
+	</div>
+	{{end}}
+</div>
+{{end}}
+
+{{define "partials/activity_sort"}}
+{{$a := .A}}
+<a class="sort{{if eq $a.Sort .Key}} is-active{{end}}" style="cursor:pointer"
+	hx-get="/admin/partials/activity?window_hours={{$a.WindowHours}}&per_page={{$a.PerPage}}&page=1&sort={{.Key}}&dir={{if and (eq $a.Sort .Key) (eq $a.Dir "desc")}}asc{{else}}desc{{end}}"
+	hx-target="#activity-list" hx-swap="outerHTML">{{.Label}}{{if eq $a.Sort .Key}}{{if eq $a.Dir "desc"}} ▾{{else}} ▴{{end}}{{end}}</a>
+{{end}}

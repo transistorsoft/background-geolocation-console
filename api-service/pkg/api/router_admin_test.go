@@ -97,7 +97,9 @@ func TestAdminLoginAndProtectedRoutes(t *testing.T) {
 		if homeResp.Code != http.StatusOK {
 			t.Fatalf("expected /admin 200 with cookie, got %d", homeResp.Code)
 		}
-		if !strings.Contains(homeResp.Body.String(), "Admin Search") || !strings.Contains(homeResp.Body.String(), "Select an organization token") {
+		// Admins see the search anchor plus the recent-activity master/detail view
+		// in the main panel (which replaces the public "select an org" empty state).
+		if !strings.Contains(homeResp.Body.String(), "Admin Search") || !strings.Contains(homeResp.Body.String(), "activity-shell") {
 			t.Fatalf("expected admin home content, got %q", homeResp.Body.String())
 		}
 

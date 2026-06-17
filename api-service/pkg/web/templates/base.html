@@ -26,9 +26,37 @@
 		</div>
 		<nav>
 			<a href="{{if .RouteBase}}{{.RouteBase}}{{else}}/dashboard{{end}}">Dashboard</a>
+			{{if .IsAdmin}}<button type="button" id="admin-token-trigger" class="admin-token-trigger">+ New token</button>{{end}}
 			<a href="/healthz" target="_blank" rel="noreferrer">Health</a>
 		</nav>
 	</header>
+	{{if .IsAdmin}}
+	<dialog id="admin-token-dialog" class="admin-modal">
+		<form method="dialog" class="admin-modal__head">
+			<h3>Create company token</h3>
+			<button value="cancel" aria-label="Close">&times;</button>
+		</form>
+		<form class="admin-modal__body" hx-post="/admin/api/companies/create" hx-swap="none"
+			hx-on::after-request="if(event.detail.successful){this.reset();document.getElementById('admin-token-dialog').close();if(window.refreshActivity)refreshActivity();}">
+			<label for="admin-token-input">Company token</label>
+			<input type="text" id="admin-token-input" name="org" placeholder="_transistor-demo" autocomplete="off" required>
+			<p class="hint">Admins may create reserved <code>_transistor</code>-prefixed tokens that external registration rejects.</p>
+			<div class="admin-modal__actions">
+				<button type="button" onclick="document.getElementById('admin-token-dialog').close()">Cancel</button>
+				<button type="submit" class="primary">Create</button>
+			</div>
+		</form>
+	</dialog>
+	<script>
+		(function () {
+			var btn = document.getElementById('admin-token-trigger');
+			var dlg = document.getElementById('admin-token-dialog');
+			if (btn && dlg && typeof dlg.showModal === 'function') {
+				btn.addEventListener('click', function () { dlg.showModal(); });
+			}
+		})();
+	</script>
+	{{end}}
 	<main>
 		{{block "content" .}}{{end}}
 	</main>

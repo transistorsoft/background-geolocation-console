@@ -41,6 +41,9 @@ func main() {
 		}
 	}()
 
+	stopBackground := api.StartBackground(context.Background())
+	defer stopBackground()
+
 	addr := determineListenAddr(cfg)
 	log.Printf("listening on %s", addr)
 	if err := http.ListenAndServe(addr, api.New()); err != nil {

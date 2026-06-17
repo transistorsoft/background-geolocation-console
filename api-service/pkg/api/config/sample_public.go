@@ -70,6 +70,31 @@ denied_company_tokens = []
 denied_device_tokens = []
 
 # ===========================
+# Abuse Control & Retention
+# ===========================
+[abuse]
+enabled = false
+retention_days = 90
+window_hours = 24
+max_locations_per_window = 0
+max_devices_per_window = 0
+auto_ban = false
+ticker_interval_minutes = 60
+maintenance_token = ""
+
+# ===========================
+# Outbound Email (SendGrid SMTP)
+# ===========================
+[smtp]
+enabled = false
+host = "smtp.sendgrid.net"
+port = 587
+username = "apikey"
+api_key = ""
+alert_from = ""
+alert_to = ""
+
+# ===========================
 # Development Utilities
 # ===========================
 [development]
