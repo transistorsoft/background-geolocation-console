@@ -895,10 +895,11 @@ func propagateLocationPayload(payload map[string]any) {
 	ensureFromPayload(payload, "event", "event", "location.event", "data.event", "location.data.event")
 	ensureFromPayload(payload, "extras", "extras", "location.extras", "data.extras", "location.data.extras")
 	ensureFromPayload(payload, "age", "age", "location.age", "data.age", "location.data.age")
-	ensureFromPayload(payload, "activity_type", "activity_type", "activity.type", "location.activity.type", "data.activity.type", "location.data.activity.type")
-	ensureFromPayload(payload, "activity_confidence", "activity_confidence", "activity.confidence", "location.activity.confidence", "data.activity.confidence", "location.data.activity.confidence")
-	ensureFromPayload(payload, "battery_level", "battery_level", "battery.level", "location.battery.level", "data.battery.level", "location.data.battery.level")
-	ensureFromPayload(payload, "battery_is_charging", "battery_is_charging", "battery.is_charging", "location.battery.is_charging", "data.battery.is_charging", "location.data.battery.is_charging")
+	// NOTE: activity and battery are intentionally NOT flattened into scalar
+	// keys here. The nested `activity` / `battery` objects are the canonical
+	// representation; the dashboard view builder reads them directly (see
+	// buildLocationViews). Injecting activity_type/battery_level/etc. would
+	// duplicate that data and denormalize the serialized payload.
 	ensureFromPayload(payload, "timestamp", "timestamp", "location.timestamp")
 	ensureFromPayload(payload, "recorded_at", "recorded_at", "location.recorded_at", "location.timestamp", "data.recorded_at", "data.timestamp")
 	ensureFromPayload(payload, "uuid", "uuid", "location.uuid", "data.uuid", "data.location.uuid")

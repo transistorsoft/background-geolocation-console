@@ -14,6 +14,12 @@ let currentTheme = 'dark';
 // belong to the locations table and map.
 let timelineQueryParams = null;
 
+// Tracks how the active date range was chosen so the locations panel can label
+// its count accurately: 'session' when the user loaded the latest session,
+// 'range' for a quick-range pill or a manual date edit. Sent to the server as
+// range_mode and echoed back into the stats heading.
+let currentRangeMode = '';
+
 // Window state for the stock-app-style timeline browser. Sessions are fetched
 // once per Generate click; pan/span buttons re-filter the cached array
 // without going back to the server.
@@ -268,6 +274,8 @@ document.addEventListener('DOMContentLoaded', () => {
 			input.addEventListener('focus', normalizeDelayed);
 			input.addEventListener('change', normalizeLater);
 			input.addEventListener('change', clearActivePill);
+			// A manual date edit is a custom range, not the loaded session.
+			input.addEventListener('change', () => { currentRangeMode = 'range'; });
 			input.addEventListener('blur', normalizeLater);
 			input.addEventListener('focus', startPolling);
 			input.addEventListener('blur', stopPolling);
@@ -333,6 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			normalizeDateTimeInput(startInput);
 			normalizeDateTimeInput(endInput);
 			setActivePill(rangeKey);
+			currentRangeMode = 'range';
 			if (shouldRefresh) {
 				triggerRefresh();
 			}
@@ -384,6 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
 					normalizeDateTimeInput(startInput);
 					normalizeDateTimeInput(endInput);
 					clearActivePill();
+					currentRangeMode = 'session';
 					const durationMs = session.end.getTime() - session.start.getTime();
 					const points = session.count || 0;
 					setSessionStatus(`Loaded ${points} point${points === 1 ? '' : 's'} over ${formatDuration(durationMs)}.`, 'success');
@@ -904,6 +914,12 @@ function buildLocationsRequestParams(overrides = {}) {
 	}
 	if (watchModeInput?.checked) {
 		params.set('watch_mode', 'true');
+	}
+	// Tell the server how the current range was chosen so the stats heading can
+	// read "from session" vs "in selected range". Only meaningful once a range
+	// is set (which is also when the locations panel actually returns counts).
+	if (currentRangeMode && (params.has('start_date') || params.has('end_date'))) {
+		params.set('range_mode', currentRangeMode);
 	}
 	Object.entries(overrides).forEach(([key, value]) => {
 		if (value === null || value === undefined || value === '') {

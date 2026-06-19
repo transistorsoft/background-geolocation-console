@@ -485,6 +485,7 @@ func (s *Server) buildDashboardData(org string, params map[string][]string, admi
 		Org:              org,
 		From:             firstParam(params, "start_date", ""),
 		To:               firstParam(params, "end_date", ""),
+		RangeMode:        firstParam(params, "range_mode", ""),
 		WatchMode:        strings.ToLower(firstParam(params, "watch_mode", "")) == "true",
 		MapLocationsJSON: template.JS("[]"),
 		PollEvery:        s.htmxPoll,
@@ -612,6 +613,7 @@ type DashboardPage struct {
 	PartialLocationsURL string
 	From                string
 	To                  string
+	RangeMode           string
 	WatchMode           bool
 	HasActiveFilters    bool
 	MapLocationsJSON    template.JS
@@ -666,16 +668,30 @@ func buildLocationViews(records []map[string]any) []LocationView {
 		lng, lngOK := floatFromAny(rec["longitude"])
 		coord := ""
 		if latOK && lngOK {
-			coord = fmt.Sprintf("%.2f, %.2f", lat, lng)
+			coord = fmt.Sprintf("%.6f, %.6f", lat, lng)
 		}
 		acc := formatMetric(rec["accuracy"], "m")
 		speed := formatMetric(rec["speed"], "m/s")
-		activity := strings.TrimSpace(stringFromAny(rec["activity_type"]))
-		if activity == "" {
-			activity = "unknown"
+		activity := "unknown"
+		if v, ok := lookupNested(rec, "activity.type", "location.activity.type", "data.activity.type", "location.data.activity.type"); ok {
+			if s := strings.TrimSpace(stringFromAny(v)); s != "" {
+				activity = s
+			}
 		}
-		activityDetails := fmt.Sprintf("%s (%s)", activity, stringFromAny(rec["activity_confidence"]))
-		battery := formatBattery(rec["battery_level"])
+		activityConfidence := ""
+		if v, ok := lookupNested(rec, "activity.confidence", "location.activity.confidence", "data.activity.confidence", "location.data.activity.confidence"); ok {
+			activityConfidence = stringFromAny(v)
+		}
+		activityDetails := fmt.Sprintf("%s (%s)", activity, activityConfidence)
+		var batteryLevel any
+		if v, ok := lookupNested(rec, "battery.level", "location.battery.level", "data.battery.level", "location.data.battery.level"); ok {
+			batteryLevel = v
+		}
+		battery := formatBattery(batteryLevel)
+		batteryCharging := false
+		if v, ok := lookupNested(rec, "battery.is_charging", "location.battery.is_charging", "data.battery.is_charging", "location.data.battery.is_charging"); ok {
+			batteryCharging = boolFromAny(v)
+		}
 		recordedISO := stringFromAny(rec["recorded_at"])
 		recordedDate, recordedTime := formatUTCParts(recordedISO)
 		rawJSON := "{}"
@@ -698,7 +714,7 @@ func buildLocationViews(records []map[string]any) []LocationView {
 			Activity:        activity,
 			ActivityDetails: activityDetails,
 			Battery:         battery,
-			BatteryCharging: boolFromAny(rec["battery_is_charging"]),
+			BatteryCharging: batteryCharging,
 			RawJSON:         rawJSON,
 		}
 		out = append(out, view)
@@ -758,6 +774,34 @@ func floatFromAny(val any) (float64, bool) {
 		}
 	}
 	return 0, false
+}
+
+// lookupNested resolves the first dotted path that exists in a decoded
+// location payload, walking nested map[string]any objects. It lets the view
+// builder read canonical nested fields (e.g. activity.type, battery.level)
+// without the services layer having to flatten them into duplicate scalar keys.
+func lookupNested(rec map[string]any, paths ...string) (any, bool) {
+	for _, p := range paths {
+		current := any(rec)
+		ok := true
+		for _, segment := range strings.Split(p, ".") {
+			m, isMap := current.(map[string]any)
+			if !isMap {
+				ok = false
+				break
+			}
+			next, exists := m[segment]
+			if !exists {
+				ok = false
+				break
+			}
+			current = next
+		}
+		if ok {
+			return current, true
+		}
+	}
+	return nil, false
 }
 
 func stringFromAny(val any) string {

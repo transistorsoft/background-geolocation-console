@@ -94,8 +94,33 @@ func gormConfig() *gorm.Config {
 	}
 }
 
+// pgApplicationName labels this service's Postgres connections so they are
+// distinguishable in pg_stat_activity (e.g. from a legacy console sharing the DB).
+const pgApplicationName = "bg-console-go"
+
+// withApplicationName injects application_name into a Postgres DSN (URL or
+// keyword/value form) unless one is already set.
+func withApplicationName(dsn, name string) string {
+	trimmed := strings.TrimSpace(dsn)
+	if trimmed == "" {
+		return dsn
+	}
+	if u, err := url.Parse(trimmed); err == nil && u.Scheme != "" {
+		q := u.Query()
+		if q.Get("application_name") == "" {
+			q.Set("application_name", name)
+			u.RawQuery = q.Encode()
+		}
+		return u.String()
+	}
+	if strings.Contains(trimmed, "application_name=") {
+		return trimmed
+	}
+	return trimmed + " application_name=" + name
+}
+
 func openPostgres(ctx context.Context, cfg config.DatabaseConfig) (*gorm.DB, error) {
-	dsn := cfg.DatabaseURL
+	dsn := withApplicationName(cfg.DatabaseURL, pgApplicationName)
 	db, err := gorm.Open(postgres.Open(dsn), gormConfig())
 	if err != nil {
 		var pgErr *pgconn.PgError

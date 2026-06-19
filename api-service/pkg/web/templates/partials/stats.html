@@ -1,5 +1,13 @@
 {{define "partials/stats"}}
 <div class="panel-heading" id="location-stats">
-	<p>{{.TotalLocations}} location data points</p>
+	{{if .HasSelectedDevice}}
+		{{if eq .RangeMode "session"}}
+			<p>{{.TotalLocations}} location points from session</p>
+		{{else}}
+			<p>{{.TotalLocations}} location points in selected range</p>
+		{{end}}
+	{{else}}
+		<p>{{.TotalLocations}} location data points</p>
+	{{end}}
 </div>
 {{end}}
