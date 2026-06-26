@@ -24,12 +24,18 @@
 			<input type="hidden" name="org" value="{{.Org}}">
 			<input type="hidden" id="scope-start-date" name="start_date" value="{{.From}}">
 			<input type="hidden" id="scope-end-date" name="end_date" value="{{.To}}">
+			{{if .IsAdmin}}
 			<label for="company">Company</label>
 			<select id="company" name="company_id">
 				{{range .Companies}}
 				<option value="{{.ID}}" {{if eq $.SelectedCompanyID .ID}}selected{{end}}>{{.CompanyToken}}</option>
 				{{end}}
 			</select>
+			{{else}}
+			<label>Company</label>
+			<div class="company-pill" title="{{.Org}}">{{.Org}}</div>
+			<input type="hidden" id="company" name="company_id" value="{{.SelectedCompanyID}}">
+			{{end}}
 			<label for="device">Device</label>
 			<select id="device" name="device_id">
 				{{template "partials/device_options" .}}

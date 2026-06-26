@@ -1376,6 +1376,23 @@ body.theme-light .filters-form input[type="datetime-local"]::-webkit-calendar-pi
 	font-weight: 600;
 }
 
+/* Public dashboard: the company token is a fixed 1:1 value, shown as a
+   non-editable pill rather than a single-option select. */
+.company-pill {
+	align-self: flex-start;
+	max-width: 100%;
+	padding: 0.4rem 0.75rem;
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--color-border-strong);
+	background: var(--color-surface-raised);
+	color: var(--color-text);
+	font-family: var(--font-mono);
+	font-size: 0.85rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 .panel-header {
 	display: flex;
 	align-items: center;
