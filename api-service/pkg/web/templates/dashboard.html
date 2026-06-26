@@ -18,24 +18,18 @@
 			<p class="hint">Example: <code>_sample_company</code>. Required to load devices and locations.</p>
 			<button type="submit">Load</button>
 		</form>
+		{{if and .Org (not .HasCompany)}}
+		<p class="hint company-not-found">No matching company token <code>{{.Org}}</code> was found. Check the token and try again.</p>
 		{{end}}
-		{{if .Org}}
+		{{end}}
+		{{if and .Org .HasCompany}}
 		<form id="scope-form" method="get" action="{{.RouteBase}}/{{.Org}}" class="form-control stacked">
 			<input type="hidden" name="org" value="{{.Org}}">
 			<input type="hidden" id="scope-start-date" name="start_date" value="{{.From}}">
 			<input type="hidden" id="scope-end-date" name="end_date" value="{{.To}}">
-			{{if .IsAdmin}}
-			<label for="company">Company</label>
-			<select id="company" name="company_id">
-				{{range .Companies}}
-				<option value="{{.ID}}" {{if eq $.SelectedCompanyID .ID}}selected{{end}}>{{.CompanyToken}}</option>
-				{{end}}
-			</select>
-			{{else}}
 			<label>Company</label>
 			<div class="company-pill" title="{{.Org}}">{{.Org}}</div>
 			<input type="hidden" id="company" name="company_id" value="{{.SelectedCompanyID}}">
-			{{end}}
 			<label for="device">Device</label>
 			<select id="device" name="device_id">
 				{{template "partials/device_options" .}}
@@ -63,11 +57,16 @@
 		{{if .IsAdmin}}
 		{{template "partials/admin_activity" .}}
 		{{end}}
-		{{if not .Org}}
+		{{if not (and .Org .HasCompany)}}
 		{{if not .IsAdmin}}
 		<div class="empty-state">
+			{{if and .Org (not .HasCompany)}}
+			<h2>Company token not found</h2>
+			<p>No company matching <code>{{.Org}}</code> was found. Enter a registered company token to inspect its devices and locations.</p>
+			{{else}}
 			<h2>Select an organization token</h2>
 			<p>Provide the company token you registered with the API to inspect devices and locations in real time.</p>
+			{{end}}
 		</div>
 		{{end}}
 		{{else}}

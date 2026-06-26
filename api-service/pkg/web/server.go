@@ -516,6 +516,13 @@ func (s *Server) buildDashboardData(org string, params map[string][]string, admi
 		return nil, err
 	}
 	data.Companies = companies
+	// An org token with no matching company row is "not found": keep the
+	// unscoped view (entry form / empty state) and surface a message rather than
+	// rendering the map/device UI that only makes sense for a real company.
+	data.HasCompany = len(companies) > 0
+	if !data.HasCompany {
+		return data, nil
+	}
 	companyID := chooseID(firstParam(params, "company_id", ""), companies)
 	data.SelectedCompanyID = companyID
 
@@ -603,6 +610,7 @@ type DashboardPage struct {
 	AdminSearchQuery    string
 	AdminSearchResults  []SearchResult
 	Org                 string
+	HasCompany          bool
 	Companies           []services.CompanySummary
 	Devices             []services.DeviceDetails
 	SelectedCompanyID   int64

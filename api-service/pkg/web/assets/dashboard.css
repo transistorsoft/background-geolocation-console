@@ -1357,6 +1357,12 @@ body.theme-light .filters-form input[type="datetime-local"]::-webkit-calendar-pi
 	color: var(--color-text-muted);
 }
 
+.company-not-found {
+	margin: 0.25rem 0 0;
+	font-size: 0.85rem;
+	color: var(--color-error);
+}
+
 .form-control input,
 .form-control select {
 	padding: 0.5rem;
@@ -1376,13 +1382,13 @@ body.theme-light .filters-form input[type="datetime-local"]::-webkit-calendar-pi
 	font-weight: 600;
 }
 
-/* Public dashboard: the company token is a fixed 1:1 value, shown as a
-   non-editable pill rather than a single-option select. */
+/* The company token is a fixed 1:1 value, shown as a non-editable chip
+   rather than a single-option select (both public and admin dashboards). */
 .company-pill {
 	align-self: flex-start;
 	max-width: 100%;
 	padding: 0.4rem 0.75rem;
-	border-radius: var(--radius-pill);
+	border-radius: var(--radius-sm);
 	border: 1px solid var(--color-border-strong);
 	background: var(--color-surface-raised);
 	color: var(--color-text);
