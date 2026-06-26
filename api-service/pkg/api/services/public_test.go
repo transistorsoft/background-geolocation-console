@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -128,8 +129,9 @@ func TestLatestSessionRangeReturnsNewestContiguousWindow(t *testing.T) {
 		now.Add(-70 * time.Minute),
 	}
 	for i, ts := range recordedTimes {
+		uid := fmt.Sprintf("session-point-%d", i)
 		payload, err := json.Marshal(map[string]any{
-			"uuid":        "session-point",
+			"uuid":        uid,
 			"recorded_at": ts.Format(time.RFC3339Nano),
 		})
 		if err != nil {
@@ -141,7 +143,7 @@ func TestLatestSessionRangeReturnsNewestContiguousWindow(t *testing.T) {
 			DeviceID:   &device.ID,
 			RecordedAt: &recordedAt,
 			Data:       payload,
-			UUID:       "session-point",
+			UUID:       uid,
 		}
 		if err := db.Create(&location).Error; err != nil {
 			t.Fatalf("create location %d: %v", i, err)
@@ -201,8 +203,9 @@ func TestBuildLocationTimelineGroupsDistinctSessions(t *testing.T) {
 		base.Add(48 * time.Hour),
 	}
 	for i, ts := range recordedTimes {
+		uid := fmt.Sprintf("timeline-point-%d", i)
 		payload, err := json.Marshal(map[string]any{
-			"uuid":        "timeline-point",
+			"uuid":        uid,
 			"recorded_at": ts.Format(time.RFC3339Nano),
 		})
 		if err != nil {
@@ -214,7 +217,7 @@ func TestBuildLocationTimelineGroupsDistinctSessions(t *testing.T) {
 			DeviceID:   &device.ID,
 			RecordedAt: &recordedAt,
 			Data:       payload,
-			UUID:       "timeline-point",
+			UUID:       uid,
 		}
 		if err := db.Create(&location).Error; err != nil {
 			t.Fatalf("create location %d: %v", i, err)

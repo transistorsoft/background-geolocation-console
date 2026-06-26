@@ -202,6 +202,21 @@ func CreateLocation(data map[string]any, org string, device *Device) error {
 		if err != nil {
 			return err
 		}
+		// Idempotency: the SDK retries failed/timed-out posts with the same uuid.
+		// Skip if we already stored this uuid for this device. The partial UNIQUE
+		// index (company_id, device_id, uuid) is the hard guarantee/backstop; this
+		// check avoids erroring on the common sequential-retry case.
+		if loc.UUID != "" {
+			var existing int64
+			if err := tx.Model(&storage.Location{}).
+				Where("company_id = ? AND device_id = ? AND uuid = ?", companyID, device.ID, loc.UUID).
+				Count(&existing).Error; err != nil {
+				return err
+			}
+			if existing > 0 {
+				return nil
+			}
+		}
 		return tx.Create(loc).Error
 	})
 }

@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -37,11 +38,14 @@ func seedActivity(t *testing.T, token string, devices, recentPerDevice, oldPerDe
 		if err := db.Create(&device).Error; err != nil {
 			t.Fatalf("create device: %v", err)
 		}
+		seq := 0
 		write := func(ts time.Time, n int) {
 			for i := 0; i < n; i++ {
+				seq++
 				recordedAt := ts
-				payload, _ := json.Marshal(map[string]any{"uuid": "p", "recorded_at": ts.Format(time.RFC3339Nano)})
-				loc := storage.Location{CompanyID: &company.ID, DeviceID: &device.ID, RecordedAt: &recordedAt, Data: payload, UUID: "p"}
+				u := fmt.Sprintf("%s-%d-%d", token, d, seq) // distinct uuid per location
+				payload, _ := json.Marshal(map[string]any{"uuid": u, "recorded_at": ts.Format(time.RFC3339Nano)})
+				loc := storage.Location{CompanyID: &company.ID, DeviceID: &device.ID, RecordedAt: &recordedAt, Data: payload, UUID: u}
 				if err := db.Create(&loc).Error; err != nil {
 					t.Fatalf("create location: %v", err)
 				}
@@ -297,7 +301,7 @@ func TestListDevicesSortedByLocationCount(t *testing.T) {
 		}
 		for i := 0; i < count; i++ {
 			ts := now
-			loc := storage.Location{CompanyID: &company.ID, DeviceID: &dev.ID, RecordedAt: &ts, UUID: "u"}
+			loc := storage.Location{CompanyID: &company.ID, DeviceID: &dev.ID, RecordedAt: &ts, UUID: fmt.Sprintf("%s-%d", suffix, i)}
 			if err := db.Create(&loc).Error; err != nil {
 				t.Fatalf("create location: %v", err)
 			}

@@ -229,11 +229,57 @@ func runMigrations(ctx context.Context, db *gorm.DB, cfg config.DatabaseConfig) 
 		statements = sqliteDDL
 	}
 	statements = strings.TrimSpace(statements)
-	if statements == "" {
-		return nil
+	if statements != "" {
+		if err := db.WithContext(ctx).Exec(statements).Error; err != nil {
+			return fmt.Errorf("apply migrations: %w", err)
+		}
 	}
-	if err := db.WithContext(ctx).Exec(statements).Error; err != nil {
-		return fmt.Errorf("apply migrations: %w", err)
+	if err := ensureLocationUUIDUnique(ctx, db, cfg.DatabaseURL != ""); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ensureLocationUUIDUnique makes location ingest idempotent on
+// (company_id, device_id, uuid) by creating a partial UNIQUE index. The SDK
+// retries failed/timed-out posts with the same uuid, which previously produced
+// duplicate rows. Run once (guarded by index existence): it first removes any
+// pre-existing duplicates (keeping the earliest row per company/device/uuid) so
+// the index can be created. Rows with an empty uuid are exempt.
+func ensureLocationUUIDUnique(ctx context.Context, db *gorm.DB, isPostgres bool) error {
+	const indexName = "locations_company_device_uuid"
+	table := "locations"
+	existsSQL := "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = ?"
+	if isPostgres {
+		table = "public.locations"
+		existsSQL = "SELECT COUNT(*) FROM pg_indexes WHERE indexname = ?"
+	}
+
+	var count int64
+	if err := db.WithContext(ctx).Raw(existsSQL, indexName).Scan(&count).Error; err != nil {
+		return fmt.Errorf("check %s: %w", indexName, err)
+	}
+	if count > 0 {
+		return nil // already created; data already deduplicated
+	}
+
+	dedupSQL := fmt.Sprintf(`DELETE FROM %s
+WHERE uuid IS NOT NULL AND uuid <> ''
+  AND id NOT IN (
+    SELECT MIN(id) FROM %s
+    WHERE uuid IS NOT NULL AND uuid <> ''
+    GROUP BY company_id, device_id, uuid
+  )`, table, table)
+	if err := db.WithContext(ctx).Exec(dedupSQL).Error; err != nil {
+		return fmt.Errorf("dedup location uuids: %w", err)
+	}
+
+	createSQL := fmt.Sprintf(
+		`CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s (company_id, device_id, uuid) WHERE uuid <> ''`,
+		indexName, table,
+	)
+	if err := db.WithContext(ctx).Exec(createSQL).Error; err != nil {
+		return fmt.Errorf("create %s: %w", indexName, err)
 	}
 	return nil
 }
