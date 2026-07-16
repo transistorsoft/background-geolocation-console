@@ -91,6 +91,10 @@ func gormConfig() *gorm.Config {
 			SingularTable: false,
 		},
 		Logger: logger.Default.LogMode(logger.Warn),
+		// Translate driver-specific errors (e.g. unique violations) into GORM
+		// sentinels like gorm.ErrDuplicatedKey so callers can handle them
+		// portably across Postgres and SQLite.
+		TranslateError: true,
 	}
 }
 

@@ -1,8 +1,12 @@
 package services
 
 import (
+	"errors"
 	"testing"
 	"time"
+
+	"gorm.io/datatypes"
+	"gorm.io/gorm"
 
 	"github.com/resistorsoftware/api-service/pkg/storage"
 )
@@ -64,5 +68,13 @@ func TestCreateLocationDeduplicatesUUID(t *testing.T) {
 	}
 	if total != 4 { // A + B + 2 empty
 		t.Fatalf("expected 4 rows total, got %d", total)
+	}
+
+	// A concurrent duplicate (bypassing the pre-check) trips the unique index and
+	// surfaces as gorm.ErrDuplicatedKey — the sentinel CreateLocation treats as
+	// success so the handler still returns 200.
+	dup := &storage.Location{CompanyID: &company.ID, DeviceID: &device.ID, RecordedAt: &now, UUID: "A", Data: datatypes.JSON([]byte("{}"))}
+	if err := db.Create(dup).Error; !errors.Is(err, gorm.ErrDuplicatedKey) {
+		t.Fatalf("expected gorm.ErrDuplicatedKey for duplicate uuid, got %v", err)
 	}
 }

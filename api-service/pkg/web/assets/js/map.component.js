@@ -188,6 +188,11 @@ export class TransistorSoftMap extends HTMLElement {
 			this.gmap = new Map(this.mapContainer, {
 				center: { lat: -34.397, lng: 150.644 },
 				zoom: 8,
+				// Show the on-screen +/- zoom buttons (don't rely on scroll/keyboard).
+				zoomControl: true,
+				zoomControlOptions: {
+					position: google.maps.ControlPosition.RIGHT_BOTTOM,
+				},
 			});
 		} catch (err) {
 			console.error('initializeMap failed', err);

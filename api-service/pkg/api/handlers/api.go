@@ -23,10 +23,24 @@ func APIRegister(c *gin.Context) {
 		return
 	}
 
-	// The _transistor prefix is reserved for administrator-created companies.
+	// The _transistor prefix is reserved for administrator-created companies. A
+	// device may only register against such a company once an admin has created it
+	// (via the admin surface). If it already exists, registration proceeds normally
+	// and the device is issued a token; if not, return a distinct error so the
+	// client can prompt the operator to have an admin create the account first.
 	if services.IsProtectedCompanyToken(req.Org) {
-		c.JSON(http.StatusForbidden, gin.H{"message": "reserved company token"})
-		return
+		exists, err := services.CompanyExists(req.Org)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		if !exists {
+			c.JSON(http.StatusNotFound, gin.H{
+				"message": "unknown _transistor account — an admin must create it first",
+				"code":    "ADMIN_ACCOUNT_REQUIRED",
+			})
+			return
+		}
 	}
 	// Reject banned or denylisted companies before provisioning anything.
 	if banned, err := services.CompanyBanned(req.Org); err == nil && banned {

@@ -97,6 +97,33 @@ func CompanyBanned(org string) (bool, error) {
 	return company.Banned, nil
 }
 
+// CompanyExists reports whether a company row with the given org token exists.
+// Unlike ensureCompany/FindOrCreateDevice it never creates a row; it is used to
+// gate registration under the reserved ProtectedCompanyPrefix, which must be
+// provisioned by an administrator before a device may register against it.
+func CompanyExists(org string) (bool, error) {
+	trimmed := strings.TrimSpace(org)
+	if trimmed == "" {
+		return false, nil
+	}
+	db, err := storage.DB()
+	if err != nil {
+		return false, err
+	}
+	var company storage.Company
+	err = db.WithContext(context.Background()).
+		Select("id").
+		Where("company_token = ?", trimmed).
+		First(&company).Error
+	if err != nil {
+		if isRecordNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
 // IsDeniedCompany reports whether the org appears in the configured denylist.
 func IsDeniedCompany(org string) bool {
 	cfg, err := config.Access()

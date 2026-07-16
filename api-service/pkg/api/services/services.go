@@ -187,38 +187,52 @@ func CreateLocation(data map[string]any, org string, device *Device) error {
 		return err
 	}
 	ctx := context.Background()
-	return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var companyID int64
-		if device.CompanyID != 0 {
-			companyID = device.CompanyID
-		} else {
+
+	companyID := device.CompanyID
+	if companyID == 0 {
+		if err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 			company, err := ensureCompany(ctx, tx, org)
 			if err != nil {
 				return err
 			}
 			companyID = company.ID
-		}
-		loc, err := buildLocationRecord(data, companyID, device.ID)
-		if err != nil {
+			return nil
+		}); err != nil {
 			return err
 		}
-		// Idempotency: the SDK retries failed/timed-out posts with the same uuid.
-		// Skip if we already stored this uuid for this device. The partial UNIQUE
-		// index (company_id, device_id, uuid) is the hard guarantee/backstop; this
-		// check avoids erroring on the common sequential-retry case.
-		if loc.UUID != "" {
-			var existing int64
-			if err := tx.Model(&storage.Location{}).
-				Where("company_id = ? AND device_id = ? AND uuid = ?", companyID, device.ID, loc.UUID).
-				Count(&existing).Error; err != nil {
-				return err
-			}
-			if existing > 0 {
-				return nil
-			}
+	}
+
+	loc, err := buildLocationRecord(data, companyID, device.ID)
+	if err != nil {
+		return err
+	}
+
+	// Idempotency: the SDK retries failed/timed-out posts with the same uuid.
+	// Fast path — skip a uuid we've already stored for this device.
+	if loc.UUID != "" {
+		var existing int64
+		if err := db.WithContext(ctx).Model(&storage.Location{}).
+			Where("company_id = ? AND device_id = ? AND uuid = ?", companyID, device.ID, loc.UUID).
+			Count(&existing).Error; err != nil {
+			return err
 		}
-		return tx.Create(loc).Error
-	})
+		if existing > 0 {
+			return nil
+		}
+	}
+
+	// Insert outside a transaction so a concurrent duplicate that slips past the
+	// check (tripping the partial unique index) can be treated as success without
+	// poisoning a transaction. A duplicate is not an error: the location is already
+	// stored, so we return nil and the handler responds 200 — letting the SDK drop
+	// the location from its sync buffer.
+	if err := db.WithContext(ctx).Create(loc).Error; err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 // RemoveOld prunes stale locations for the given org using a default retention window.

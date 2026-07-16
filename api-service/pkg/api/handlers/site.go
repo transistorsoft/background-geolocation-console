@@ -52,6 +52,10 @@ func SitePostJWT(c *gin.Context) {
 
 	token, err := issueDashboardToken(req.Org, false)
 	if err != nil {
+		if errors.Is(err, errReservedCompanyMissing) {
+			c.JSON(http.StatusNotFound, gin.H{"message": err.Error(), "code": "ADMIN_ACCOUNT_REQUIRED"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -211,10 +215,27 @@ func SiteGetLatestLocation(c *gin.Context) {
 	c.JSON(http.StatusOK, loc)
 }
 
+// errReservedCompanyMissing is returned when a dashboard token is requested for a
+// reserved (_transistor*) org that has not been provisioned by an administrator.
+// EnsureDashboardDevice would otherwise auto-create the company, which would defeat
+// the reserved-prefix guard enforced on /api/register.
+var errReservedCompanyMissing = errors.New("unknown _transistor account — an admin must create it first")
+
 func issueDashboardToken(org string, admin bool) (string, error) {
 	org = strings.TrimSpace(org)
 	if org == "" {
 		return "", errors.New("org required")
+	}
+	// Do not auto-provision reserved orgs through the dashboard token path; only
+	// mint a token for a reserved org that an admin has already created.
+	if services.IsProtectedCompanyToken(org) {
+		exists, err := services.CompanyExists(org)
+		if err != nil {
+			return "", err
+		}
+		if !exists {
+			return "", errReservedCompanyMissing
+		}
 	}
 	companyID, deviceID, err := services.EnsureDashboardDevice(org)
 	if err != nil {
